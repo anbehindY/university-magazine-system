@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Next Prisma App
 
 ## Getting Started
 
-First, run the development server:
+1. Install dependencies:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Configure environment variables:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Create `.env` with at least:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DB_NAME
+DEFAULT_ADMIN_EMAIL=admin@example.com
+DEFAULT_ADMIN_PASSWORD=change-me
+DEFAULT_ADMIN_NAME=Default Admin
+```
 
-## Learn More
+3. Run Prisma setup (local development):
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+pnpm prisma generate
+pnpm prisma migrate dev
+pnpm prisma db seed
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+4. Start the dev server:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+pnpm dev
+```
 
-## Deploy on Vercel
+Open `http://localhost:3000`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Prisma Commands
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Command | Purpose | When to Run |
+| --- | --- | --- |
+| `pnpm prisma generate` | Generates the Prisma Client from `prisma/schema.prisma`. | After schema changes or fresh installs. |
+| `pnpm prisma migrate dev` | Creates a new migration from schema changes, applies it locally, and regenerates the client. | Development only. |
+| `pnpm prisma migrate dev --name init_users` | Creates a new migration with an explicit name, applies it locally, and regenerates the client. | When you want a named migration. |
+| `pnpm prisma migrate deploy` | Applies existing migrations in `prisma/migrations` without creating new ones. | Staging/production/CI (never for creating migrations). |
+| `pnpm prisma migrate reset` | Drops and recreates the database, re-applies all migrations, then runs the seed script. | Local/dev only when you need a clean slate. |
+| `pnpm prisma db seed` | Runs `prisma/seed.ts` to populate initial data (faculties and default admin). | After migrations, when bootstrapping. |
+| `pnpm prisma studio` | Launches Prisma Studio, a local UI to browse and edit data. | Any time you want to inspect data. |
