@@ -13,6 +13,14 @@ generator client {
   output   = "./generated"
 }
 
+enum Role {
+  MARKETING_MANAGER
+  MARKETING_COORDINATOR
+  STUDENT
+  ADMINISTRATOR
+  GUEST
+}
+
 model User {
   id            String    @id
   name          String
@@ -24,7 +32,9 @@ model User {
   sessions      Session[]
   accounts      Account[]
 
-  role       String?
+  role       Role? @default(STUDENT)
+  facultyId  String?
+  faculty    Faculty?  @relation(fields: [facultyId], references: [id])
   banned     Boolean?  @default(false)
   banReason  String?
   banExpires DateTime?
@@ -81,4 +91,14 @@ model Verification {
 
   @@index([identifier])
   @@map("verification")
+}
+
+model Faculty {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  users     User[]
+
+  @@map("faculty")
 }
