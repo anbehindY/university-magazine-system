@@ -14,7 +14,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "University Magazine System",
-  description: "A comprehensive platform for managing university magazine contributions and publications",
+  description:
+    "A comprehensive platform for managing university magazine contributions and publications",
 };
 
 export default function RootLayout({

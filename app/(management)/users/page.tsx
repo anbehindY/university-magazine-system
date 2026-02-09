@@ -1,5 +1,6 @@
 "use client";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -56,6 +57,9 @@ export default function UsersPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
   const [formLoading, setFormLoading] = useState(false);
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -149,7 +153,10 @@ export default function UsersPage() {
     }
   }
 
-  const requiresFaculty = role === "MARKETING_COORDINATOR" || role === "GUEST";
+  const requiresFaculty =
+    role === "MARKETING_COORDINATOR" ||
+    role === "GUEST" ||
+    role === "STUDENT";
 
   async function handleCreateUser(e: React.FormEvent) {
     e.preventDefault();
@@ -199,13 +206,37 @@ export default function UsersPage() {
     return <p className="text-white">Redirecting...</p>;
   }
 
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredUsers = users.filter((user) => {
+    if (!normalizedQuery) return true;
+    return (
+      user.name.toLowerCase().includes(normalizedQuery) ||
+      user.email.toLowerCase().includes(normalizedQuery) ||
+      (user.role || "").toLowerCase().includes(normalizedQuery) ||
+      (user.faculty?.name || "").toLowerCase().includes(normalizedQuery)
+    );
+  });
+
+  const totalCount = filteredUsers.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const startIndex = totalCount === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const endIndex =
+    totalCount === 0
+      ? 0
+      : Math.min(currentPage * pageSize, totalCount);
+  const pagedUsers = filteredUsers.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
   return (
     <main className="space-y-6 text-white">
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold">Users</h1>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-semibold">Users</h1>
           <p className="text-sm text-gray-400">
-            Total users: {loading ? "..." : users.length}
+            Manage access and permissions across your magazine staff.
           </p>
         </div>
         <Dialog
@@ -403,6 +434,17 @@ export default function UsersPage() {
         </Dialog>
       </div>
 
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative w-full sm:max-w-md">
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by name, email, role, or faculty"
+            className="bg-neutral-900 border-neutral-800 text-white"
+          />
+        </div>
+      </div>
+
       {error && (
         <div className="rounded-md border border-red-500 bg-red-500/10 px-4 py-3 text-red-400">
           {error}
@@ -416,7 +458,7 @@ export default function UsersPage() {
       )}
 
       {!loading && !error && users.length > 0 && (
-        <div className="overflow-hidden rounded-lg border border-neutral-800">
+        <div className="overflow-hidden rounded-xl border border-neutral-800 bg-neutral-950/60">
           <table className="w-full text-left text-sm">
             <thead className="bg-neutral-900 text-gray-300">
               <tr>
@@ -429,23 +471,78 @@ export default function UsersPage() {
               </tr>
             </thead>
             <tbody>
-              {users.map((user) => (
-                <tr key={user.id} className="border-t border-neutral-800">
-                  <td className="px-4 py-3">{user.name}</td>
-                  <td className="px-4 py-3">{user.email}</td>
-                  <td className="px-4 py-3">{user.role || "-"}</td>
-                  <td className="px-4 py-3">{user.faculty?.name || "-"}</td>
+              {pagedUsers.map((user) => (
+                <tr
+                  key={user.id}
+                  className="border-t border-neutral-800/80 hover:bg-white/5"
+                >
+                  <td className="px-4 py-3 font-medium">{user.name}</td>
+                  <td className="px-4 py-3 text-white/70">{user.email}</td>
                   <td className="px-4 py-3">
-                    {user.banned ? "Banned" : "Active"}
-                    {!user.emailVerified ? " / Unverified" : ""}
+                    <Badge variant="secondary" className="bg-white/10 text-white">
+                      {(user.role || "User").replaceAll("_", " ")}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-3 text-white/70">
+                    {user.faculty?.name || "-"}
                   </td>
                   <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-2">
+                      <Badge
+                        variant="secondary"
+                        className={
+                          user.banned
+                            ? "bg-red-500/15 text-red-200"
+                            : "bg-emerald-500/15 text-emerald-200"
+                        }
+                      >
+                        {user.banned ? "Banned" : "Active"}
+                      </Badge>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-white/70">
                     {new Date(user.createdAt).toLocaleDateString()}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          {!loading && !error && filteredUsers.length === 0 && (
+            <div className="px-4 py-10 text-center text-sm text-white/60">
+              No users match your search.
+            </div>
+          )}
+        </div>
+      )}
+
+      {!loading && !error && totalCount > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-white/70">
+          <div>
+            Showing {startIndex}–{endIndex} of {totalCount}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentPage <= 1}
+              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+            >
+              Previous
+            </Button>
+            <div className="rounded-md border border-neutral-800 bg-neutral-900 px-3 py-1">
+              Page {currentPage} of {totalPages}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentPage >= totalPages}
+              onClick={() =>
+                setPage((prev) => Math.min(totalPages, prev + 1))
+              }
+            >
+              Next
+            </Button>
+          </div>
         </div>
       )}
     </main>
