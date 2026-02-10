@@ -4,6 +4,8 @@ import { getCurrentUser } from "@/lib/auth-helpers";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import React from "react";
 
+export const dynamic = "force-dynamic";
+
 export default async function Layout({
   children,
 }: {
