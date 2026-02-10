@@ -44,11 +44,11 @@ export default function SignInPage() {
   return (
     <main className="min-h-screen text-white">
       <div className="relative isolate overflow-hidden">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-neutral-950 to-black" />
-        <div className="absolute -top-24 right-0 h-80 w-80 rounded-full bg-emerald-500/10 blur-3xl" />
-        <div className="absolute -bottom-24 left-0 h-80 w-80 rounded-full bg-sky-500/10 blur-3xl" />
+        <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-neutral-950 to-black" />
+        <div className="pointer-events-none absolute -top-24 right-0 h-80 w-80 rounded-full bg-emerald-500/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 left-0 h-80 w-80 rounded-full bg-sky-500/10 blur-3xl" />
 
-        <div className="mx-auto grid min-h-screen w-full max-w-6xl items-center gap-12 px-6 py-16 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="relative z-10 mx-auto grid min-h-screen w-full max-w-6xl items-center gap-12 px-6 py-16 lg:grid-cols-[1.1fr_0.9fr]">
           <section className="space-y-6">
             <div className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80">
               <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/10">
