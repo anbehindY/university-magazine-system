@@ -5,6 +5,7 @@ import {
   Calendar,
   Home,
   LayoutDashboard,
+  Upload,
   UsersRound,
 } from "lucide-react";
 import * as React from "react";
@@ -20,28 +21,47 @@ import {
 } from "@/components/ui/sidebar";
 import getAvatarUrl from "@/lib/getAvatarUrl";
 
-const pages = [
-  {
-    title: "Home",
-    url: "/",
-    icon: Home,
-  },
-  {
-    title: "Users",
-    url: "/users",
-    icon: UsersRound,
-  },
-  {
-    title: "Closure Schedule",
-    url: "#",
-    icon: Calendar,
-  },
-  {
-    title: "Reporting",
-    url: "#",
-    icon: BookOpen,
-  },
-];
+function buildPages(role?: string | null) {
+  const items = [
+    {
+      title: "Home",
+      url: "/",
+      icon: Home,
+    },
+    {
+      title: "Users",
+      url: "/users",
+      icon: UsersRound,
+    },
+    {
+      title: "Closure Schedule",
+      url: "#",
+      icon: Calendar,
+    },
+    {
+      title: "Reporting",
+      url: "#",
+      icon: BookOpen,
+    },
+  ];
+
+  if (role === "ADMINISTRATOR") {
+    items.unshift(
+      {
+        title: "Admin Panel",
+        url: "/admin",
+        icon: LayoutDashboard,
+      },
+      {
+        title: "Upload Rules",
+        url: "/admin/upload-rules",
+        icon: Upload,
+      }
+    );
+  }
+
+  return items;
+}
 
 type SidebarUser = {
   name?: string | null;
@@ -83,7 +103,7 @@ export function AppSidebar({
         </div>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={pages} />
+        <NavMain items={buildPages(sessionUser.role)} />
       </SidebarContent>
       <SidebarFooter className="mb-1">
         <NavUser user={sessionUser} />

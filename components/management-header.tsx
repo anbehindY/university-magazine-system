@@ -21,6 +21,7 @@ const LABELS: Record<string, string> = {
   "create-user": "Create User",
   reports: "Reporting",
   "closure-schedule": "Closure Schedule",
+  "upload-rules": "Upload Rules",
 };
 
 function toTitleCase(value: string) {
