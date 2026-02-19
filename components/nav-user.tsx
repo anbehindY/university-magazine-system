@@ -1,24 +1,20 @@
 "use client";
 
-import { ChevronsUpDown, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
 } from "@/components/ui/sidebar";
 import { signOut } from "@/lib/auth-client";
+
+function getInitials(name?: string | null) {
+  if (!name) return "SJ";
+  const parts = name.trim().split(/\s+/).slice(0, 2);
+  return parts.map((part) => part[0]?.toUpperCase()).join("");
+}
 
 export function NavUser({
   user,
@@ -30,59 +26,40 @@ export function NavUser({
     role?: string | null;
   };
 }) {
-  const { isMobile } = useSidebar();
-
   return (
     <SidebarMenu>
       <SidebarMenuItem>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <SidebarMenuButton
-              size="lg"
-              id="user-menu-trigger"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground focus-visible:ring-0 focus-visible:ring-transparent focus-visible:outline-none focus:outline-none"
+        <SidebarMenuButton
+          asChild
+          size="lg"
+          id="user-menu-trigger"
+          className="hover:bg-white/10 focus-visible:ring-0 focus-visible:ring-transparent focus-visible:outline-none focus:outline-none"
+        >
+          <div>
+            <Avatar className="h-9 w-9 rounded-full">
+              <AvatarImage src={user.avatar} alt={user.name} />
+              <AvatarFallback className="rounded-full bg-amber-400 text-slate-900">
+                {getInitials(user.name)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="grid flex-1 text-left text-sm leading-tight">
+              <span className="truncate font-medium text-white">
+                {user.name}
+              </span>
+              <span className="truncate text-xs text-white/60">
+                {user.role ?? "Administrator"}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => signOut()}
+              className="ml-auto flex h-8 w-8 items-center justify-center rounded-full text-white/70 hover:text-white"
+              aria-label="Log out"
             >
-              <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback className="rounded-lg">CN</AvatarFallback>
-              </Avatar>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{user.name}</span>
-                <span className="truncate text-xs">{user.email}</span>
-              </div>
-              <ChevronsUpDown className="ml-auto size-4" />
-            </SidebarMenuButton>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-            side={isMobile ? "bottom" : "right"}
-            align="end"
-            sideOffset={4}
-          >
-            <DropdownMenuLabel className="p-0 font-normal">
-              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={user.avatar} alt={user.name} />
-                  <AvatarFallback className="rounded-lg">CN</AvatarFallback>
-                </Avatar>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{user.name}</span>
-                  <span className="truncate text-xs">{user.email}</span>
-                  {user.role ? (
-                    <span className="truncate text-xs text-muted-foreground">
-                      {user.role}
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => signOut()}>
-              <LogOut />
-              Log out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
+        </SidebarMenuButton>
       </SidebarMenuItem>
     </SidebarMenu>
   );

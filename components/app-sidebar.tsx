@@ -1,12 +1,17 @@
 "use client";
 
 import {
+  BarChart3,
   BookOpen,
   Calendar,
-  Home,
+  ClipboardList,
+  FileText,
   LayoutDashboard,
+  Megaphone,
+  Settings,
+  Shield,
   Upload,
-  UsersRound,
+  UserSquare2,
 } from "lucide-react";
 import * as React from "react";
 
@@ -24,41 +29,61 @@ import getAvatarUrl from "@/lib/getAvatarUrl";
 function buildPages(role?: string | null) {
   const items = [
     {
-      title: "Home",
-      url: "/",
-      icon: Home,
-    },
-    {
-      title: "Users",
-      url: "/users",
-      icon: UsersRound,
-    },
-    {
-      title: "Closure Schedule",
+      title: "Faculty Submissions",
       url: "#",
-      icon: Calendar,
+      icon: FileText,
     },
     {
-      title: "Reporting",
+      title: "Selected Articles",
       url: "#",
       icon: BookOpen,
     },
+    {
+      title: "Analytics",
+      url: "#",
+      icon: BarChart3,
+    },
+    {
+      title: "Dashboard",
+      url: "/",
+      icon: LayoutDashboard,
+    },
+    {
+      title: "User Management",
+      url: "/users",
+      icon: UserSquare2,
+    },
+    {
+      title: "Reports & Analytics",
+      url: "#",
+      icon: ClipboardList,
+    },
+    {
+      title: "Closure Dates",
+      url: "/admin",
+      icon: Calendar,
+    },
+    {
+      title: "Upload Rules",
+      url: "/admin/upload-rules",
+      icon: Upload,
+    },
+    {
+      title: "Audit Log",
+      url: "#",
+      icon: ClipboardList,
+    },
+    {
+      title: "Notifications",
+      url: "#",
+      icon: Megaphone,
+    },
+    {
+      title: "Settings",
+      url: "#",
+      icon: Settings,
+    },
   ];
-
-  if (role === "ADMINISTRATOR") {
-    items.unshift(
-      {
-        title: "Admin Panel",
-        url: "/admin",
-        icon: LayoutDashboard,
-      },
-      {
-        title: "Upload Rules",
-        url: "/admin/upload-rules",
-        icon: Upload,
-      }
-    );
-  }
 
   return items;
 }
@@ -70,16 +95,6 @@ type SidebarUser = {
   role?: string | null;
 };
 
-const DASHBOARD_LABELS: Record<string, string> = {
-  ADMINISTRATOR: "Admin Dashboard",
-  MARKETING_COORDINATOR: "Marketing Dashboard",
-  MARKETING_MANAGER: "Marketing Dashboard",
-  STUDENT: "Student Dashboard",
-};
-
-function getDashboardLabel(role?: string | null) {
-  return (role && DASHBOARD_LABELS[role]) || "Dashboard";
-}
 
 export function AppSidebar({
   user,
@@ -95,17 +110,24 @@ export function AppSidebar({
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <div className="flex items-center gap-2.5 px-3 py-2 transition-[gap,padding] duration-200 ease-linear group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:justify-center">
-          <LayoutDashboard className="size-6 shrink-0" />
-          <span className="text-sm font-semibold whitespace-nowrap overflow-hidden transition-[max-width,opacity,transform] duration-200 ease-linear max-w-[12rem] group-data-[collapsible=icon]:max-w-0 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:-translate-x-2">
-            {getDashboardLabel(sessionUser.role)}
+        <div className="flex items-center gap-3 px-3 py-3 transition-[gap,padding] duration-200 ease-linear group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:justify-center">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-400 text-slate-900 shadow-sm">
+            <Shield className="size-5" />
           </span>
+          <div className="min-w-0 overflow-hidden transition-[max-width,opacity,transform] duration-200 ease-linear max-w-[12rem] group-data-[collapsible=icon]:max-w-0 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:-translate-x-2">
+            <div className="text-sm font-semibold leading-none text-white">
+              Admin Portal
+            </div>
+            <div className="mt-1 text-xs text-white/60">
+              Enterprise Control Panel
+            </div>
+          </div>
         </div>
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={buildPages(sessionUser.role)} />
       </SidebarContent>
-      <SidebarFooter className="mb-1">
+      <SidebarFooter className="mb-1 border-t border-white/10 pt-3">
         <NavUser user={sessionUser} />
       </SidebarFooter>
       <SidebarRail />
