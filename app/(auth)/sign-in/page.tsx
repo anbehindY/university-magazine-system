@@ -26,16 +26,35 @@ import {
 } from "@/components/ui/form";
 
 const signInSchema = z.object({
-  email: z
-    .string()
-    .min(1, "Email is required.")
-    .email("Please enter a valid email address."),
-  password: z.string().min(1, "Password is required."),
+  email: z.string().min(1, "Email is required"),
+  password: z.string().min(1, "Password is required"),
 });
 
 type SignInValues = z.infer<typeof signInSchema>;
-const INVALID_CREDENTIALS_MESSAGE =
-  "Invalid email or password. Please check your credentials and try again.";
+const INVALID_CREDENTIALS_MESSAGE = "Invalid email or password";
+
+function hasSuspiciousInput(value: string): boolean {
+  const lowered = value.toLowerCase();
+  const suspiciousPatterns = [
+    "<",
+    ">",
+    "'",
+    "\"",
+    "--",
+    ";",
+    "/*",
+    "*/",
+    " union ",
+    " select ",
+    " or ",
+    " drop ",
+    " insert ",
+    " update ",
+    " delete ",
+  ];
+
+  return suspiciousPatterns.some((pattern) => lowered.includes(pattern));
+}
 
 function getFriendlyAuthError(error: unknown): string {
   const message =
@@ -74,6 +93,15 @@ export default function SignInPage() {
   async function handleSubmit(values: SignInValues) {
     setError(null);
     setLoading(true);
+
+    if (
+      hasSuspiciousInput(values.email) ||
+      hasSuspiciousInput(values.password)
+    ) {
+      setError(INVALID_CREDENTIALS_MESSAGE);
+      setLoading(false);
+      return;
+    }
 
     try {
       const res = await signIn.email({
@@ -145,6 +173,7 @@ export default function SignInPage() {
               <Form {...form}>
                 <form
                   onSubmit={form.handleSubmit(handleSubmit)}
+                  noValidate
                   className="space-y-4"
                 >
                   <FormField
