@@ -78,7 +78,7 @@ async function main() {
 
     await prisma.user.update({
       where: { email: adminEmail },
-      data: { role: "ADMINISTRATOR" },
+      data: { role: "ADMINISTRATOR", emailVerified: true },
     });
 
     console.log(`Default admin ensured: ${adminEmail}`);
@@ -87,6 +87,88 @@ async function main() {
       "Skipping default admin seed (DEFAULT_ADMIN_EMAIL or DEFAULT_ADMIN_PASSWORD not set)."
     );
   }
+
+  const facultyRecords = await prisma.faculty.findMany({
+    select: { id: true, name: true },
+  });
+
+  const facultyByName = new Map(
+    facultyRecords.map((faculty) => [faculty.name, faculty.id])
+  );
+
+  const seedUsers = [
+    {
+      name: "Sarah Johnson",
+      email: "sarah.johnson@uog.com",
+      role: "ADMINISTRATOR",
+      facultyName: "Faculty of Business",
+    },
+    {
+      name: "Michael Chen",
+      email: "michael.chen@uog.com",
+      role: "MARKETING_MANAGER",
+      facultyName: null,
+    },
+    {
+      name: "Emily Rodriguez",
+      email: "emily.rodriguez@uog.com",
+      role: "STUDENT",
+      facultyName: "Faculty of Arts and Humanities",
+    },
+    {
+      name: "David Park",
+      email: "david.park@uog.com",
+      role: "STUDENT",
+      facultyName: "Faculty of Engineering",
+    },
+    {
+      name: "Jessica Williams",
+      email: "jessica.williams@uog.com",
+      role: "MARKETING_COORDINATOR",
+      facultyName: "Faculty of Science",
+    },
+    {
+      name: "Priya Shah",
+      email: "priya.shah@uog.com",
+      role: "GUEST",
+      facultyName: "Faculty of Medicine",
+    },
+  ] as const;
+
+  const defaultPassword = "password";
+
+  for (const user of seedUsers) {
+    const existingUser = await prisma.user.findUnique({
+      where: { email: user.email },
+    });
+
+    if (!existingUser) {
+      const result = await auth.api.signUpEmail({
+        body: {
+          name: user.name,
+          email: user.email,
+          password: defaultPassword,
+        },
+      });
+
+      if (!result?.user) {
+        throw new Error(`Failed to create seed user ${user.email}`);
+      }
+    }
+
+    await prisma.user.update({
+      where: { email: user.email },
+      data: {
+        role: user.role,
+        emailVerified: true,
+        facultyId: user.facultyName
+          ? facultyByName.get(user.facultyName) ?? null
+          : null,
+      },
+    });
+  }
+
+  console.log("Seed users ensured for all roles.");
 
   console.log("Seeding completed!");
 }
