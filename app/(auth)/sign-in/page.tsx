@@ -225,7 +225,7 @@ export default function SignInPage() {
                         <FormControl>
                           <Input
                             type="email"
-                            placeholder="you@university.edu"
+                            placeholder="you@university.com"
                             autoComplete="email"
                             className="border-slate-200 bg-white text-slate-900 placeholder:text-slate-400"
                             {...field}

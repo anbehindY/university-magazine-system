@@ -27,6 +27,16 @@ import {
 import getAvatarUrl from "@/lib/getAvatarUrl";
 
 function buildPages(role?: string | null) {
+  if (role && role !== "ADMINISTRATOR") {
+    return [
+      {
+        title: "Dashboard",
+        url: "/",
+        icon: LayoutDashboard,
+      },
+    ];
+  }
+
   const items = [
     {
       title: "Faculty Submissions",
