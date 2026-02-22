@@ -21,9 +21,9 @@ type TimePickerProps = {
 
 const TIME_INPUT_REGEX = /^\d{0,2}:?\d{0,2}$/
 
-function toDisplayParts(value?: string) {
+function toDisplayParts(value?: string): { time: string; period: "AM" | "PM" } {
   if (!value || !/^\d{2}:\d{2}$/.test(value)) {
-    return { time: "", period: "AM" as const }
+    return { time: "", period: "AM" }
   }
 
   const [hourStr, minute] = value.split(":")
