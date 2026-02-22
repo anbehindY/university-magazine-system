@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Bell, Menu, Search } from "lucide-react";
+import { Bell, Search } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
@@ -19,11 +19,10 @@ export default function ManagementHeader() {
   const user = session?.user;
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4">
+    <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-6">
       <div className="flex items-center gap-3">
         <SidebarTrigger className="-ml-1 md:hidden" />
-        <Menu className="hidden h-5 w-5 text-slate-500 md:block" />
-        <div className="relative w-full max-w-xs">
+        <div className="relative w-full md:w-[420px]">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <Input
             placeholder="Search..."

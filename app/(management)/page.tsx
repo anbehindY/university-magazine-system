@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useSession } from "@/lib/auth-client";
+import { LoadingScreen } from "@/components/ui/loading-screen";
 import {
   ArrowUpRight,
   CalendarClock,
@@ -32,9 +33,9 @@ export default function DashboardPage() {
   }, [isPending, session, router]);
 
   if (isPending)
-    return <p className="text-center mt-8 text-slate-600">Loading...</p>;
+    return <LoadingScreen />;
   if (!session?.user)
-    return <p className="text-center mt-8 text-slate-600">Redirecting...</p>;
+    return <LoadingScreen />;
 
   const { user } = session;
 

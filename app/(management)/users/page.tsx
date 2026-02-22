@@ -13,6 +13,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { LoadingScreen } from "@/components/ui/loading-screen";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -20,6 +27,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { formatDistanceToNow } from "date-fns";
+import { MoreHorizontal, UserPlus } from "lucide-react";
 import { useSession } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -32,6 +41,7 @@ type UserRow = {
   emailVerified: boolean;
   banned: boolean | null;
   createdAt: string;
+  lastActiveAt?: string | null;
   faculty: { id: string; name: string } | null;
 };
 
@@ -47,6 +57,38 @@ type Faculty = {
   name: string;
 };
 
+function formatRole(role: string | null) {
+  if (!role) return "User";
+  return role
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function getUserStatus(user: Pick<UserRow, "banned" | "emailVerified">) {
+  if (user.banned) return "Inactive";
+  if (!user.emailVerified) return "Pending";
+  return "Active";
+}
+
+function getStatusClasses(status: string) {
+  if (status === "Active") {
+    return "border-emerald-200 bg-emerald-100 text-emerald-700";
+  }
+  if (status === "Pending") {
+    return "border-amber-200 bg-amber-100 text-amber-700";
+  }
+  return "border-slate-200 bg-slate-100 text-slate-700";
+}
+
+function getLastActiveLabel(user: Pick<UserRow, "lastActiveAt">) {
+  if (!user.lastActiveAt) return "Never";
+  const lastActive = new Date(user.lastActiveAt);
+  if (Number.isNaN(lastActive.getTime())) return "Never";
+  return formatDistanceToNow(lastActive, { addSuffix: true });
+}
+
 export default function UsersPage() {
   const router = useRouter();
   const { data: session, isPending } = useSession();
@@ -57,14 +99,21 @@ export default function UsersPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
   const [formLoading, setFormLoading] = useState(false);
-  const [query, setQuery] = useState("");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [editSuccess, setEditSuccess] = useState<string | null>(null);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editingUserId, setEditingUserId] = useState("");
+  const [deactivateLoadingId, setDeactivateLoadingId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<Role | "">("");
   const [facultyId, setFacultyId] = useState("");
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editRole, setEditRole] = useState<Role | "">("");
+  const [editFacultyId, setEditFacultyId] = useState("");
   const [faculties, setFaculties] = useState<Faculty[]>([]);
 
   useEffect(() => {
@@ -117,7 +166,7 @@ export default function UsersPage() {
   }, [isPending, session?.user, session?.user?.role]);
 
   useEffect(() => {
-    if (!dialogOpen) return;
+    if (!dialogOpen && !editDialogOpen) return;
 
     let cancelled = false;
     async function fetchFaculties() {
@@ -135,7 +184,7 @@ export default function UsersPage() {
     return () => {
       cancelled = true;
     };
-  }, [dialogOpen]);
+  }, [dialogOpen, editDialogOpen]);
 
   async function refreshUsers() {
     try {
@@ -157,6 +206,21 @@ export default function UsersPage() {
     role === "MARKETING_COORDINATOR" ||
     role === "GUEST" ||
     role === "STUDENT";
+  const requiresEditFaculty =
+    editRole === "MARKETING_COORDINATOR" ||
+    editRole === "GUEST" ||
+    editRole === "STUDENT";
+
+  function openEditDialog(user: UserRow) {
+    setEditingUserId(user.id);
+    setEditName(user.name);
+    setEditEmail(user.email);
+    setEditRole((user.role as Role) || "STUDENT");
+    setEditFacultyId(user.faculty?.id || "");
+    setEditError(null);
+    setEditSuccess(null);
+    setEditDialogOpen(true);
+  }
 
   async function handleCreateUser(e: React.FormEvent) {
     e.preventDefault();
@@ -198,353 +262,566 @@ export default function UsersPage() {
     }
   }
 
+  async function handleEditUser(e: React.FormEvent) {
+    e.preventDefault();
+    setEditError(null);
+    setEditSuccess(null);
+    setEditLoading(true);
+
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editingUserId,
+          name: editName,
+          email: editEmail,
+          role: editRole,
+          facultyId: requiresEditFaculty ? editFacultyId : null,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setEditError(data.error || "Failed to update user");
+        return;
+      }
+
+      setEditSuccess("User updated successfully.");
+      await refreshUsers();
+      setEditDialogOpen(false);
+    } catch {
+      setEditError("An unexpected error occurred");
+    } finally {
+      setEditLoading(false);
+    }
+  }
+
+  async function handleDeactivateUser(userId: string) {
+    if (deactivateLoadingId) return;
+    setDeactivateLoadingId(userId);
+    setEditError(null);
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: userId,
+          action: "deactivate",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setEditError(data.error || "Failed to deactivate user");
+        return;
+      }
+      await refreshUsers();
+    } catch {
+      setEditError("An unexpected error occurred");
+    } finally {
+      setDeactivateLoadingId(null);
+    }
+  }
+
+  async function handleReactivateUser(userId: string) {
+    if (deactivateLoadingId) return;
+    setDeactivateLoadingId(userId);
+    setEditError(null);
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: userId,
+          action: "reactivate",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setEditError(data.error || "Failed to reactivate user");
+        return;
+      }
+      await refreshUsers();
+    } catch {
+      setEditError("An unexpected error occurred");
+    } finally {
+      setDeactivateLoadingId(null);
+    }
+  }
+
   if (isPending) {
-    return <p className="text-slate-600">Loading...</p>;
+    return <LoadingScreen />;
   }
 
   if (!session?.user || session.user.role !== "ADMINISTRATOR") {
-    return <p className="text-slate-600">Redirecting...</p>;
+    return <LoadingScreen />;
   }
 
-  const normalizedQuery = query.trim().toLowerCase();
-  const filteredUsers = users.filter((user) => {
-    if (!normalizedQuery) return true;
-    return (
-      user.name.toLowerCase().includes(normalizedQuery) ||
-      user.email.toLowerCase().includes(normalizedQuery) ||
-      (user.role || "").toLowerCase().includes(normalizedQuery) ||
-      (user.faculty?.name || "").toLowerCase().includes(normalizedQuery)
-    );
-  });
-
-  const totalCount = filteredUsers.length;
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
-  const currentPage = Math.min(page, totalPages);
-  const startIndex = totalCount === 0 ? 0 : (currentPage - 1) * pageSize + 1;
-  const endIndex =
-    totalCount === 0
-      ? 0
-      : Math.min(currentPage * pageSize, totalCount);
-  const pagedUsers = filteredUsers.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  );
-
   return (
-    <main className="space-y-6 text-slate-900">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-semibold">Users</h1>
-          <p className="text-sm text-slate-500">
-            Manage access and permissions across your magazine staff.
-          </p>
-        </div>
-        <Dialog
-          open={dialogOpen}
-          onOpenChange={(open) => {
-            setDialogOpen(open);
-            if (!open) {
-              setFormError(null);
-              setFormSuccess(null);
-              setName("");
-              setEmail("");
-              setPassword("");
-              setRole("");
-              setFacultyId("");
-            }
-          }}
-        >
-          <DialogTrigger asChild>
-            <Button className="bg-slate-900 text-white hover:bg-slate-800">
-              Create User
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="bg-white border-slate-200 text-slate-900">
-            <DialogHeader>
-              <DialogTitle>Create New User</DialogTitle>
-              <DialogDescription className="text-slate-500">
-                Create a new user account with a specific role.
-              </DialogDescription>
-            </DialogHeader>
+    <main className="space-y-8 py-8 text-slate-900">
+      <div className="space-y-2">
+        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
+          User Management
+        </h1>
+        <p className="text-base text-slate-500">
+          Manage user accounts, roles, and permissions
+        </p>
+      </div>
 
-            {formError && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
-                {formError}
-              </div>
-            )}
+      <div className="border-t border-slate-200" />
 
-            {formSuccess && (
-              <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-md">
-                {formSuccess}
-              </div>
-            )}
+      <section className="space-y-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-slate-900">All Users</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Manage and monitor user accounts
+            </p>
+          </div>
 
-            <form onSubmit={handleCreateUser} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-slate-700">
-                  Full Name
-                </Label>
-                <Input
-                  id="name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                  className="bg-white border-slate-200 text-slate-900 placeholder:text-slate-400"
-                  placeholder="Enter full name"
-                />
-              </div>
+          <Dialog
+            open={dialogOpen}
+            onOpenChange={(open) => {
+              setDialogOpen(open);
+              if (!open) {
+                setFormError(null);
+                setFormSuccess(null);
+                setName("");
+                setEmail("");
+                setPassword("");
+                setRole("");
+                setFacultyId("");
+              }
+            }}
+          >
+            <DialogTrigger asChild>
+              <Button className="h-10 gap-2 rounded-lg bg-amber-400 px-4 text-sm font-medium text-slate-900 hover:bg-amber-500">
+                <UserPlus className="h-4 w-4" />
+                Add User
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-white border-slate-200 text-slate-900">
+              <DialogHeader>
+                <DialogTitle>Create New User</DialogTitle>
+                <DialogDescription className="text-slate-500">
+                  Create a new user account with a specific role.
+                </DialogDescription>
+              </DialogHeader>
 
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-slate-700">
-                  Email Address
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="bg-white border-slate-200 text-slate-900 placeholder:text-slate-400"
-                  placeholder="user@example.com"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-slate-700">
-                  Password
-                </Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={8}
-                  className="bg-white border-slate-200 text-slate-900 placeholder:text-slate-400"
-                  placeholder="Minimum 8 characters"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="role" className="text-slate-700">
-                  Role
-                </Label>
-                <Select
-                  value={role}
-                  onValueChange={(value) => setRole(value as Role)}
-                >
-                  <SelectTrigger className="bg-white border-slate-200 text-slate-900">
-                    <SelectValue placeholder="Select a role" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white border-slate-200">
-                    <SelectItem value="STUDENT" className="text-slate-900">
-                      Student
-                    </SelectItem>
-                    <SelectItem
-                      value="MARKETING_COORDINATOR"
-                      className="text-slate-900"
-                    >
-                      Marketing Coordinator (Faculty level)
-                    </SelectItem>
-                    <SelectItem
-                      value="MARKETING_MANAGER"
-                      className="text-slate-900"
-                    >
-                      Marketing Manager (University level)
-                    </SelectItem>
-                    <SelectItem value="ADMINISTRATOR" className="text-slate-900">
-                      Administrator
-                    </SelectItem>
-                    <SelectItem value="GUEST" className="text-slate-900">
-                      Guest (Faculty level)
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-sm text-slate-500">
-                  {role === "MARKETING_MANAGER" &&
-                    "Can view all contributions and download as ZIP after final closure date"}
-                  {role === "MARKETING_COORDINATOR" &&
-                    "Can manage contributions for their faculty and interact with students"}
-                  {role === "STUDENT" &&
-                    "Can submit articles and upload images"}
-                  {role === "ADMINISTRATOR" &&
-                    "Can maintain system data and manage closure dates"}
-                  {role === "GUEST" &&
-                    "Read-only access to selected reports for their faculty"}
-                </p>
-              </div>
-
-              {requiresFaculty && (
-                <div className="space-y-2">
-                  <Label htmlFor="faculty" className="text-slate-700">
-                    Faculty <span className="text-red-500">*</span>
-                  </Label>
-                  <Select value={facultyId} onValueChange={setFacultyId}>
-                    <SelectTrigger className="bg-white border-slate-200 text-slate-900">
-                      <SelectValue placeholder="Select a faculty" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white border-slate-200">
-                      {faculties.length === 0 ? (
-                        <SelectItem
-                          value="none"
-                          disabled
-                          className="text-slate-400"
-                        >
-                          No faculties available
-                        </SelectItem>
-                      ) : (
-                        faculties.map((faculty) => (
-                          <SelectItem
-                            key={faculty.id}
-                            value={faculty.id}
-                            className="text-slate-900"
-                          >
-                            {faculty.name}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-sm text-slate-500">
-                    This user will only have access to their assigned faculty
-                  </p>
+              {formError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+                  {formError}
                 </div>
               )}
 
-              <DialogFooter className="gap-3 sm:gap-3">
-                <Button
-                  type="submit"
-                  disabled={formLoading || (requiresFaculty && !facultyId)}
-                  className="bg-slate-900 text-white hover:bg-slate-800"
-                >
-                  {formLoading ? "Creating..." : "Create User"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setDialogOpen(false)}
-                  className="border-slate-300 text-slate-700 hover:bg-slate-100"
-                >
-                  Cancel
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
+              {formSuccess && (
+                <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-md">
+                  {formSuccess}
+                </div>
+              )}
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative w-full sm:max-w-md">
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by name, email, role, or faculty"
-            className="bg-white border-slate-200 text-slate-900 placeholder:text-slate-400"
-          />
-        </div>
-      </div>
+              <form onSubmit={handleCreateUser} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="text-slate-700">
+                    Full Name
+                  </Label>
+                  <Input
+                    id="name"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    className="bg-white border-slate-200 text-slate-900 placeholder:text-slate-400"
+                    placeholder="Enter full name"
+                  />
+                </div>
 
-      {error && (
-        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-red-700">
-          {error}
-        </div>
-      )}
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-slate-700">
+                    Email Address
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="bg-white border-slate-200 text-slate-900 placeholder:text-slate-400"
+                    placeholder="user@example.com"
+                  />
+                </div>
 
-      {loading && !error && <p className="text-slate-500">Loading users...</p>}
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="text-slate-700">
+                    Password
+                  </Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    minLength={8}
+                    className="bg-white border-slate-200 text-slate-900 placeholder:text-slate-400"
+                    placeholder="Minimum 8 characters"
+                  />
+                </div>
 
-      {!loading && !error && users.length === 0 && (
-        <p className="text-slate-500">No users found.</p>
-      )}
-
-      {!loading && !error && users.length > 0 && (
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 text-slate-600">
-              <tr>
-                <th className="px-4 py-3 font-medium">Name</th>
-                <th className="px-4 py-3 font-medium">Email</th>
-                <th className="px-4 py-3 font-medium">Role</th>
-                <th className="px-4 py-3 font-medium">Faculty</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Created</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pagedUsers.map((user) => (
-                <tr
-                  key={user.id}
-                  className="border-t border-slate-200 hover:bg-slate-50"
-                >
-                  <td className="px-4 py-3 font-medium">{user.name}</td>
-                  <td className="px-4 py-3 text-slate-600">{user.email}</td>
-                  <td className="px-4 py-3">
-                    <Badge variant="secondary" className="bg-slate-100 text-slate-700">
-                      {(user.role || "User").replaceAll("_", " ")}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">
-                    {user.faculty?.name || "-"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-2">
-                      <Badge
-                        variant="secondary"
-                        className={
-                          user.banned
-                            ? "bg-red-100 text-red-700"
-                            : "bg-emerald-100 text-emerald-700"
-                        }
+                <div className="space-y-2">
+                  <Label htmlFor="role" className="text-slate-700">
+                    Role
+                  </Label>
+                  <Select
+                    value={role}
+                    onValueChange={(value) => setRole(value as Role)}
+                  >
+                    <SelectTrigger className="bg-white border-slate-200 text-slate-900">
+                      <SelectValue placeholder="Select a role" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border-slate-200">
+                      <SelectItem value="STUDENT" className="text-slate-900">
+                        Student
+                      </SelectItem>
+                      <SelectItem
+                        value="MARKETING_COORDINATOR"
+                        className="text-slate-900"
                       >
-                        {user.banned ? "Banned" : "Active"}
-                      </Badge>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">
-                    {new Date(user.createdAt).toLocaleDateString()}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {!loading && !error && filteredUsers.length === 0 && (
-            <div className="px-4 py-10 text-center text-sm text-slate-500">
-              No users match your search.
-            </div>
-          )}
-        </div>
-      )}
+                        Marketing Coordinator (Faculty level)
+                      </SelectItem>
+                      <SelectItem
+                        value="MARKETING_MANAGER"
+                        className="text-slate-900"
+                      >
+                        Marketing Manager (University level)
+                      </SelectItem>
+                      <SelectItem value="ADMINISTRATOR" className="text-slate-900">
+                        Administrator
+                      </SelectItem>
+                      <SelectItem value="GUEST" className="text-slate-900">
+                        Guest (Faculty level)
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-slate-500">
+                    {role === "MARKETING_MANAGER" &&
+                      "Can view all contributions and download as ZIP after final closure date"}
+                    {role === "MARKETING_COORDINATOR" &&
+                      "Can manage contributions for their faculty and interact with students"}
+                    {role === "STUDENT" &&
+                      "Can submit articles and upload images"}
+                    {role === "ADMINISTRATOR" &&
+                      "Can maintain system data and manage closure dates"}
+                    {role === "GUEST" &&
+                      "Read-only access to selected reports for their faculty"}
+                  </p>
+                </div>
 
-      {!loading && !error && totalCount > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
-          <div>
-            Showing {startIndex}–{endIndex} of {totalCount}
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={currentPage <= 1}
-              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-            >
-              Previous
-            </Button>
-            <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-1 text-slate-700">
-              Page {currentPage} of {totalPages}
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={currentPage >= totalPages}
-              onClick={() =>
-                setPage((prev) => Math.min(totalPages, prev + 1))
+                {requiresFaculty && (
+                  <div className="space-y-2">
+                    <Label htmlFor="faculty" className="text-slate-700">
+                      Faculty <span className="text-red-500">*</span>
+                    </Label>
+                    <Select value={facultyId} onValueChange={setFacultyId}>
+                      <SelectTrigger className="bg-white border-slate-200 text-slate-900">
+                        <SelectValue placeholder="Select a faculty" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border-slate-200">
+                        {faculties.length === 0 ? (
+                          <SelectItem
+                            value="none"
+                            disabled
+                            className="text-slate-400"
+                          >
+                            No faculties available
+                          </SelectItem>
+                        ) : (
+                          faculties.map((faculty) => (
+                            <SelectItem
+                              key={faculty.id}
+                              value={faculty.id}
+                              className="text-slate-900"
+                            >
+                              {faculty.name}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-sm text-slate-500">
+                      This user will only have access to their assigned faculty
+                    </p>
+                  </div>
+                )}
+
+                <DialogFooter className="gap-3 sm:gap-3">
+                  <Button
+                    type="submit"
+                    disabled={formLoading || (requiresFaculty && !facultyId)}
+                    className="bg-slate-900 text-white hover:bg-slate-800"
+                  >
+                    {formLoading ? "Creating..." : "Create User"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setDialogOpen(false)}
+                    className="border-slate-300 text-slate-700 hover:bg-slate-100"
+                  >
+                    Cancel
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog
+            open={editDialogOpen}
+            onOpenChange={(open) => {
+              setEditDialogOpen(open);
+              if (!open) {
+                setEditError(null);
+                setEditSuccess(null);
               }
-            >
-              Next
-            </Button>
-          </div>
+            }}
+          >
+            <DialogContent className="bg-white border-slate-200 text-slate-900">
+              <DialogHeader>
+                <DialogTitle>Edit User</DialogTitle>
+                <DialogDescription className="text-slate-500">
+                  Update user name, email, role, and faculty assignment.
+                </DialogDescription>
+              </DialogHeader>
+
+              {editError && (
+                <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+                  {editError}
+                </div>
+              )}
+
+              {editSuccess && (
+                <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-700">
+                  {editSuccess}
+                </div>
+              )}
+
+              <form onSubmit={handleEditUser} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-name" className="text-slate-700">
+                    Full Name
+                  </Label>
+                  <Input
+                    id="edit-name"
+                    type="text"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    required
+                    className="bg-white border-slate-200 text-slate-900 placeholder:text-slate-400"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-email" className="text-slate-700">
+                    Email Address
+                  </Label>
+                  <Input
+                    id="edit-email"
+                    type="email"
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    required
+                    className="bg-white border-slate-200 text-slate-900 placeholder:text-slate-400"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-role" className="text-slate-700">
+                    Role
+                  </Label>
+                  <Select
+                    value={editRole}
+                    onValueChange={(value) => setEditRole(value as Role)}
+                  >
+                    <SelectTrigger className="bg-white border-slate-200 text-slate-900">
+                      <SelectValue placeholder="Select a role" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border-slate-200">
+                      <SelectItem value="STUDENT" className="text-slate-900">
+                        Student
+                      </SelectItem>
+                      <SelectItem
+                        value="MARKETING_COORDINATOR"
+                        className="text-slate-900"
+                      >
+                        Marketing Coordinator
+                      </SelectItem>
+                      <SelectItem
+                        value="MARKETING_MANAGER"
+                        className="text-slate-900"
+                      >
+                        Marketing Manager
+                      </SelectItem>
+                      <SelectItem value="ADMINISTRATOR" className="text-slate-900">
+                        Administrator
+                      </SelectItem>
+                      <SelectItem value="GUEST" className="text-slate-900">
+                        Guest
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {requiresEditFaculty && (
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-faculty" className="text-slate-700">
+                      Faculty <span className="text-red-500">*</span>
+                    </Label>
+                    <Select value={editFacultyId} onValueChange={setEditFacultyId}>
+                      <SelectTrigger className="bg-white border-slate-200 text-slate-900">
+                        <SelectValue placeholder="Select a faculty" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border-slate-200">
+                        {faculties.length === 0 ? (
+                          <SelectItem
+                            value="none"
+                            disabled
+                            className="text-slate-400"
+                          >
+                            No faculties available
+                          </SelectItem>
+                        ) : (
+                          faculties.map((faculty) => (
+                            <SelectItem
+                              key={faculty.id}
+                              value={faculty.id}
+                              className="text-slate-900"
+                            >
+                              {faculty.name}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                <DialogFooter className="gap-3 sm:gap-3">
+                  <Button
+                    type="submit"
+                    disabled={editLoading || (requiresEditFaculty && !editFacultyId)}
+                    className="bg-slate-900 text-white hover:bg-slate-800"
+                  >
+                    {editLoading ? "Saving..." : "Save Changes"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setEditDialogOpen(false)}
+                    className="border-slate-300 text-slate-700 hover:bg-slate-100"
+                  >
+                    Cancel
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
-      )}
+
+        {error && (
+          <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+            {error}
+          </div>
+        )}
+
+        {loading && !error && (
+          <LoadingScreen className="min-h-[16vh]" spinnerClassName="h-6 w-6" />
+        )}
+
+        {!loading && !error && users.length === 0 && (
+          <p className="text-slate-500">No users found.</p>
+        )}
+
+        {!loading && !error && users.length > 0 && (
+          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+            <table className="w-full text-left">
+              <thead className="border-b border-slate-200 bg-slate-50 text-slate-700">
+                <tr>
+                  <th className="px-4 py-3 text-sm font-medium">Name</th>
+                  <th className="px-4 py-3 text-sm font-medium">Email</th>
+                  <th className="px-4 py-3 text-sm font-medium">Role</th>
+                  <th className="px-4 py-3 text-sm font-medium">Status</th>
+                  <th className="px-4 py-3 text-sm font-medium">Last Active</th>
+                  <th className="w-10 px-4 py-3" aria-label="Actions" />
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((user) => {
+                  const status = getUserStatus(user);
+                  return (
+                    <tr
+                      key={user.id}
+                      className="border-t border-slate-200 text-slate-900 hover:bg-slate-50"
+                    >
+                      <td className="px-4 py-3 text-sm font-medium">{user.name}</td>
+                      <td className="px-4 py-3 text-sm text-slate-500">{user.email}</td>
+                      <td className="px-4 py-3 text-sm">{formatRole(user.role)}</td>
+                      <td className="px-4 py-3">
+                        <Badge
+                          variant="outline"
+                          className={`rounded-sm border px-2.5 py-0.5 text-xs font-medium ${getStatusClasses(status)}`}
+                        >
+                          {status}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-500">
+                        {getLastActiveLabel(user)}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              type="button"
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-700 hover:bg-slate-100"
+                              aria-label={`Actions for ${user.name}`}
+                            >
+                              <MoreHorizontal className="h-5 w-5" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-white">
+                            <DropdownMenuItem
+                              onClick={() => openEditDialog(user)}
+                              className="cursor-pointer"
+                            >
+                              Edit
+                            </DropdownMenuItem>
+                            {user.banned ? (
+                              <DropdownMenuItem
+                                onClick={() => handleReactivateUser(user.id)}
+                                className="cursor-pointer text-emerald-600"
+                                disabled={deactivateLoadingId === user.id}
+                              >
+                                {deactivateLoadingId === user.id ? "Reactivating..." : "Reactivate"}
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem
+                                onClick={() => handleDeactivateUser(user.id)}
+                                className="cursor-pointer text-red-600"
+                                disabled={deactivateLoadingId === user.id}
+                              >
+                                {deactivateLoadingId === user.id ? "Deactivating..." : "Deactivate"}
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
     </main>
   );
 }
