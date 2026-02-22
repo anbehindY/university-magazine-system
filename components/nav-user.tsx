@@ -1,6 +1,7 @@
 "use client";
 
 import { LogOut } from "lucide-react";
+import { useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -26,6 +27,18 @@ export function NavUser({
     role?: string | null;
   };
 }) {
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
+  async function handleSignOut() {
+    if (isSigningOut) return;
+    setIsSigningOut(true);
+    try {
+      await signOut();
+    } finally {
+      setIsSigningOut(false);
+    }
+  }
+
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -52,11 +65,13 @@ export function NavUser({
             </div>
             <button
               type="button"
-              onClick={() => signOut()}
-              className="ml-auto flex h-8 w-8 items-center justify-center rounded-full text-white/70 hover:text-white"
+              onClick={handleSignOut}
+              disabled={isSigningOut}
+              className="ml-auto flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-white/70 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
               aria-label="Log out"
+              aria-busy={isSigningOut}
             >
-              <LogOut className="h-4 w-4" />
+              <LogOut className={isSigningOut ? "h-4 w-4 opacity-60" : "h-4 w-4"} />
             </button>
           </div>
         </SidebarMenuButton>

@@ -123,3 +123,44 @@
     @apply bg-background text-foreground;
   }
 }
+
+@keyframes loading-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes loading-shimmer {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(120%);
+  }
+}
+
+@keyframes loading-pulse-soft {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@layer utilities {
+  .loading-float {
+    animation: loading-float 2.2s ease-in-out infinite;
+  }
+  .loading-shimmer {
+    animation: loading-shimmer 1.6s ease-in-out infinite;
+  }
+  .loading-pulse-soft {
+    animation: loading-pulse-soft 1.4s ease-in-out infinite;
+  }
+}
