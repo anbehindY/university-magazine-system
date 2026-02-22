@@ -1,9 +1,9 @@
 "use client";
 
 import {
-  BarChart3,
-  BookOpen,
   Calendar,
+  ChartColumn,
+  CircleCheckBig,
   ClipboardList,
   FileText,
   LayoutDashboard,
@@ -11,7 +11,7 @@ import {
   Settings,
   Shield,
   Upload,
-  UserSquare2,
+  Users,
 } from "lucide-react";
 import * as React from "react";
 
@@ -27,6 +27,16 @@ import {
 import getAvatarUrl from "@/lib/getAvatarUrl";
 
 function buildPages(role?: string | null) {
+  if (role && role !== "ADMINISTRATOR") {
+    return [
+      {
+        title: "Dashboard",
+        url: "/",
+        icon: LayoutDashboard,
+      },
+    ];
+  }
+
   const items = [
     {
       title: "Faculty Submissions",
@@ -36,12 +46,12 @@ function buildPages(role?: string | null) {
     {
       title: "Selected Articles",
       url: "#",
-      icon: BookOpen,
+      icon: CircleCheckBig,
     },
     {
       title: "Analytics",
       url: "#",
-      icon: BarChart3,
+      icon: ChartColumn,
     },
     {
       title: "Dashboard",
@@ -51,7 +61,7 @@ function buildPages(role?: string | null) {
     {
       title: "User Management",
       url: "/users",
-      icon: UserSquare2,
+      icon: Users,
     },
     {
       title: "Reports & Analytics",
@@ -94,7 +104,6 @@ type SidebarUser = {
   image?: string | null;
   role?: string | null;
 };
-
 
 export function AppSidebar({
   user,

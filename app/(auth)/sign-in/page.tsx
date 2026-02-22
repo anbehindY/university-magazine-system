@@ -82,6 +82,7 @@ export default function SignInPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const form = useForm<SignInValues>({
     resolver: zodResolver(signInSchema),
     defaultValues: {
@@ -93,6 +94,7 @@ export default function SignInPage() {
   async function handleSubmit(values: SignInValues) {
     setError(null);
     setLoading(true);
+    let didRedirect = false;
 
     if (
       hasSuspiciousInput(values.email) ||
@@ -114,16 +116,54 @@ export default function SignInPage() {
         return;
       }
 
+      didRedirect = true;
+      setIsRedirecting(true);
       router.push("/");
     } catch {
       setError("Unable to sign in right now. Please try again.");
     } finally {
-      setLoading(false);
+      if (!didRedirect) {
+        setLoading(false);
+      }
     }
   }
 
   return (
     <main className="min-h-screen text-slate-900">
+      <div
+        className={`fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm transition-opacity duration-300 ${
+          isRedirecting ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+        aria-hidden={!isRedirecting}
+      >
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white px-10 py-8 shadow-2xl shadow-slate-200/70">
+          <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-amber-300/30 blur-2xl" />
+          <div className="pointer-events-none absolute -bottom-12 -left-12 h-32 w-32 rounded-full bg-sky-300/30 blur-2xl" />
+          <div className="relative flex flex-col items-center gap-4">
+            <div className="loading-float relative flex h-14 w-14 items-center justify-center">
+              <div className="absolute inset-0 rounded-full border-2 border-slate-200" />
+              <div className="absolute inset-0 rounded-full border-2 border-slate-900/70 border-t-transparent animate-spin" />
+              <div className="absolute h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.7)]" />
+            </div>
+            <div className="text-center">
+              <p className="text-base font-medium text-slate-900">
+                Signing you in
+              </p>
+              <p className="text-sm text-slate-500">
+                Preparing your dashboard...
+              </p>
+            </div>
+            <div className="relative h-2 w-56 overflow-hidden rounded-full bg-slate-100">
+              <div className="loading-shimmer absolute inset-y-0 left-0 w-1/2 rounded-full bg-gradient-to-r from-transparent via-slate-400/70 to-transparent" />
+            </div>
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <span className="loading-pulse-soft">Authenticating</span>
+              <span className="loading-pulse-soft delay-150">•</span>
+              <span className="loading-pulse-soft delay-300">Loading workspace</span>
+            </div>
+          </div>
+        </div>
+      </div>
       <div className="relative isolate overflow-hidden">
         <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white via-slate-50 to-slate-100" />
         <div className="pointer-events-none absolute -top-24 right-0 h-80 w-80 rounded-full bg-emerald-500/15 blur-3xl" />
@@ -185,7 +225,7 @@ export default function SignInPage() {
                         <FormControl>
                           <Input
                             type="email"
-                            placeholder="you@university.edu"
+                            placeholder="you@university.com"
                             autoComplete="email"
                             className="border-slate-200 bg-white text-slate-900 placeholder:text-slate-400"
                             {...field}
@@ -218,10 +258,10 @@ export default function SignInPage() {
                   />
                   <Button
                     type="submit"
-                    disabled={loading}
+                    disabled={loading || isRedirecting}
                     className="w-full bg-slate-900 text-white hover:bg-slate-800"
                   >
-                    {loading ? "Signing in..." : "Sign In"}
+                    {loading || isRedirecting ? "Signing in..." : "Sign In"}
                   </Button>
                 </form>
               </Form>
