@@ -21,7 +21,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { DatePicker } from "@/components/ui/date-picker";
 import { TimePicker } from "@/components/ui/time-picker";
 
 type AcademicYearItem = {
@@ -54,7 +53,16 @@ function formatDateTime(dateValue: string, timeValue: string) {
   return `${date.toLocaleDateString()} ${formatDisplayTime(timeValue)}`;
 }
 
+function formatDateInputValue(date?: Date) {
+  if (!date) return "";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export default function AdminPanelPage() {
+  const RequiredMark = () => <span className="ml-1 text-rose-600" aria-hidden="true">*</span>;
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<AcademicYearItem | null>(null);
@@ -72,6 +80,26 @@ export default function AdminPanelPage() {
   const [history, setHistory] = useState<AcademicYearItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [historyError, setHistoryError] = useState("");
+  const [endDateError, setEndDateError] = useState("");
+
+  function handleStartDateChange(value: string) {
+    const nextDate = value ? new Date(`${value}T00:00:00`) : undefined;
+    setStartDate(nextDate);
+    setEndDateError("");
+    if (nextDate && endDate && endDate < nextDate) {
+      setEndDate(undefined);
+    }
+  }
+
+  function handleEndDateChange(value: string) {
+    const nextDate = value ? new Date(`${value}T00:00:00`) : undefined;
+    if (startDate && nextDate && nextDate < startDate) {
+      setEndDateError("End date cannot be earlier than start date.");
+      return;
+    }
+    setEndDateError("");
+    setEndDate(nextDate);
+  }
 
   function resetForm() {
     setYearLabel("");
@@ -81,6 +109,7 @@ export default function AdminPanelPage() {
     setEndTime("");
     setReason("");
     setMessage("");
+    setEndDateError("");
   }
 
   async function loadHistory() {
@@ -180,7 +209,7 @@ export default function AdminPanelPage() {
   }
 
   return (
-    <main className="w-full space-y-6 pt-4 pb-6 text-slate-900">
+    <main className="mx-auto w-full max-w-5xl space-y-6 px-4 pt-4 pb-6 text-slate-900 sm:px-6">
       <header className="space-y-1">
         <h1 className="text-3xl font-semibold">Magazine Contribution Deadlines</h1>
         <p className="text-slate-600">
@@ -223,7 +252,7 @@ export default function AdminPanelPage() {
                 Add New
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl w-full max-h-[90vh]">
               <DialogHeader>
                 <DialogTitle>
                   {editingId ? "Edit Closure Dates" : "Add Closure Dates"}
@@ -232,8 +261,11 @@ export default function AdminPanelPage() {
                   Configure system closure dates and maintenance windows
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={onSave} className="space-y-6">
-                <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <form
+                onSubmit={onSave}
+                className="space-y-6 max-h-[65vh] overflow-y-auto pr-1 sm:max-h-[70vh]"
+              >
+                <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="space-y-1">
                     <p className="text-sm font-medium">Automatic Closure</p>
                     <p className="text-xs text-slate-500">
@@ -250,6 +282,7 @@ export default function AdminPanelPage() {
                   <div className="space-y-2 md:col-span-2">
                     <Label htmlFor="yearLabel" className="text-slate-700">
                       Academic Year
+                      <RequiredMark />
                     </Label>
                     <Input
                       id="yearLabel"
@@ -262,41 +295,53 @@ export default function AdminPanelPage() {
                   <div className="space-y-2">
                     <Label htmlFor="startDate" className="text-slate-700">
                       Start Date
+                      <RequiredMark />
                     </Label>
-                    <DatePicker
-                      value={startDate}
-                      onChange={setStartDate}
-                      placeholder="Select start date"
+                    <Input
+                      id="startDate"
+                      type="date"
+                      className="border-slate-200 bg-white text-slate-900"
+                      value={formatDateInputValue(startDate)}
+                      onChange={(event) => handleStartDateChange(event.target.value)}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="endDate" className="text-slate-700">
                       End Date
+                      <RequiredMark />
                     </Label>
-                    <DatePicker
-                      value={endDate}
-                      onChange={setEndDate}
-                      placeholder="Select end date"
+                    <Input
+                      id="endDate"
+                      type="date"
+                      className="border-slate-200 bg-white text-slate-900"
+                      min={formatDateInputValue(startDate) || undefined}
+                      value={formatDateInputValue(endDate)}
+                      onChange={(event) => handleEndDateChange(event.target.value)}
                     />
+                    {endDateError ? (
+                      <p className="text-sm text-rose-600">{endDateError}</p>
+                    ) : null}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="startTime" className="text-slate-700">
                       Start Time
+                      <RequiredMark />
                     </Label>
                     <TimePicker
                       value={startTime}
                       onChange={setStartTime}
-                      placeholder="Select start time"
+                      placeholder="01:00"
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="endTime" className="text-slate-700">
                       End Time
+                      <RequiredMark />
                     </Label>
                     <TimePicker
                       value={endTime}
                       onChange={setEndTime}
-                      placeholder="Select end time"
+                      placeholder="02:30"
                     />
                   </div>
                 </div>
@@ -318,6 +363,7 @@ export default function AdminPanelPage() {
                 <div className="space-y-2">
                   <Label htmlFor="message" className="text-slate-700">
                     Notification Message
+                    <RequiredMark />
                   </Label>
                   <textarea
                     id="message"
