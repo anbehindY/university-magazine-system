@@ -39,7 +39,7 @@ export async function GET() {
     const settings = await prisma.configSetting.findMany({
       where: {
         key: {
-          in: uploadRuleKeys,
+          in: uploadRuleKeys.slice(),
         },
       },
       select: {
@@ -105,7 +105,7 @@ export async function PUT(req: NextRequest) {
       prisma.configSetting.deleteMany({
         where: {
           key: {
-            in: uploadRuleKeys,
+            in: uploadRuleKeys.slice(),
           },
         },
       }),
