@@ -3,6 +3,29 @@ import prisma from "@/lib/prisma";
 import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
+const VALID_ROLES = [
+  "MARKETING_MANAGER",
+  "MARKETING_COORDINATOR",
+  "STUDENT",
+  "ADMINISTRATOR",
+  "GUEST",
+] as const;
+
+type ValidRole = (typeof VALID_ROLES)[number];
+
+function normalizeText(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function normalizeEmail(value: unknown) {
+  return normalizeText(value).toLowerCase();
+}
+
+function parseRole(value: unknown): ValidRole | null {
+  if (typeof value !== "string") return null;
+  return VALID_ROLES.includes(value as ValidRole) ? (value as ValidRole) : null;
+}
+
 export async function POST(req: NextRequest) {
   try {
     // Get the session from Better Auth
@@ -19,30 +42,41 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { name, email, password, role, facultyId } = body;
+    const name = normalizeText(body?.name);
+    const email = normalizeEmail(body?.email);
+    const password = normalizeText(body?.password);
+    const role = parseRole(body?.role);
+    const facultyId = normalizeText(body?.facultyId) || null;
 
     // Validate required fields
     if (!name || !email || !password || !role) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "Name, email, password, and role are required." },
         { status: 400 }
       );
     }
 
     // Validate faculty requirement for coordinators and guests
     if (
-      (role === "MARKETING_COORDINATOR" || role === "GUEST") &&
+      (role === "MARKETING_COORDINATOR" ||
+        role === "GUEST" ||
+        role === "STUDENT") &&
       !facultyId
     ) {
       return NextResponse.json(
-        { error: "Faculty is required for coordinators and guests" },
+        { error: "Faculty is required for this role." },
         { status: 400 }
       );
     }
 
     // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        email: {
+          equals: email,
+          mode: "insensitive",
+        },
+      },
     });
 
     if (existingUser) {
@@ -73,7 +107,8 @@ export async function POST(req: NextRequest) {
       where: { id: result.user.id },
       data: {
         role,
-        facultyId: facultyId || null,
+        facultyId,
+        emailVerified: true,
       },
       include: {
         faculty: true,
