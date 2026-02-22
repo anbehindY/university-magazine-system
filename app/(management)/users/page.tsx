@@ -199,11 +199,11 @@ export default function UsersPage() {
   }
 
   if (isPending) {
-    return <p className="text-white">Loading...</p>;
+    return <p className="text-slate-600">Loading...</p>;
   }
 
   if (!session?.user || session.user.role !== "ADMINISTRATOR") {
-    return <p className="text-white">Redirecting...</p>;
+    return <p className="text-slate-600">Redirecting...</p>;
   }
 
   const normalizedQuery = query.trim().toLowerCase();
@@ -231,11 +231,11 @@ export default function UsersPage() {
   );
 
   return (
-    <main className="space-y-6 text-white">
+    <main className="space-y-6 text-slate-900">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="space-y-2">
           <h1 className="text-3xl font-semibold">Users</h1>
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-slate-500">
             Manage access and permissions across your magazine staff.
           </p>
         </div>
@@ -255,33 +255,33 @@ export default function UsersPage() {
           }}
         >
           <DialogTrigger asChild>
-            <Button className="bg-white text-black hover:bg-gray-200">
+            <Button className="bg-slate-900 text-white hover:bg-slate-800">
               Create User
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-neutral-950 border-neutral-800 text-white">
+          <DialogContent className="bg-white border-slate-200 text-slate-900">
             <DialogHeader>
               <DialogTitle>Create New User</DialogTitle>
-              <DialogDescription className="text-gray-400">
+              <DialogDescription className="text-slate-500">
                 Create a new user account with a specific role.
               </DialogDescription>
             </DialogHeader>
 
             {formError && (
-              <div className="bg-red-500/10 border border-red-500 text-red-500 px-4 py-3 rounded-md">
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
                 {formError}
               </div>
             )}
 
             {formSuccess && (
-              <div className="bg-green-500/10 border border-green-500 text-green-500 px-4 py-3 rounded-md">
+              <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-md">
                 {formSuccess}
               </div>
             )}
 
             <form onSubmit={handleCreateUser} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name" className="text-white">
+                <Label htmlFor="name" className="text-slate-700">
                   Full Name
                 </Label>
                 <Input
@@ -290,13 +290,13 @@ export default function UsersPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
-                  className="bg-neutral-900 border-neutral-700 text-white"
+                  className="bg-white border-slate-200 text-slate-900 placeholder:text-slate-400"
                   placeholder="Enter full name"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-white">
+                <Label htmlFor="email" className="text-slate-700">
                   Email Address
                 </Label>
                 <Input
@@ -305,13 +305,13 @@ export default function UsersPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="bg-neutral-900 border-neutral-700 text-white"
+                  className="bg-white border-slate-200 text-slate-900 placeholder:text-slate-400"
                   placeholder="user@example.com"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-white">
+                <Label htmlFor="password" className="text-slate-700">
                   Password
                 </Label>
                 <Input
@@ -321,47 +321,47 @@ export default function UsersPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={8}
-                  className="bg-neutral-900 border-neutral-700 text-white"
+                  className="bg-white border-slate-200 text-slate-900 placeholder:text-slate-400"
                   placeholder="Minimum 8 characters"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="role" className="text-white">
+                <Label htmlFor="role" className="text-slate-700">
                   Role
                 </Label>
                 <Select
                   value={role}
                   onValueChange={(value) => setRole(value as Role)}
                 >
-                  <SelectTrigger className="bg-neutral-900 border-neutral-700 text-white">
+                  <SelectTrigger className="bg-white border-slate-200 text-slate-900">
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
-                  <SelectContent className="bg-neutral-900 border-neutral-700">
-                    <SelectItem value="STUDENT" className="text-white">
+                  <SelectContent className="bg-white border-slate-200">
+                    <SelectItem value="STUDENT" className="text-slate-900">
                       Student
                     </SelectItem>
                     <SelectItem
                       value="MARKETING_COORDINATOR"
-                      className="text-white"
+                      className="text-slate-900"
                     >
                       Marketing Coordinator (Faculty level)
                     </SelectItem>
                     <SelectItem
                       value="MARKETING_MANAGER"
-                      className="text-white"
+                      className="text-slate-900"
                     >
                       Marketing Manager (University level)
                     </SelectItem>
-                    <SelectItem value="ADMINISTRATOR" className="text-white">
+                    <SelectItem value="ADMINISTRATOR" className="text-slate-900">
                       Administrator
                     </SelectItem>
-                    <SelectItem value="GUEST" className="text-white">
+                    <SelectItem value="GUEST" className="text-slate-900">
                       Guest (Faculty level)
                     </SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-slate-500">
                   {role === "MARKETING_MANAGER" &&
                     "Can view all contributions and download as ZIP after final closure date"}
                   {role === "MARKETING_COORDINATOR" &&
@@ -377,19 +377,19 @@ export default function UsersPage() {
 
               {requiresFaculty && (
                 <div className="space-y-2">
-                  <Label htmlFor="faculty" className="text-white">
+                  <Label htmlFor="faculty" className="text-slate-700">
                     Faculty <span className="text-red-500">*</span>
                   </Label>
                   <Select value={facultyId} onValueChange={setFacultyId}>
-                    <SelectTrigger className="bg-neutral-900 border-neutral-700 text-white">
+                    <SelectTrigger className="bg-white border-slate-200 text-slate-900">
                       <SelectValue placeholder="Select a faculty" />
                     </SelectTrigger>
-                    <SelectContent className="bg-neutral-900 border-neutral-700">
+                    <SelectContent className="bg-white border-slate-200">
                       {faculties.length === 0 ? (
                         <SelectItem
                           value="none"
                           disabled
-                          className="text-gray-400"
+                          className="text-slate-400"
                         >
                           No faculties available
                         </SelectItem>
@@ -398,7 +398,7 @@ export default function UsersPage() {
                           <SelectItem
                             key={faculty.id}
                             value={faculty.id}
-                            className="text-white"
+                            className="text-slate-900"
                           >
                             {faculty.name}
                           </SelectItem>
@@ -406,7 +406,7 @@ export default function UsersPage() {
                       )}
                     </SelectContent>
                   </Select>
-                  <p className="text-sm text-gray-400">
+                  <p className="text-sm text-slate-500">
                     This user will only have access to their assigned faculty
                   </p>
                 </div>
@@ -416,7 +416,7 @@ export default function UsersPage() {
                 <Button
                   type="submit"
                   disabled={formLoading || (requiresFaculty && !facultyId)}
-                  className="bg-white text-black hover:bg-gray-200"
+                  className="bg-slate-900 text-white hover:bg-slate-800"
                 >
                   {formLoading ? "Creating..." : "Create User"}
                 </Button>
@@ -424,7 +424,7 @@ export default function UsersPage() {
                   type="button"
                   variant="outline"
                   onClick={() => setDialogOpen(false)}
-                  className="border-neutral-700 text-white hover:bg-neutral-800"
+                  className="border-slate-300 text-slate-700 hover:bg-slate-100"
                 >
                   Cancel
                 </Button>
@@ -440,27 +440,27 @@ export default function UsersPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search by name, email, role, or faculty"
-            className="bg-neutral-900 border-neutral-800 text-white"
+            className="bg-white border-slate-200 text-slate-900 placeholder:text-slate-400"
           />
         </div>
       </div>
 
       {error && (
-        <div className="rounded-md border border-red-500 bg-red-500/10 px-4 py-3 text-red-400">
+        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-red-700">
           {error}
         </div>
       )}
 
-      {loading && !error && <p className="text-gray-400">Loading users...</p>}
+      {loading && !error && <p className="text-slate-500">Loading users...</p>}
 
       {!loading && !error && users.length === 0 && (
-        <p className="text-gray-400">No users found.</p>
+        <p className="text-slate-500">No users found.</p>
       )}
 
       {!loading && !error && users.length > 0 && (
-        <div className="overflow-hidden rounded-xl border border-neutral-800 bg-neutral-950/60">
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="bg-neutral-900 text-gray-300">
+            <thead className="bg-slate-50 text-slate-600">
               <tr>
                 <th className="px-4 py-3 font-medium">Name</th>
                 <th className="px-4 py-3 font-medium">Email</th>
@@ -474,16 +474,16 @@ export default function UsersPage() {
               {pagedUsers.map((user) => (
                 <tr
                   key={user.id}
-                  className="border-t border-neutral-800/80 hover:bg-white/5"
+                  className="border-t border-slate-200 hover:bg-slate-50"
                 >
                   <td className="px-4 py-3 font-medium">{user.name}</td>
-                  <td className="px-4 py-3 text-white/70">{user.email}</td>
+                  <td className="px-4 py-3 text-slate-600">{user.email}</td>
                   <td className="px-4 py-3">
-                    <Badge variant="secondary" className="bg-white/10 text-white">
+                    <Badge variant="secondary" className="bg-slate-100 text-slate-700">
                       {(user.role || "User").replaceAll("_", " ")}
                     </Badge>
                   </td>
-                  <td className="px-4 py-3 text-white/70">
+                  <td className="px-4 py-3 text-slate-600">
                     {user.faculty?.name || "-"}
                   </td>
                   <td className="px-4 py-3">
@@ -492,15 +492,15 @@ export default function UsersPage() {
                         variant="secondary"
                         className={
                           user.banned
-                            ? "bg-red-500/15 text-red-200"
-                            : "bg-emerald-500/15 text-emerald-200"
+                            ? "bg-red-100 text-red-700"
+                            : "bg-emerald-100 text-emerald-700"
                         }
                       >
                         {user.banned ? "Banned" : "Active"}
                       </Badge>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-white/70">
+                  <td className="px-4 py-3 text-slate-600">
                     {new Date(user.createdAt).toLocaleDateString()}
                   </td>
                 </tr>
@@ -508,7 +508,7 @@ export default function UsersPage() {
             </tbody>
           </table>
           {!loading && !error && filteredUsers.length === 0 && (
-            <div className="px-4 py-10 text-center text-sm text-white/60">
+            <div className="px-4 py-10 text-center text-sm text-slate-500">
               No users match your search.
             </div>
           )}
@@ -516,7 +516,7 @@ export default function UsersPage() {
       )}
 
       {!loading && !error && totalCount > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-white/70">
+        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
           <div>
             Showing {startIndex}–{endIndex} of {totalCount}
           </div>
@@ -529,7 +529,7 @@ export default function UsersPage() {
             >
               Previous
             </Button>
-            <div className="rounded-md border border-neutral-800 bg-neutral-900 px-3 py-1">
+            <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-1 text-slate-700">
               Page {currentPage} of {totalPages}
             </div>
             <Button
