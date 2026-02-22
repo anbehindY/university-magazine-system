@@ -4,9 +4,11 @@ import { University } from "lucide-react";
 import { signIn } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -14,31 +16,110 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+
+const signInSchema = z.object({
+  email: z.string().min(1, "Email is required"),
+  password: z.string().min(1, "Password is required"),
+});
+
+type SignInValues = z.infer<typeof signInSchema>;
+const INVALID_CREDENTIALS_MESSAGE = "Invalid email or password";
+
+function hasSuspiciousInput(value: string): boolean {
+  const lowered = value.toLowerCase();
+  const suspiciousPatterns = [
+    "<",
+    ">",
+    "'",
+    "\"",
+    "--",
+    ";",
+    "/*",
+    "*/",
+    " union ",
+    " select ",
+    " or ",
+    " drop ",
+    " insert ",
+    " update ",
+    " delete ",
+  ];
+
+  return suspiciousPatterns.some((pattern) => lowered.includes(pattern));
+}
+
+function getFriendlyAuthError(error: unknown): string {
+  const message =
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof (error as { message?: unknown }).message === "string"
+      ? (error as { message: string }).message.toLowerCase()
+      : "";
+
+  if (
+    message.includes("invalid") ||
+    message.includes("credential") ||
+    message.includes("password") ||
+    message.includes("email") ||
+    message.includes("user not found")
+  ) {
+    return INVALID_CREDENTIALS_MESSAGE;
+  }
+
+  return "Unable to sign in right now. Please try again.";
+}
 
 export default function SignInPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const form = useForm<SignInValues>({
+    resolver: zodResolver(signInSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  async function handleSubmit(values: SignInValues) {
     setError(null);
     setLoading(true);
 
-    const formData = new FormData(e.currentTarget);
-
-    const res = await signIn.email({
-      email: formData.get("email") as string,
-      password: formData.get("password") as string,
-    });
-
-    if (res.error) {
-      setError(res.error.message || "Something went wrong.");
+    if (
+      hasSuspiciousInput(values.email) ||
+      hasSuspiciousInput(values.password)
+    ) {
+      setError(INVALID_CREDENTIALS_MESSAGE);
       setLoading(false);
       return;
     }
 
-    router.push("/");
+    try {
+      const res = await signIn.email({
+        email: values.email,
+        password: values.password,
+      });
+
+      if (res.error) {
+        setError(getFriendlyAuthError(res.error));
+        return;
+      }
+
+      router.push("/");
+    } catch {
+      setError("Unable to sign in right now. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -89,43 +170,61 @@ export default function SignInPage() {
                   {error}
                 </div>
               )}
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-slate-700">
-                    Email
-                  </Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    placeholder="you@university.edu"
-                    required
-                    autoComplete="email"
-                    className="border-slate-200 bg-white text-slate-900 placeholder:text-slate-400"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="text-slate-700">
-                    Password
-                  </Label>
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    placeholder="Enter your password"
-                    required
-                    autoComplete="current-password"
-                    className="border-slate-200 bg-white text-slate-900 placeholder:text-slate-400"
-                  />
-                </div>
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-slate-900 text-white hover:bg-slate-800"
+              <Form {...form}>
+                <form
+                  onSubmit={form.handleSubmit(handleSubmit)}
+                  noValidate
+                  className="space-y-4"
                 >
-                  {loading ? "Signing in..." : "Sign In"}
-                </Button>
-              </form>
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-slate-700">Email</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="email"
+                            placeholder="you@university.edu"
+                            autoComplete="email"
+                            className="border-slate-200 bg-white text-slate-900 placeholder:text-slate-400"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-slate-700">
+                          Password
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type="password"
+                            placeholder="Enter your password"
+                            autoComplete="current-password"
+                            className="border-slate-200 bg-white text-slate-900 placeholder:text-slate-400"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-slate-900 text-white hover:bg-slate-800"
+                  >
+                    {loading ? "Signing in..." : "Sign In"}
+                  </Button>
+                </form>
+              </Form>
             </CardContent>
           </Card>
         </div>
