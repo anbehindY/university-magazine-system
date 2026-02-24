@@ -354,11 +354,11 @@ export default function StudentSubmissionsPage() {
             upload(`submissions/${userId}/${submissionId}/${file.name}`, file, {
               access: "public",
               handleUploadUrl: "/api/submissions/upload",
-              clientPayload: {
+              clientPayload: JSON.stringify({
                 userId,
                 originalName: file.name,
                 submissionId,
-              },
+              }),
             })
           )
         );
@@ -371,11 +371,11 @@ export default function StudentSubmissionsPage() {
           },
           body: JSON.stringify({
             submissionId,
-            files: uploads.map((blob) => ({
+            files: uploads.map((blob, index) => ({
               url: blob.url,
               pathname: blob.pathname,
               contentType: blob.contentType ?? null,
-              size: blob.size ?? null,
+              size: files[index]?.size ?? null,
             })),
           }),
         });
@@ -448,11 +448,11 @@ export default function StudentSubmissionsPage() {
             return upload(`submissions/${userId}/${submissionId}/${file.name}`, file, {
               access: "public",
               handleUploadUrl: "/api/submissions/upload",
-              clientPayload: {
+              clientPayload: JSON.stringify({
                 userId,
                 originalName: file.name,
                 submissionId,
-              },
+              }),
               onUploadProgress: (progress) => {
                 setUploadProgress((prev) => ({
                   ...prev,
@@ -471,11 +471,11 @@ export default function StudentSubmissionsPage() {
           },
           body: JSON.stringify({
             submissionId,
-            files: uploads.map((blob) => ({
+            files: uploads.map((blob, index) => ({
               url: blob.url,
               pathname: blob.pathname,
               contentType: blob.contentType ?? null,
-              size: blob.size ?? null,
+              size: files[index]?.size ?? null,
             })),
           }),
         });
