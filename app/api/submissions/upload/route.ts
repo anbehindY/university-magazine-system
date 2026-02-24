@@ -70,13 +70,17 @@ export async function POST(request: Request) {
 
         if (!parsedToken.submissionId) return;
 
+        const blobSize =
+          "size" in blob && typeof (blob as { size?: unknown }).size === "number"
+            ? (blob as { size: number }).size
+            : null;
         await prisma.submissionFile.create({
           data: {
             submissionId: parsedToken.submissionId,
             url: blob.url,
             pathname: blob.pathname,
             contentType: blob.contentType ?? null,
-            size: blob.size ?? null,
+            size: blobSize,
           },
         });
       },
