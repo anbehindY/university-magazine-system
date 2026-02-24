@@ -118,7 +118,7 @@ export function TimePicker({
   }
 
   return (
-    <div className={cn("flex items-center gap-2", className)}>
+    <div className={cn("flex flex-col gap-3 sm:flex-row sm:items-center", className)}>
       <Input
         type="text"
         inputMode="numeric"
@@ -126,10 +126,10 @@ export function TimePicker({
         value={time}
         onChange={handleTimeChange}
         onBlur={handleBlur}
-        className="flex-1 border-slate-200"
+        className="w-full border-slate-200"
       />
       <Select value={period} onValueChange={(value) => handlePeriodChange(value as "AM" | "PM")}>
-        <SelectTrigger className="w-24 border-slate-200">
+        <SelectTrigger className="w-full border-slate-200 sm:w-24">
           <SelectValue placeholder="AM" />
         </SelectTrigger>
         <SelectContent>

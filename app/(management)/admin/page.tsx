@@ -219,7 +219,7 @@ export default function AdminPanelPage() {
 
       <Separator className="bg-slate-200" />
 
-      <Card className="border-slate-200 bg-white w-full">
+      <Card className="w-full border-slate-200 bg-white">
         <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <CardTitle>Magazine Contribution Deadlines History</CardTitle>
@@ -252,19 +252,17 @@ export default function AdminPanelPage() {
                 Add New
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl w-full max-h-[90vh]">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingId ? "Edit Closure Dates" : "Add Closure Dates"}
-                </DialogTitle>
-                <DialogDescription>
-                  Configure system closure dates and maintenance windows
-                </DialogDescription>
-              </DialogHeader>
-              <form
-                onSubmit={onSave}
-                className="space-y-6 max-h-[65vh] overflow-y-auto pr-1 sm:max-h-[70vh]"
-              >
+            <DialogContent className="w-[min(100vw-2rem,40rem)] max-h-[90vh] overflow-y-auto p-0">
+              <div className="flex min-h-0 flex-col">
+                <DialogHeader className="sticky top-0 z-10 space-y-2 border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
+                  <DialogTitle>
+                    {editingId ? "Edit Closure Dates" : "Add Closure Dates"}
+                  </DialogTitle>
+                  <DialogDescription>
+                    Configure system closure dates and maintenance windows
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={onSave} className="space-y-6 px-4 py-4 sm:px-6">
                 <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="space-y-1">
                     <p className="text-sm font-medium">Automatic Closure</p>
@@ -378,7 +376,7 @@ export default function AdminPanelPage() {
                 <div className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:justify-start">
                   <Button
                     type="submit"
-                    className="bg-slate-900 text-white hover:bg-slate-800"
+                    className="w-full bg-slate-900 text-white hover:bg-slate-800 sm:w-auto"
                     disabled={status === "saving"}
                   >
                     {status === "saving"
@@ -390,6 +388,7 @@ export default function AdminPanelPage() {
                   <Button
                     type="button"
                     variant="outline"
+                    className="w-full sm:w-auto"
                     onClick={() => setIsDialogOpen(false)}
                   >
                     Cancel
@@ -402,11 +401,12 @@ export default function AdminPanelPage() {
                 {status === "error" ? (
                   <p className="text-sm text-rose-600">{errorMessage}</p>
                 ) : null}
-              </form>
+                </form>
+              </div>
             </DialogContent>
           </Dialog>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-5 px-4 sm:px-6">
           {historyLoading ? (
             <p className="text-sm text-slate-500">Loading closure history...</p>
           ) : historyError ? (
@@ -414,75 +414,153 @@ export default function AdminPanelPage() {
           ) : history.length === 0 ? (
             <p className="text-sm text-slate-500">No closure dates added yet.</p>
           ) : (
-            <div className="overflow-x-auto rounded-lg border border-slate-200">
-              <table className="w-full min-w-[720px] border-collapse text-sm">
-                <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-                  <tr>
-                    <th className="px-4 py-3">Academic Year</th>
-                    <th className="px-4 py-3">Start</th>
-                    <th className="px-4 py-3">End</th>
-                    <th className="px-4 py-3">Closure Date</th>
-                    <th className="px-4 py-3">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200">
-                  {history.map((item) => (
-                    <tr key={item.id} className="bg-white">
-                      <td className="px-4 py-3 font-medium text-slate-900">
+            <>
+              <div className="hidden overflow-x-auto rounded-lg border border-slate-200 lg:block">
+                <table className="w-full min-w-[720px] border-collapse text-sm">
+                  <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+                    <tr>
+                      <th className="px-4 py-3">Academic Year</th>
+                      <th className="px-4 py-3">Start</th>
+                      <th className="px-4 py-3">End</th>
+                      <th className="px-4 py-3">Closure Date</th>
+                      <th className="px-4 py-3">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {history.map((item) => (
+                      <tr key={item.id} className="bg-white">
+                        <td className="px-4 py-3 font-medium text-slate-900">
+                          {item.yearLabel}
+                        </td>
+                        <td className="px-4 py-3 text-slate-700">
+                          {formatDateTime(item.startDate, item.startTime)}
+                        </td>
+                        <td className="px-4 py-3 text-slate-700">
+                          {formatDateTime(item.endDate, item.endTime)}
+                        </td>
+                        <td className="px-4 py-3 text-slate-700">
+                          {item.closureDate
+                            ? new Date(item.closureDate).toLocaleDateString()
+                            : "-"}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setEditingId(item.id);
+                                setYearLabel(item.yearLabel);
+                                setStartDate(new Date(item.startDate));
+                                setEndDate(new Date(item.endDate));
+                                setStartTime(formatTime(item.startTime));
+                                setEndTime(formatTime(item.endTime));
+                                setMessage(item.notiMessage);
+                                setReason("");
+                                setStatus("idle");
+                                setErrorMessage("");
+                                setIsDialogOpen(true);
+                              }}
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="text-rose-600 hover:text-rose-700"
+                              onClick={() => {
+                                setDeleteTarget(item);
+                                setIsDeleteOpen(true);
+                              }}
+                            >
+                              Delete
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="space-y-4 lg:hidden">
+                {history.map((item) => (
+                  <div
+                    key={item.id}
+                    className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
+                  >
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="text-base font-semibold text-slate-900">
                         {item.yearLabel}
-                      </td>
-                      <td className="px-4 py-3 text-slate-700">
-                        {formatDateTime(item.startDate, item.startTime)}
-                      </td>
-                      <td className="px-4 py-3 text-slate-700">
-                        {formatDateTime(item.endDate, item.endTime)}
-                      </td>
-                      <td className="px-4 py-3 text-slate-700">
+                      </p>
+                      <p className="text-sm text-slate-500">
                         {item.closureDate
                           ? new Date(item.closureDate).toLocaleDateString()
-                          : "-"}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-wrap gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setEditingId(item.id);
-                              setYearLabel(item.yearLabel);
-                              setStartDate(new Date(item.startDate));
-                              setEndDate(new Date(item.endDate));
-                              setStartTime(formatTime(item.startTime));
-                              setEndTime(formatTime(item.endTime));
-                              setMessage(item.notiMessage);
-                              setReason("");
-                              setStatus("idle");
-                              setErrorMessage("");
-                              setIsDialogOpen(true);
-                            }}
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="text-rose-600 hover:text-rose-700"
-                            onClick={() => {
-                              setDeleteTarget(item);
-                              setIsDeleteOpen(true);
-                            }}
-                          >
-                            Delete
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                          : "No final closure"}
+                      </p>
+                    </div>
+                    <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+                      <div>
+                        <dt className="text-xs uppercase tracking-wide text-slate-500">
+                          Start
+                        </dt>
+                        <dd className="text-slate-800">
+                          {formatDateTime(item.startDate, item.startTime)}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs uppercase tracking-wide text-slate-500">
+                          End
+                        </dt>
+                        <dd className="text-slate-800">
+                          {formatDateTime(item.endDate, item.endTime)}
+                        </dd>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <dt className="text-xs uppercase tracking-wide text-slate-500">
+                          Notification
+                        </dt>
+                        <dd className="text-slate-800">{item.notiMessage}</dd>
+                      </div>
+                    </dl>
+                    <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full sm:w-auto"
+                        onClick={() => {
+                          setEditingId(item.id);
+                          setYearLabel(item.yearLabel);
+                          setStartDate(new Date(item.startDate));
+                          setEndDate(new Date(item.endDate));
+                          setStartTime(formatTime(item.startTime));
+                          setEndTime(formatTime(item.endTime));
+                          setMessage(item.notiMessage);
+                          setReason("");
+                          setStatus("idle");
+                          setErrorMessage("");
+                          setIsDialogOpen(true);
+                        }}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full text-rose-600 hover:text-rose-700 sm:w-auto"
+                        onClick={() => {
+                          setDeleteTarget(item);
+                          setIsDeleteOpen(true);
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -494,7 +572,7 @@ export default function AdminPanelPage() {
           if (!open) setDeleteTarget(null);
         }}
       >
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-[min(100vw-2rem,28rem)] max-w-md">
           <DialogHeader>
             <DialogTitle>Delete Closure Record</DialogTitle>
             <DialogDescription>

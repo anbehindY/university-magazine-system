@@ -150,7 +150,7 @@ export default function UploadRulesPage() {
   }
 
   return (
-    <main className="w-full space-y-6 pt-4 pb-6 text-slate-900">
+    <main className="w-full space-y-6 px-4 pt-4 pb-6 text-slate-900 sm:px-6">
       <header className="space-y-1">
         <h1 className="text-3xl font-semibold">Upload Rules</h1>
         <p className="text-slate-600">
@@ -160,7 +160,7 @@ export default function UploadRulesPage() {
 
       <Separator className="bg-slate-200" />
 
-      <Card className="border-slate-200 bg-white w-full">
+      <Card className="w-full border-slate-200 bg-white">
         <CardHeader>
           <CardTitle>Upload Rules Configuration</CardTitle>
           <CardDescription className="text-slate-500">
@@ -170,7 +170,7 @@ export default function UploadRulesPage() {
         <CardContent className="px-4 sm:px-6">
           <form onSubmit={onSave} className="space-y-6">
             <div className="space-y-4">
-              <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="space-y-1">
                   <p className="text-sm font-medium">Enable File Upload</p>
                   <p className="text-xs text-slate-500">
@@ -189,7 +189,7 @@ export default function UploadRulesPage() {
                 </label>
               </div>
 
-              <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="space-y-1">
                   <p className="text-sm font-medium">Virus Scanning</p>
                   <p className="text-xs text-slate-500">
@@ -275,23 +275,29 @@ export default function UploadRulesPage() {
                   ))
                 )}
               </div>
-              <div className="flex flex-wrap gap-3">
+              <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center">
                 <Input
                   id="allowedTypes"
-                  className="border-slate-200 bg-white text-slate-900 md:max-w-xs"
+                  className="w-full border-slate-200 bg-white text-slate-900 sm:flex-1 sm:min-w-[220px] md:max-w-xs"
                   value={allowedTypeInput}
                   onChange={(e) => setAllowedTypeInput(e.target.value)}
                   placeholder="e.g. PDF, DOCX, PNG"
                   disabled={loading}
                 />
-                <Button type="button" variant="outline" onClick={addType} disabled={loading}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={addType}
+                  disabled={loading}
+                  className="w-full sm:w-auto"
+                >
                   Add Type
                 </Button>
               </div>
             </div>
 
             <div className="space-y-4">
-              <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="space-y-1">
                   <p className="text-sm font-medium">Require Authentication</p>
                   <p className="text-xs text-slate-500">
@@ -310,7 +316,7 @@ export default function UploadRulesPage() {
                 </label>
               </div>
 
-              <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="space-y-1">
                   <p className="text-sm font-medium">Auto-Delete Temp Files</p>
                   <p className="text-xs text-slate-500">
