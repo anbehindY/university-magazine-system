@@ -21,6 +21,11 @@ enum Role {
   GUEST
 }
 
+enum SubmissionStatus {
+  DRAFT
+  SUBMITTED
+}
+
 model User {
   id            String    @id
   name          String
@@ -41,6 +46,7 @@ model User {
 
   updatedConfigSettings ConfigSetting[]
   updatedAcademicYears  AcademicYear[]
+  submissions           Submission[]
 
   @@unique([email])
   @@map("user")
@@ -135,4 +141,32 @@ model AcademicYear {
   updatedBy   User?    @relation(fields: [updatedById], references: [id])
 
   @@map("academic_year")
+}
+
+model Submission {
+  id          String           @id @default(uuid())
+  userId      String           @map("user_id")
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status      SubmissionStatus @default(DRAFT)
+  agreed      Boolean          @default(false)
+  notes       String?          @db.Text
+  submittedAt DateTime?        @map("submitted_at")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+  files       SubmissionFile[]
+
+  @@map("submission")
+}
+
+model SubmissionFile {
+  id           String     @id @default(uuid())
+  submissionId String     @map("submission_id")
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  url          String
+  pathname     String
+  contentType  String?    @map("content_type")
+  size         Int?
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  @@map("submission_file")
 }
