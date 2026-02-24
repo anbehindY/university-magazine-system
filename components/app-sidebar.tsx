@@ -28,13 +28,24 @@ import getAvatarUrl from "@/lib/getAvatarUrl";
 
 function buildPages(role?: string | null) {
   if (role && role !== "ADMINISTRATOR") {
-    return [
+    const normalizedRole = role ?? "STUDENT";
+    const items = [
       {
         title: "Dashboard",
         url: "/",
         icon: LayoutDashboard,
       },
     ];
+
+    if (normalizedRole === "STUDENT") {
+      items.push({
+        title: "Your Submissions",
+        url: "/submissions",
+        icon: Upload,
+      });
+    }
+
+    return items;
   }
 
   const items = [
