@@ -1,0 +1,200 @@
+import { auth } from "@/lib/auth";
+import prisma from "@/lib/prisma";
+import { headers } from "next/headers";
+import { NextRequest, NextResponse } from "next/server";
+
+type SubmissionPayload = {
+  id?: string;
+  agreed?: boolean;
+  notes?: string | null;
+  status?: "DRAFT" | "SUBMITTED";
+};
+
+export async function GET() {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const submissions = await prisma.submission.findMany({
+      where: {
+        userId: session.user.id,
+      },
+      orderBy: {
+        updatedAt: "desc",
+      },
+      include: {
+        files: {
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
+      },
+    });
+
+    return NextResponse.json({ submissions }, { status: 200 });
+  } catch (error) {
+    console.error("Error fetching submissions:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = (await req.json()) as SubmissionPayload;
+
+    const submission = await prisma.submission.create({
+      data: {
+        userId: session.user.id,
+        agreed: Boolean(body.agreed),
+        notes: body.notes ?? null,
+        status: body.status ?? "DRAFT",
+        submittedAt: body.status === "SUBMITTED" ? new Date() : null,
+      },
+    });
+
+    return NextResponse.json({ submission }, { status: 201 });
+  } catch (error) {
+    console.error("Error creating submission:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(req: NextRequest) {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = (await req.json()) as SubmissionPayload;
+
+    if (!body.id) {
+      return NextResponse.json({ error: "Missing submission id" }, { status: 400 });
+    }
+
+    const existing = await prisma.submission.findFirst({
+      where: {
+        id: body.id,
+        userId: session.user.id,
+      },
+      select: {
+        id: true,
+        submittedAt: true,
+      },
+    });
+
+    if (!existing) {
+      return NextResponse.json({ error: "Submission not found" }, { status: 404 });
+    }
+
+    const nextStatus = body.status ?? "DRAFT";
+
+    const updateData: {
+      agreed?: boolean;
+      notes?: string | null;
+      status?: "DRAFT" | "SUBMITTED";
+      submittedAt?: Date | null;
+    } = {
+      status: nextStatus,
+      submittedAt:
+        nextStatus === "SUBMITTED"
+          ? existing.submittedAt ?? new Date()
+          : existing.submittedAt ?? null,
+    };
+
+    if (typeof body.agreed === "boolean") {
+      updateData.agreed = body.agreed;
+    }
+
+    if (body.notes !== undefined) {
+      updateData.notes = body.notes ?? null;
+    }
+
+    const submission = await prisma.submission.update({
+      where: { id: body.id },
+      data: updateData,
+    });
+
+    return NextResponse.json({ submission }, { status: 200 });
+  } catch (error) {
+    console.error("Error updating submission:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = (await req.json()) as { id?: string };
+
+    if (!body.id) {
+      return NextResponse.json({ error: "Missing submission id" }, { status: 400 });
+    }
+
+    const submission = await prisma.submission.findFirst({
+      where: {
+        id: body.id,
+        userId: session.user.id,
+      },
+      select: {
+        id: true,
+        status: true,
+      },
+    });
+
+    if (!submission) {
+      return NextResponse.json({ error: "Submission not found" }, { status: 404 });
+    }
+
+    if (submission.status === "SUBMITTED") {
+      return NextResponse.json(
+        { error: "Submitted submissions cannot be deleted." },
+        { status: 400 }
+      );
+    }
+
+    await prisma.submission.delete({
+      where: { id: body.id },
+    });
+
+    return NextResponse.json({ success: true }, { status: 200 });
+  } catch (error) {
+    console.error("Error deleting submission:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
