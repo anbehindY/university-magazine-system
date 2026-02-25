@@ -84,42 +84,40 @@
 
 ## Traceability
 
-*Populated during roadmap creation*
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFRA-01 | — | Pending |
-| INFRA-02 | — | Pending |
-| INFRA-03 | — | Pending |
-| INFRA-04 | — | Pending |
-| CLOS-01 | — | Pending |
-| CLOS-02 | — | Pending |
-| CLOS-03 | — | Pending |
-| CLOS-04 | — | Pending |
-| COORD-01 | — | Pending |
-| COORD-02 | — | Pending |
-| COORD-03 | — | Pending |
-| COORD-04 | — | Pending |
-| COMM-01 | — | Pending |
-| COMM-02 | — | Pending |
-| COMM-03 | — | Pending |
-| COMM-04 | — | Pending |
-| MGR-01 | — | Pending |
-| MGR-02 | — | Pending |
-| GUEST-01 | — | Pending |
-| GUEST-02 | — | Pending |
-| RPT-01 | — | Pending |
-| RPT-02 | — | Pending |
-| RPT-03 | — | Pending |
-| RPT-04 | — | Pending |
-| RPT-05 | — | Pending |
-| RPT-06 | — | Pending |
+| INFRA-01 | Phase 1 | Pending |
+| INFRA-02 | Phase 1 | Pending |
+| INFRA-03 | Phase 1 | Pending |
+| INFRA-04 | Phase 1 | Pending |
+| CLOS-01 | Phase 2 | Pending |
+| CLOS-02 | Phase 2 | Pending |
+| CLOS-03 | Phase 2 | Pending |
+| CLOS-04 | Phase 2 | Pending |
+| COORD-01 | Phase 3 | Pending |
+| COORD-02 | Phase 3 | Pending |
+| COORD-03 | Phase 3 | Pending |
+| COORD-04 | Phase 3 | Pending |
+| COMM-01 | Phase 3 | Pending |
+| COMM-02 | Phase 3 | Pending |
+| COMM-03 | Phase 3 | Pending |
+| COMM-04 | Phase 3 | Pending |
+| MGR-01 | Phase 4 | Pending |
+| MGR-02 | Phase 4 | Pending |
+| RPT-01 | Phase 4 | Pending |
+| RPT-02 | Phase 4 | Pending |
+| RPT-03 | Phase 4 | Pending |
+| RPT-04 | Phase 4 | Pending |
+| RPT-05 | Phase 4 | Pending |
+| RPT-06 | Phase 4 | Pending |
+| GUEST-01 | Phase 5 | Pending |
+| GUEST-02 | Phase 5 | Pending |
 
 **Coverage:**
 - v1 requirements: 26 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 26 ⚠️
+- Mapped to phases: 26
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-25*
-*Last updated: 2026-02-25 after initial definition*
+*Last updated: 2026-02-25 — traceability populated after roadmap creation*
