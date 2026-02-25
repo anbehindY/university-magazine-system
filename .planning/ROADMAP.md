@@ -23,7 +23,13 @@ This milestone completes the full coordinator review workflow on top of the exis
   2. `lib/closure-guard.ts` exports `getActiveAcademicYear()`, `isPastFirstClosure()`, and `isPastFinalClosure()` and each function returns correct results when called with known date fixtures
   3. `lib/mailer.ts` exports a `sendMail()` helper backed by a Nodemailer 6.x singleton, reads SMTP credentials from environment variables, and does not throw when called in a fire-and-forget pattern
   4. `.env.example` contains `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, and `SMTP_PASS` entries with placeholder values
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Prisma schema migration: rename closureDate, add new AcademicYear/Submission fields, create SubmissionComment model
+- [ ] 01-02-PLAN.md — Mailer utility: install Nodemailer 6.x, create lib/mailer.ts singleton, document SMTP env vars in .env.example
+- [ ] 01-03-PLAN.md — Closure guard utility: create lib/closure-guard.ts with getActiveAcademicYear, isPastFirstClosure, isPastFinalClosure
+- [ ] 01-04-PLAN.md — Admin UI: add DatePicker fields for both closure dates, add isActive activation with badge
 
 ### Phase 2: Closure Enforcement
 **Goal**: Students are hard-blocked by closure dates at the API level — no new submissions after first closure, no updates or comments after final closure, and Terms and Conditions is enforced before submission
@@ -77,7 +83,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Schema and Infrastructure | 0/TBD | Not started | - |
+| 1. Schema and Infrastructure | 0/4 | Not started | - |
 | 2. Closure Enforcement | 0/TBD | Not started | - |
 | 3. Coordinator and Comment API | 0/TBD | Not started | - |
 | 4. Manager and Reports API | 0/TBD | Not started | - |
