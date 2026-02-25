@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { DatePicker } from "@/components/ui/date-picker";
+import { Clock } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -120,7 +121,7 @@ export default function AdminPanelPage() {
     }
   }
 
-  async function onSave(e: React.FormEvent) {
+  async function onSave(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setStatus("idle");
     setErrorMessage("");
@@ -276,12 +277,15 @@ export default function AdminPanelPage() {
                           placeholder="Pick date"
                         />
                       </div>
-                      <Input
-                        type="time"
-                        className="w-32 border-slate-200 bg-white text-slate-900"
-                        value={firstClosureTime}
-                        onChange={(e) => setFirstClosureTime(e.target.value)}
-                      />
+                      <div className="relative w-32">
+                        <Clock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                        <Input
+                          type="time"
+                          className="cursor-pointer border-slate-200 bg-white pl-9 font-normal text-slate-900 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                          value={firstClosureTime}
+                          onChange={(e) => setFirstClosureTime(e.target.value)}
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -298,12 +302,15 @@ export default function AdminPanelPage() {
                           placeholder="Pick date"
                         />
                       </div>
-                      <Input
-                        type="time"
-                        className="w-32 border-slate-200 bg-white text-slate-900"
-                        value={finalClosureTime}
-                        onChange={(e) => setFinalClosureTime(e.target.value)}
-                      />
+                      <div className="relative w-32">
+                        <Clock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                        <Input
+                          type="time"
+                          className="cursor-pointer border-slate-200 bg-white pl-9 font-normal text-slate-900 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                          value={finalClosureTime}
+                          onChange={(e) => setFinalClosureTime(e.target.value)}
+                        />
+                      </div>
                     </div>
                   </div>
 
