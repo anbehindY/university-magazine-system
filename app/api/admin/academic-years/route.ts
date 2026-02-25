@@ -220,6 +220,59 @@ export async function PUT(req: NextRequest) {
   }
 }
 
+export async function PATCH(req: NextRequest) {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session?.user || session.user.role !== "ADMINISTRATOR") {
+      return NextResponse.json(
+        { error: "Unauthorized. Administrator access required." },
+        { status: 403 }
+      );
+    }
+
+    const body = (await req.json()) as { id?: string; isActive?: boolean };
+
+    if (!body.id) {
+      return NextResponse.json(
+        { error: "Missing record id" },
+        { status: 400 }
+      );
+    }
+
+    let academicYear;
+
+    if (body.isActive === true) {
+      // Enforce single-active-year invariant using a transaction
+      [, academicYear] = await prisma.$transaction([
+        prisma.academicYear.updateMany({
+          where: { id: { not: body.id } },
+          data: { isActive: false },
+        }),
+        prisma.academicYear.update({
+          where: { id: body.id },
+          data: { isActive: true, updatedById: session.user.id },
+        }),
+      ]);
+    } else {
+      academicYear = await prisma.academicYear.update({
+        where: { id: body.id },
+        data: { isActive: false, updatedById: session.user.id },
+      });
+    }
+
+    return NextResponse.json({ academicYear }, { status: 200 });
+  } catch (error) {
+    console.error("Error patching academic year:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function DELETE(req: NextRequest) {
   try {
     const session = await auth.api.getSession({
