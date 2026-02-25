@@ -83,7 +83,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Schema and Infrastructure | 0/4 | Not started | - |
+| 1. Schema and Infrastructure | 1/4 | In Progress|  |
 | 2. Closure Enforcement | 0/TBD | Not started | - |
 | 3. Coordinator and Comment API | 0/TBD | Not started | - |
 | 4. Manager and Reports API | 0/TBD | Not started | - |

@@ -7,9 +7,9 @@
 
 ### Infrastructure & Schema
 
-- [ ] **INFRA-01**: Administrator can configure two closure dates per academic year — `firstClosureDate` (blocks new submissions) and `finalClosureDate` (blocks all updates)
-- [ ] **INFRA-02**: `Submission` model stores `isSelected`, `selectedAt`, `selectedById`, `academicYearId`, and `facultyId` snapshot to support reporting and selection workflow
-- [ ] **INFRA-03**: `SubmissionComment` model exists with fields: submissionId, authorId, authorRole, body, createdAt — enabling two-way threads per submission
+- [x] **INFRA-01**: Administrator can configure two closure dates per academic year — `firstClosureDate` (blocks new submissions) and `finalClosureDate` (blocks all updates)
+- [x] **INFRA-02**: `Submission` model stores `isSelected`, `selectedAt`, `selectedById`, `academicYearId`, and `facultyId` snapshot to support reporting and selection workflow
+- [x] **INFRA-03**: `SubmissionComment` model exists with fields: submissionId, authorId, authorRole, body, createdAt — enabling two-way threads per submission
 - [ ] **INFRA-04**: Email service (`lib/mailer.ts`) configured with Nodemailer and Gmail SMTP for sending transactional notifications
 
 ### Closure Enforcement
@@ -86,9 +86,9 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFRA-01 | Phase 1 | Pending |
-| INFRA-02 | Phase 1 | Pending |
-| INFRA-03 | Phase 1 | Pending |
+| INFRA-01 | Phase 1 | Complete |
+| INFRA-02 | Phase 1 | Complete |
+| INFRA-03 | Phase 1 | Complete |
 | INFRA-04 | Phase 1 | Pending |
 | CLOS-01 | Phase 2 | Pending |
 | CLOS-02 | Phase 2 | Pending |
