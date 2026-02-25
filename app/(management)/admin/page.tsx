@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { DatePicker } from "@/components/ui/date-picker";
-import { Clock } from "lucide-react";
+import { TimePicker } from "@/components/ui/time-picker";
 import {
   Dialog,
   DialogContent,
@@ -277,13 +277,11 @@ export default function AdminPanelPage() {
                           placeholder="Pick date"
                         />
                       </div>
-                      <div className="relative w-32">
-                        <Clock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                        <Input
-                          type="time"
-                          className="cursor-pointer border-slate-200 bg-white pl-9 font-normal text-slate-900 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                      <div className="w-40">
+                        <TimePicker
                           value={firstClosureTime}
-                          onChange={(e) => setFirstClosureTime(e.target.value)}
+                          onChange={setFirstClosureTime}
+                          placeholder="Pick time"
                         />
                       </div>
                     </div>
@@ -302,13 +300,11 @@ export default function AdminPanelPage() {
                           placeholder="Pick date"
                         />
                       </div>
-                      <div className="relative w-32">
-                        <Clock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                        <Input
-                          type="time"
-                          className="cursor-pointer border-slate-200 bg-white pl-9 font-normal text-slate-900 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                      <div className="w-40">
+                        <TimePicker
                           value={finalClosureTime}
-                          onChange={(e) => setFinalClosureTime(e.target.value)}
+                          onChange={setFinalClosureTime}
+                          placeholder="Pick time"
                         />
                       </div>
                     </div>

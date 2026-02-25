@@ -1,9 +1,10 @@
 "use client"
 
 import * as React from "react"
-
+import { Clock } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
   Select,
   SelectContent,
@@ -13,130 +14,123 @@ import {
 } from "@/components/ui/select"
 
 type TimePickerProps = {
-  value?: string
+  value?: string   // "HH:MM" 24-hour
   onChange: (value: string) => void
   placeholder?: string
   className?: string
 }
 
-const TIME_INPUT_REGEX = /^\d{0,2}:?\d{0,2}$/
-
-function toDisplayParts(value?: string): { time: string; period: "AM" | "PM" } {
+function parse24h(value?: string): { hour: string; minute: string; period: "AM" | "PM" } {
   if (!value || !/^\d{2}:\d{2}$/.test(value)) {
-    return { time: "", period: "AM" }
+    return { hour: "12", minute: "00", period: "AM" }
   }
-
-  const [hourStr, minute] = value.split(":")
-  const hour = Number(hourStr)
-  const isPM = hour >= 12
-  const period = isPM ? "PM" : "AM"
-  const twelveHour = hour % 12 || 12
-  const paddedHour = String(twelveHour).padStart(2, "0")
-
-  return { time: `${paddedHour}:${minute}`, period }
+  const [h, m] = value.split(":").map(Number)
+  const hour12 = h % 12 || 12
+  return {
+    hour: String(hour12),
+    minute: String(m).padStart(2, "0"),
+    period: h >= 12 ? "PM" : "AM",
+  }
 }
 
-function to24Hour(time: string, period: "AM" | "PM") {
-  if (!/^\d{2}:\d{2}$/.test(time)) return null
-  const [hourStr, minuteStr] = time.split(":")
-  let hour = Number(hourStr)
-  const minute = Number(minuteStr)
-
-  if (Number.isNaN(hour) || Number.isNaN(minute)) return null
-  if (hour > 12 || minute > 59) return null
-  if (hour === 0) hour = 12
-
-  let hour24 = hour % 12
-  if (period === "PM") {
-    hour24 += 12
-  }
-  if (period === "AM" && hour24 === 12) {
-    hour24 = 0
-  }
-
-  return `${String(hour24).padStart(2, "0")}:${String(minute).padStart(2, "0")}`
+function to24h(hour: string, minute: string, period: "AM" | "PM"): string {
+  let h = Number(hour) % 12
+  if (period === "PM") h += 12
+  return `${String(h).padStart(2, "0")}:${minute}`
 }
 
-function normalizeTimeInput(value: string) {
-  const sanitized = value.replace(/[^0-9:]/g, "").slice(0, 5)
-  if (!sanitized.includes(":")) {
-    if (sanitized.length <= 2) return sanitized
-    return `${sanitized.slice(0, 2)}:${sanitized.slice(2)}`
-  }
-  const [h, m = ""] = sanitized.split(":")
-  return `${h.slice(0, 2)}:${m.slice(0, 2)}${m.length > 2 ? m.slice(2) : ""}`.slice(0, 5)
+function formatDisplay(value?: string): string {
+  if (!value || !/^\d{2}:\d{2}$/.test(value)) return ""
+  const { hour, minute, period } = parse24h(value)
+  return `${hour}:${minute} ${period}`
 }
+
+const HOURS = Array.from({ length: 12 }, (_, i) => String(i + 1))
+const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0"))
 
 export function TimePicker({
   value,
   onChange,
-  placeholder = "hh:mm",
+  placeholder = "Pick a time",
   className,
 }: TimePickerProps) {
-  const initial = React.useMemo(() => toDisplayParts(value), [value])
-  const [time, setTime] = React.useState(initial.time)
-  const [period, setPeriod] = React.useState<"AM" | "PM">(initial.period)
+  const parsed = parse24h(value)
+  const [hour, setHour] = React.useState(parsed.hour)
+  const [minute, setMinute] = React.useState(parsed.minute)
+  const [period, setPeriod] = React.useState<"AM" | "PM">(parsed.period)
 
   React.useEffect(() => {
-    setTime(initial.time)
-    setPeriod(initial.period)
-  }, [initial.time, initial.period])
+    const p = parse24h(value)
+    setHour(p.hour)
+    setMinute(p.minute)
+    setPeriod(p.period)
+  }, [value])
 
-  const emitChange = React.useCallback(
-    (nextTime: string, nextPeriod: "AM" | "PM") => {
-      const converted = to24Hour(nextTime, nextPeriod)
-      if (converted) {
-        onChange(converted)
-      }
-    },
-    [onChange]
-  )
-
-  function handleTimeChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const raw = normalizeTimeInput(event.target.value)
-    if (!TIME_INPUT_REGEX.test(raw)) return
-    setTime(raw)
-    if (/^\d{2}:\d{2}$/.test(raw)) {
-      emitChange(raw, period)
-    }
+  function handleHour(h: string) {
+    setHour(h)
+    onChange(to24h(h, minute, period))
   }
 
-  function handleBlur() {
-    if (!/^\d{2}:\d{2}$/.test(time)) {
-      const fallback = initial.time || ""
-      setTime(fallback)
-      return
-    }
-    emitChange(time, period)
+  function handleMinute(m: string) {
+    setMinute(m)
+    onChange(to24h(hour, m, period))
   }
 
-  function handlePeriodChange(nextPeriod: "AM" | "PM") {
-    setPeriod(nextPeriod)
-    if (/^\d{2}:\d{2}$/.test(time)) {
-      emitChange(time, nextPeriod)
-    }
+  function handlePeriod(p: "AM" | "PM") {
+    setPeriod(p)
+    onChange(to24h(hour, minute, p))
   }
 
   return (
-    <div className={cn("flex flex-col gap-3 sm:flex-row sm:items-center", className)}>
-      <Input
-        type="text"
-        inputMode="numeric"
-        placeholder={placeholder}
-        value={time}
-        onChange={handleTimeChange}
-        onBlur={handleBlur}
-        className="w-full border-slate-200"
-      />
-      <Select value={period} onValueChange={(value) => handlePeriodChange(value as "AM" | "PM")}>
-        <SelectTrigger className="w-full border-slate-200 sm:w-24">
-          <SelectValue placeholder="AM" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="AM">AM</SelectItem>
-          <SelectItem value="PM">PM</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          className={cn(
+            "w-full justify-start border-slate-200 bg-white text-left font-normal text-slate-900",
+            !value && "text-slate-400",
+            className
+          )}
+        >
+          <Clock className="mr-2 h-4 w-4 text-slate-400" />
+          {value ? formatDisplay(value) : placeholder}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-3" align="start">
+        <div className="flex items-center gap-2">
+          <Select value={hour} onValueChange={handleHour}>
+            <SelectTrigger className="w-14 border-slate-200">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="max-h-48">
+              {HOURS.map((h) => (
+                <SelectItem key={h} value={h}>{h}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <span className="font-medium text-slate-500">:</span>
+          <Select value={minute} onValueChange={handleMinute}>
+            <SelectTrigger className="w-14 border-slate-200">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="max-h-48">
+              {MINUTES.map((m) => (
+                <SelectItem key={m} value={m}>{m}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={period} onValueChange={(v) => handlePeriod(v as "AM" | "PM")}>
+            <SelectTrigger className="w-18 border-slate-200">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="AM">AM</SelectItem>
+              <SelectItem value="PM">PM</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </PopoverContent>
+    </Popover>
   )
 }
