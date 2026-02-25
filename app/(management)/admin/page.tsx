@@ -10,8 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { DatePicker } from "@/components/ui/date-picker";
-import { TimePicker } from "@/components/ui/time-picker";
+import { DateTimePicker } from "@/components/ui/date-time-picker";
 import {
   Dialog,
   DialogContent,
@@ -41,22 +40,6 @@ function formatDatetime(value: string | null) {
   });
 }
 
-/** Combine a Date and a "HH:MM" string into a single ISO datetime string. */
-function combineDateTime(date: Date | undefined, time: string): string | null {
-  if (!date) return null;
-  const [hours, minutes] = time.split(":").map(Number);
-  const combined = new Date(date);
-  combined.setHours(isNaN(hours) ? 23 : hours, isNaN(minutes) ? 59 : minutes, 0, 0);
-  return combined.toISOString();
-}
-
-/** Extract "HH:MM" from an ISO datetime string. */
-function extractTime(value: string | null): string {
-  if (!value) return "23:59";
-  const d = new Date(value);
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-}
-
 export default function AdminPanelPage() {
   const RequiredMark = () => <span className="ml-1 text-rose-600" aria-hidden="true">*</span>;
 
@@ -67,9 +50,7 @@ export default function AdminPanelPage() {
 
   const [yearLabel, setYearLabel] = useState("");
   const [firstClosureDate, setFirstClosureDate] = useState<Date | undefined>();
-  const [firstClosureTime, setFirstClosureTime] = useState("23:59");
   const [finalClosureDate, setFinalClosureDate] = useState<Date | undefined>();
-  const [finalClosureTime, setFinalClosureTime] = useState("23:59");
 
   const [status, setStatus] = useState<"idle" | "saving" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
@@ -80,9 +61,7 @@ export default function AdminPanelPage() {
   function resetForm() {
     setYearLabel("");
     setFirstClosureDate(undefined);
-    setFirstClosureTime("23:59");
     setFinalClosureDate(undefined);
-    setFinalClosureTime("23:59");
   }
 
   async function loadHistory() {
@@ -141,8 +120,8 @@ export default function AdminPanelPage() {
         body: JSON.stringify({
           id: editingId ?? undefined,
           yearLabel,
-          firstClosureDate: combineDateTime(firstClosureDate, firstClosureTime),
-          finalClosureDate: combineDateTime(finalClosureDate, finalClosureTime),
+          firstClosureDate: firstClosureDate?.toISOString() ?? null,
+          finalClosureDate: finalClosureDate?.toISOString() ?? null,
         }),
       });
 
@@ -187,9 +166,7 @@ export default function AdminPanelPage() {
     setEditingId(item.id);
     setYearLabel(item.yearLabel);
     setFirstClosureDate(item.firstClosureDate ? new Date(item.firstClosureDate) : undefined);
-    setFirstClosureTime(extractTime(item.firstClosureDate));
     setFinalClosureDate(item.finalClosureDate ? new Date(item.finalClosureDate) : undefined);
-    setFinalClosureTime(extractTime(item.finalClosureDate));
     setStatus("idle");
     setErrorMessage("");
     setIsDialogOpen(true);
@@ -269,22 +246,11 @@ export default function AdminPanelPage() {
                     <p className="text-xs text-slate-500">
                       Students cannot create new submissions after this date and time.
                     </p>
-                    <div className="flex gap-2">
-                      <div className="flex-1">
-                        <DatePicker
-                          value={firstClosureDate}
-                          onChange={setFirstClosureDate}
-                          placeholder="Pick date"
-                        />
-                      </div>
-                      <div className="w-40">
-                        <TimePicker
-                          value={firstClosureTime}
-                          onChange={setFirstClosureTime}
-                          placeholder="Pick time"
-                        />
-                      </div>
-                    </div>
+                    <DateTimePicker
+                      value={firstClosureDate}
+                      onChange={setFirstClosureDate}
+                      placeholder="Pick date & time"
+                    />
                   </div>
 
                   <div className="space-y-2">
@@ -292,22 +258,11 @@ export default function AdminPanelPage() {
                     <p className="text-xs text-slate-500">
                       All updates and comments are blocked after this date and time.
                     </p>
-                    <div className="flex gap-2">
-                      <div className="flex-1">
-                        <DatePicker
-                          value={finalClosureDate}
-                          onChange={setFinalClosureDate}
-                          placeholder="Pick date"
-                        />
-                      </div>
-                      <div className="w-40">
-                        <TimePicker
-                          value={finalClosureTime}
-                          onChange={setFinalClosureTime}
-                          placeholder="Pick time"
-                        />
-                      </div>
-                    </div>
+                    <DateTimePicker
+                      value={finalClosureDate}
+                      onChange={setFinalClosureDate}
+                      placeholder="Pick date & time"
+                    />
                   </div>
 
                   <div className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:justify-start">
