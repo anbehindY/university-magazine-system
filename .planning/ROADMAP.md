@@ -27,7 +27,7 @@ This milestone completes the full coordinator review workflow on top of the exis
 
 Plans:
 - [ ] 01-01-PLAN.md — Prisma schema migration: rename closureDate, add new AcademicYear/Submission fields, create SubmissionComment model
-- [ ] 01-02-PLAN.md — Mailer utility: install Nodemailer 6.x, create lib/mailer.ts singleton, document SMTP env vars in .env.example
+- [x] 01-02-PLAN.md — Mailer utility: install Nodemailer 6.x, create lib/mailer.ts singleton, document SMTP env vars in .env.example
 - [ ] 01-03-PLAN.md — Closure guard utility: create lib/closure-guard.ts with getActiveAcademicYear, isPastFirstClosure, isPastFinalClosure
 - [ ] 01-04-PLAN.md — Admin UI: add DatePicker fields for both closure dates, add isActive activation with badge
 
@@ -83,7 +83,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Schema and Infrastructure | 1/4 | In Progress|  |
+| 1. Schema and Infrastructure | 2/4 | In Progress|  |
 | 2. Closure Enforcement | 0/TBD | Not started | - |
 | 3. Coordinator and Comment API | 0/TBD | Not started | - |
 | 4. Manager and Reports API | 0/TBD | Not started | - |

@@ -10,27 +10,27 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 1 of 5 (Schema and Infrastructure)
-Plan: 1 of TBD in current phase
+Plan: 2 of TBD in current phase
 Status: In progress
-Last activity: 2026-02-25 — Plan 01-01 complete (schema migration, closureDate rename, SubmissionComment model)
+Last activity: 2026-02-25 — Plan 01-02 complete (Nodemailer 6.x mailer singleton, .env.example documentation)
 
-Progress: [█░░░░░░░░░] 5%
+Progress: [██░░░░░░░░] 10%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
+- Total plans completed: 2
 - Average duration: 2 min
-- Total execution time: 0.03 hours
+- Total execution time: 0.07 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-schema-and-infrastructure | 1 | 2 min | 2 min |
+| 01-schema-and-infrastructure | 2 | 4 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (2 min)
+- Last 5 plans: 01-01 (2 min), 01-02 (2 min)
 - Trend: —
 
 *Updated after each plan completion*
@@ -47,7 +47,7 @@ Recent decisions affecting current work:
 - Schema (01-01): isActive flag added to AcademicYear; single-active-year invariant enforced via prisma.$transaction in PUT handler
 - Schema (01-01): Public academic-years GET now queries isActive:true — replaces date-ordering heuristics
 - Schema (01-01): Prisma DROP+ADD accepted (not RENAME) for dev database — no production data to preserve
-- Email: Nodemailer 6.x required (not 7.x) — ESM-only conflict with Prisma/better-auth CommonJS resolution
+- Email (01-02): Nodemailer 6.x required (not 7.x) — ESM-only conflict with Prisma/better-auth CommonJS resolution; globalForMailer singleton pattern; sendMail() fire-and-forget via .catch(console.error)
 - ZIP: Use `archiver` with serial streaming — never `Promise.all()` prefetch of blobs (memory limit risk)
 
 ### Pending Todos
@@ -62,5 +62,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-25
-Stopped at: Completed 01-01-PLAN.md — Phase 1 Plan 01 (schema migration) done. Ready for Plan 02.
+Stopped at: Completed 01-02-PLAN.md — Phase 1 Plan 02 (Nodemailer mailer singleton) done. Ready for Plan 03.
 Resume file: None
