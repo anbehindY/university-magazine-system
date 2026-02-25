@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -9,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Dialog,
   DialogContent,
@@ -83,6 +85,8 @@ export default function AdminPanelPage() {
   const [historyLoading, setHistoryLoading] = useState(true);
   const [historyError, setHistoryError] = useState("");
   const [endDateError, setEndDateError] = useState("");
+  const [firstClosureDate, setFirstClosureDate] = useState<Date | undefined>();
+  const [finalClosureDate, setFinalClosureDate] = useState<Date | undefined>();
 
   function handleStartDateChange(value: string) {
     const nextDate = value ? new Date(`${value}T00:00:00`) : undefined;
@@ -112,6 +116,8 @@ export default function AdminPanelPage() {
     setReason("");
     setMessage("");
     setEndDateError("");
+    setFirstClosureDate(undefined);
+    setFinalClosureDate(undefined);
   }
 
   async function loadHistory() {
@@ -136,6 +142,25 @@ export default function AdminPanelPage() {
   useEffect(() => {
     loadHistory();
   }, []);
+
+  async function handleActivate(yearId: string) {
+    try {
+      const response = await fetch("/api/admin/academic-years", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: yearId, isActive: true }),
+      });
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(payload?.error || "Failed to activate academic year.");
+      }
+      await loadHistory();
+    } catch (error) {
+      setHistoryError(
+        error instanceof Error ? error.message : "Failed to activate academic year."
+      );
+    }
+  }
 
   async function onSave(e: React.FormEvent) {
     e.preventDefault();
@@ -166,6 +191,8 @@ export default function AdminPanelPage() {
           reason,
           notiMessage: message,
           automatic,
+          firstClosureDate: firstClosureDate?.toISOString() ?? null,
+          finalClosureDate: finalClosureDate?.toISOString() ?? null,
         }),
       });
 
@@ -344,6 +371,22 @@ export default function AdminPanelPage() {
                       placeholder="02:30"
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label className="text-slate-700">First Closure Date</Label>
+                    <DatePicker
+                      value={firstClosureDate}
+                      onChange={setFirstClosureDate}
+                      placeholder="Pick first closure date"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-slate-700">Final Closure Date</Label>
+                    <DatePicker
+                      value={finalClosureDate}
+                      onChange={setFinalClosureDate}
+                      placeholder="Pick final closure date"
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -447,6 +490,26 @@ export default function AdminPanelPage() {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex flex-wrap gap-2">
+                            {item.isActive ? (
+                              <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">
+                                Active
+                              </Badge>
+                            ) : (
+                              <div className="flex flex-col gap-1">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-emerald-700 hover:text-emerald-800"
+                                  onClick={() => handleActivate(item.id)}
+                                >
+                                  Activate
+                                </Button>
+                                <p className="text-xs text-slate-500">
+                                  Activating will deactivate the currently active year.
+                                </p>
+                              </div>
+                            )}
                             <Button
                               type="button"
                               variant="outline"
@@ -462,6 +525,8 @@ export default function AdminPanelPage() {
                                 setReason("");
                                 setStatus("idle");
                                 setErrorMessage("");
+                                setFirstClosureDate(item.firstClosureDate ? new Date(item.firstClosureDate) : undefined);
+                                setFinalClosureDate(item.finalClosureDate ? new Date(item.finalClosureDate) : undefined);
                                 setIsDialogOpen(true);
                               }}
                             >
@@ -527,6 +592,25 @@ export default function AdminPanelPage() {
                       </div>
                     </dl>
                     <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                      {item.isActive ? (
+                        <Badge className="w-fit bg-emerald-100 text-emerald-800 border-emerald-200">
+                          Active
+                        </Badge>
+                      ) : (
+                        <div className="flex flex-col gap-1">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="w-full text-emerald-700 hover:text-emerald-800 sm:w-auto"
+                            onClick={() => handleActivate(item.id)}
+                          >
+                            Activate
+                          </Button>
+                          <p className="text-xs text-slate-500">
+                            Activating will deactivate the currently active year.
+                          </p>
+                        </div>
+                      )}
                       <Button
                         type="button"
                         variant="outline"
@@ -542,6 +626,8 @@ export default function AdminPanelPage() {
                           setReason("");
                           setStatus("idle");
                           setErrorMessage("");
+                          setFirstClosureDate(item.firstClosureDate ? new Date(item.firstClosureDate) : undefined);
+                          setFinalClosureDate(item.finalClosureDate ? new Date(item.finalClosureDate) : undefined);
                           setIsDialogOpen(true);
                         }}
                       >
