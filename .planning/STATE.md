@@ -10,27 +10,27 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 1 of 5 (Schema and Infrastructure)
-Plan: 3 of TBD in current phase
+Plan: 4 of TBD in current phase
 Status: In progress
-Last activity: 2026-02-25 — Plan 01-03 complete (closure-guard.ts: getActiveAcademicYear, isPastFirstClosure, isPastFinalClosure)
+Last activity: 2026-02-26 — Plan 01-04 complete (Admin UI DatePicker fields for firstClosureDate/finalClosureDate, Active badge, Activate button, PATCH handler)
 
-Progress: [███░░░░░░░] 15%
+Progress: [████░░░░░░] 20%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
+- Total plans completed: 4
 - Average duration: 2 min
-- Total execution time: 0.09 hours
+- Total execution time: 0.11 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-schema-and-infrastructure | 3 | 5 min | 2 min |
+| 01-schema-and-infrastructure | 4 | 8 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (2 min), 01-02 (2 min), 01-03 (1 min)
+- Last 5 plans: 01-01 (2 min), 01-02 (2 min), 01-03 (1 min), 01-04 (3 min)
 - Trend: —
 
 *Updated after each plan completion*
@@ -49,6 +49,7 @@ Recent decisions affecting current work:
 - Schema (01-01): Prisma DROP+ADD accepted (not RENAME) for dev database — no production data to preserve
 - Email (01-02): Nodemailer 6.x required (not 7.x) — ESM-only conflict with Prisma/better-auth CommonJS resolution; globalForMailer singleton pattern; sendMail() fire-and-forget via .catch(console.error)
 - Closure guard (01-03): End-of-day cutoff via setHours(23, 59, 59, 999) before Date.now() comparison — avoids midnight UTC boundary issue; no caching, no date-fns; returns false (not throw) for null dates or no active year
+- Admin UI (01-04): PATCH handler added for activation-only path — PUT requires full form fields, Activate button sends only {id, isActive:true}; inline warning instead of confirmation modal per CONTEXT.md
 - ZIP: Use `archiver` with serial streaming — never `Promise.all()` prefetch of blobs (memory limit risk)
 
 ### Pending Todos
@@ -62,6 +63,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-25
-Stopped at: Completed 01-03-PLAN.md — Phase 1 Plan 03 (closure-guard.ts date gate utilities) done. Ready for Plan 04.
+Last session: 2026-02-26
+Stopped at: Completed 01-04-PLAN.md — Phase 1 Plan 04 (Admin UI DatePicker fields and isActive activation) done. Ready for Plan 05.
 Resume file: None

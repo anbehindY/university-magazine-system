@@ -6,7 +6,7 @@ This milestone completes the full coordinator review workflow on top of the exis
 
 ## Phases
 
-- [ ] **Phase 1: Schema and Infrastructure** - Migrate the database and build shared utilities that every subsequent phase depends on
+- [x] **Phase 1: Schema and Infrastructure** - Migrate the database and build shared utilities that every subsequent phase depends on (completed 2026-02-25)
 - [ ] **Phase 2: Closure Enforcement** - Enforce first and final closure dates on all submission-mutating routes
 - [ ] **Phase 3: Coordinator and Comment API** - Coordinator submission access, email notifications, comment threads, and selection flag
 - [ ] **Phase 4: Manager and Reports API** - ZIP download endpoint and all role-scoped statistical and exception reports
@@ -83,7 +83,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Schema and Infrastructure | 3/4 | In Progress|  |
+| 1. Schema and Infrastructure | 4/4 | Complete   | 2026-02-25 |
 | 2. Closure Enforcement | 0/TBD | Not started | - |
 | 3. Coordinator and Comment API | 0/TBD | Not started | - |
 | 4. Manager and Reports API | 0/TBD | Not started | - |
