@@ -47,6 +47,8 @@ model User {
   updatedConfigSettings ConfigSetting[]
   updatedAcademicYears  AcademicYear[]
   submissions           Submission[]
+  selectedSubmissions   Submission[]    @relation("SubmissionSelector")
+  submissionComments    SubmissionComment[]
 
   @@unique([email])
   @@map("user")
@@ -127,35 +129,60 @@ model ConfigSetting {
 }
 
 model AcademicYear {
-  id          String   @id @default(uuid())
-  yearLabel   String   @db.VarChar(35) @map("year_label")
-  startDate   DateTime @db.Date @map("start_date")
-  endDate     DateTime @db.Date @map("end_date")
-  startTime   DateTime @db.Time @map("start_time")
-  endTime     DateTime @db.Time @map("end_time")
-  notiMessage String   @db.VarChar(255) @map("noti_message")
-  closureDate DateTime? @db.Date @map("closure_date")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  updatedById String?  @map("updated_by")
-  updatedBy   User?    @relation(fields: [updatedById], references: [id])
+  id               String    @id @default(uuid())
+  yearLabel        String    @db.VarChar(35) @map("year_label")
+  startDate        DateTime  @db.Date @map("start_date")
+  endDate          DateTime  @db.Date @map("end_date")
+  startTime        DateTime  @db.Time @map("start_time")
+  endTime          DateTime  @db.Time @map("end_time")
+  notiMessage      String    @db.VarChar(255) @map("noti_message")
+  firstClosureDate DateTime? @db.Date @map("first_closure_date")
+  finalClosureDate DateTime? @db.Date @map("final_closure_date")
+  isActive         Boolean   @default(false) @map("is_active")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  updatedById      String?   @map("updated_by")
+  updatedBy        User?     @relation(fields: [updatedById], references: [id])
+  submissions      Submission[]
 
   @@map("academic_year")
 }
 
 model Submission {
-  id          String           @id @default(uuid())
-  userId      String           @map("user_id")
-  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  status      SubmissionStatus @default(DRAFT)
-  agreed      Boolean          @default(false)
-  notes       String?          @db.Text
-  submittedAt DateTime?        @map("submitted_at")
-  createdAt   DateTime         @default(now()) @map("created_at")
-  updatedAt   DateTime         @updatedAt @map("updated_at")
-  files       SubmissionFile[]
+  id             String           @id @default(uuid())
+  userId         String           @map("user_id")
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status         SubmissionStatus @default(DRAFT)
+  agreed         Boolean          @default(false)
+  notes          String?          @db.Text
+  submittedAt    DateTime?        @map("submitted_at")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+  files          SubmissionFile[]
+  isSelected     Boolean          @default(false) @map("is_selected")
+  selectedAt     DateTime?        @map("selected_at")
+  selectedById   String?          @map("selected_by_id")
+  selectedBy     User?            @relation("SubmissionSelector", fields: [selectedById], references: [id])
+  facultyId      String?          @map("faculty_id")
+  academicYearId String?          @map("academic_year_id")
+  academicYear   AcademicYear?    @relation(fields: [academicYearId], references: [id])
+  comments       SubmissionComment[]
 
   @@map("submission")
+}
+
+model SubmissionComment {
+  id           String     @id @default(uuid())
+  submissionId String     @map("submission_id")
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  authorId     String     @map("author_id")
+  author       User       @relation(fields: [authorId], references: [id])
+  authorRole   String     @map("author_role")
+  body         String     @db.Text
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  @@index([submissionId])
+  @@map("submission_comment")
 }
 
 model SubmissionFile {
