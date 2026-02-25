@@ -25,8 +25,7 @@ export async function getActiveAcademicYear(): Promise<ActiveAcademicYear | null
 }
 
 /**
- * Returns true if the active academic year's first closure date has passed
- * (treating the closure date as end-of-day to avoid timezone boundary issues).
+ * Returns true if the active academic year's first closure datetime has passed.
  * Returns false if there is no active year or if firstClosureDate is null.
  */
 export async function isPastFirstClosure(): Promise<boolean> {
@@ -34,14 +33,11 @@ export async function isPastFirstClosure(): Promise<boolean> {
   if (!year || year.firstClosureDate === null) {
     return false;
   }
-  const cutoff = new Date(year.firstClosureDate);
-  cutoff.setHours(23, 59, 59, 999);
-  return Date.now() > cutoff.getTime();
+  return Date.now() > year.firstClosureDate.getTime();
 }
 
 /**
- * Returns true if the active academic year's final closure date has passed
- * (treating the closure date as end-of-day to avoid timezone boundary issues).
+ * Returns true if the active academic year's final closure datetime has passed.
  * Returns false if there is no active year or if finalClosureDate is null.
  */
 export async function isPastFinalClosure(): Promise<boolean> {
@@ -49,7 +45,5 @@ export async function isPastFinalClosure(): Promise<boolean> {
   if (!year || year.finalClosureDate === null) {
     return false;
   }
-  const cutoff = new Date(year.finalClosureDate);
-  cutoff.setHours(23, 59, 59, 999);
-  return Date.now() > cutoff.getTime();
+  return Date.now() > year.finalClosureDate.getTime();
 }

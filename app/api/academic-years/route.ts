@@ -11,7 +11,6 @@ export async function GET() {
         yearLabel: true,
         firstClosureDate: true,
         finalClosureDate: true,
-        endDate: true,
         isActive: true,
       },
     });

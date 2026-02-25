@@ -5,28 +5,14 @@ import { NextRequest, NextResponse } from "next/server";
 
 type AcademicYearPayload = {
   yearLabel?: string;
-  startDate?: string;
-  endDate?: string;
-  startTime?: string;
-  endTime?: string;
-  notiMessage?: string;
-  firstClosureDate?: string;
-  finalClosureDate?: string;
+  firstClosureDate?: string | null;
+  finalClosureDate?: string | null;
   isActive?: boolean;
-  automatic?: boolean;
-  reason?: string;
 };
 
-function parseDate(value?: string) {
+function parseDateTime(value?: string | null) {
   if (!value) return null;
   const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
-function parseTime(value?: string) {
-  if (!value) return null;
-  if (!/^\d{2}:\d{2}$/.test(value)) return null;
-  const parsed = new Date(`1970-01-01T${value}:00Z`);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
@@ -50,11 +36,6 @@ export async function GET() {
       select: {
         id: true,
         yearLabel: true,
-        startDate: true,
-        endDate: true,
-        startTime: true,
-        endTime: true,
-        notiMessage: true,
         firstClosureDate: true,
         finalClosureDate: true,
         isActive: true,
@@ -86,21 +67,10 @@ export async function POST(req: NextRequest) {
     }
 
     const body = (await req.json()) as AcademicYearPayload;
-    const startDate = parseDate(body.startDate);
-    const endDate = parseDate(body.endDate);
-    const startTime = parseTime(body.startTime);
-    const endTime = parseTime(body.endTime);
-    const firstClosureDate = parseDate(body.firstClosureDate);
-    const finalClosureDate = parseDate(body.finalClosureDate);
+    const firstClosureDate = parseDateTime(body.firstClosureDate);
+    const finalClosureDate = parseDateTime(body.finalClosureDate);
 
-    if (
-      !body.yearLabel ||
-      !startDate ||
-      !endDate ||
-      !startTime ||
-      !endTime ||
-      !body.notiMessage
-    ) {
+    if (!body.yearLabel) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -110,11 +80,6 @@ export async function POST(req: NextRequest) {
     const academicYear = await prisma.academicYear.create({
       data: {
         yearLabel: body.yearLabel,
-        startDate,
-        endDate,
-        startTime,
-        endTime,
-        notiMessage: body.notiMessage,
         firstClosureDate,
         finalClosureDate,
         updatedById: session.user.id,
@@ -145,22 +110,10 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = (await req.json()) as AcademicYearPayload & { id?: string };
-    const startDate = parseDate(body.startDate);
-    const endDate = parseDate(body.endDate);
-    const startTime = parseTime(body.startTime);
-    const endTime = parseTime(body.endTime);
-    const firstClosureDate = parseDate(body.firstClosureDate);
-    const finalClosureDate = parseDate(body.finalClosureDate);
+    const firstClosureDate = parseDateTime(body.firstClosureDate);
+    const finalClosureDate = parseDateTime(body.finalClosureDate);
 
-    if (
-      !body.id ||
-      !body.yearLabel ||
-      !startDate ||
-      !endDate ||
-      !startTime ||
-      !endTime ||
-      !body.notiMessage
-    ) {
+    if (!body.id || !body.yearLabel) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -180,11 +133,6 @@ export async function PUT(req: NextRequest) {
           where: { id: body.id },
           data: {
             yearLabel: body.yearLabel,
-            startDate,
-            endDate,
-            startTime,
-            endTime,
-            notiMessage: body.notiMessage,
             firstClosureDate,
             finalClosureDate,
             isActive: true,
@@ -197,11 +145,6 @@ export async function PUT(req: NextRequest) {
         where: { id: body.id },
         data: {
           yearLabel: body.yearLabel,
-          startDate,
-          endDate,
-          startTime,
-          endTime,
-          notiMessage: body.notiMessage,
           firstClosureDate,
           finalClosureDate,
           isActive: false,

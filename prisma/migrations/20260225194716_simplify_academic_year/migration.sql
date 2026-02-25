@@ -1,0 +1,8 @@
+-- AlterTable
+ALTER TABLE "academic_year" ALTER COLUMN "start_date" DROP NOT NULL,
+ALTER COLUMN "end_date" DROP NOT NULL,
+ALTER COLUMN "start_time" DROP NOT NULL,
+ALTER COLUMN "end_time" DROP NOT NULL,
+ALTER COLUMN "noti_message" DROP NOT NULL,
+ALTER COLUMN "final_closure_date" SET DATA TYPE TIMESTAMP(3),
+ALTER COLUMN "first_closure_date" SET DATA TYPE TIMESTAMP(3);

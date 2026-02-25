@@ -22,102 +22,66 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
-import { TimePicker } from "@/components/ui/time-picker";
 
 type AcademicYearItem = {
   id: string;
   yearLabel: string;
-  startDate: string;
-  endDate: string;
-  startTime: string;
-  endTime: string;
-  notiMessage: string;
   firstClosureDate: string | null;
   finalClosureDate: string | null;
   isActive: boolean;
   createdAt: string;
 };
 
-function formatTime(value: string) {
-  const iso = new Date(value).toISOString();
-  return iso.slice(11, 16);
+function formatDatetime(value: string | null) {
+  if (!value) return "-";
+  return new Date(value).toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
 }
 
-function formatDisplayTime(value: string) {
-  const [hours, minutes] = formatTime(value).split(":");
-  const hourNum = Number(hours);
-  const period = hourNum >= 12 ? "PM" : "AM";
-  const hour12 = hourNum % 12 || 12;
-  return `${hour12}:${minutes} ${period}`;
+/** Combine a Date and a "HH:MM" string into a single ISO datetime string. */
+function combineDateTime(date: Date | undefined, time: string): string | null {
+  if (!date) return null;
+  const [hours, minutes] = time.split(":").map(Number);
+  const combined = new Date(date);
+  combined.setHours(isNaN(hours) ? 23 : hours, isNaN(minutes) ? 59 : minutes, 0, 0);
+  return combined.toISOString();
 }
 
-function formatDateTime(dateValue: string, timeValue: string) {
-  const date = new Date(dateValue);
-  return `${date.toLocaleDateString()} ${formatDisplayTime(timeValue)}`;
-}
-
-function formatDateInputValue(date?: Date) {
-  if (!date) return "";
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+/** Extract "HH:MM" from an ISO datetime string. */
+function extractTime(value: string | null): string {
+  if (!value) return "23:59";
+  const d = new Date(value);
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
 export default function AdminPanelPage() {
   const RequiredMark = () => <span className="ml-1 text-rose-600" aria-hidden="true">*</span>;
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<AcademicYearItem | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [automatic, setAutomatic] = useState(true);
+
   const [yearLabel, setYearLabel] = useState("");
-  const [startDate, setStartDate] = useState<Date | undefined>();
-  const [endDate, setEndDate] = useState<Date | undefined>();
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
-  const [reason, setReason] = useState("");
-  const [message, setMessage] = useState("");
+  const [firstClosureDate, setFirstClosureDate] = useState<Date | undefined>();
+  const [firstClosureTime, setFirstClosureTime] = useState("23:59");
+  const [finalClosureDate, setFinalClosureDate] = useState<Date | undefined>();
+  const [finalClosureTime, setFinalClosureTime] = useState("23:59");
+
   const [status, setStatus] = useState<"idle" | "saving" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [history, setHistory] = useState<AcademicYearItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [historyError, setHistoryError] = useState("");
-  const [endDateError, setEndDateError] = useState("");
-  const [firstClosureDate, setFirstClosureDate] = useState<Date | undefined>();
-  const [finalClosureDate, setFinalClosureDate] = useState<Date | undefined>();
-
-  function handleStartDateChange(value: string) {
-    const nextDate = value ? new Date(`${value}T00:00:00`) : undefined;
-    setStartDate(nextDate);
-    setEndDateError("");
-    if (nextDate && endDate && endDate < nextDate) {
-      setEndDate(undefined);
-    }
-  }
-
-  function handleEndDateChange(value: string) {
-    const nextDate = value ? new Date(`${value}T00:00:00`) : undefined;
-    if (startDate && nextDate && nextDate < startDate) {
-      setEndDateError("End date cannot be earlier than start date.");
-      return;
-    }
-    setEndDateError("");
-    setEndDate(nextDate);
-  }
 
   function resetForm() {
     setYearLabel("");
-    setStartDate(undefined);
-    setEndDate(undefined);
-    setStartTime("");
-    setEndTime("");
-    setReason("");
-    setMessage("");
-    setEndDateError("");
     setFirstClosureDate(undefined);
+    setFirstClosureTime("23:59");
     setFinalClosureDate(undefined);
+    setFinalClosureTime("23:59");
   }
 
   async function loadHistory() {
@@ -125,15 +89,11 @@ export default function AdminPanelPage() {
       setHistoryLoading(true);
       setHistoryError("");
       const response = await fetch("/api/admin/academic-years");
-      if (!response.ok) {
-        throw new Error("Failed to load closure history.");
-      }
+      if (!response.ok) throw new Error("Failed to load academic years.");
       const payload = (await response.json()) as { academicYears: AcademicYearItem[] };
       setHistory(payload.academicYears ?? []);
     } catch (error) {
-      setHistoryError(
-        error instanceof Error ? error.message : "Failed to load closure history."
-      );
+      setHistoryError(error instanceof Error ? error.message : "Failed to load academic years.");
     } finally {
       setHistoryLoading(false);
     }
@@ -152,13 +112,11 @@ export default function AdminPanelPage() {
       });
       if (!response.ok) {
         const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(payload?.error || "Failed to activate academic year.");
+        throw new Error(payload?.error ?? "Failed to activate academic year.");
       }
       await loadHistory();
     } catch (error) {
-      setHistoryError(
-        error instanceof Error ? error.message : "Failed to activate academic year."
-      );
+      setHistoryError(error instanceof Error ? error.message : "Failed to activate academic year.");
     }
   }
 
@@ -167,9 +125,9 @@ export default function AdminPanelPage() {
     setStatus("idle");
     setErrorMessage("");
 
-    if (!yearLabel || !startDate || !endDate || !startTime || !endTime || !message) {
+    if (!yearLabel) {
       setStatus("error");
-      setErrorMessage("Please fill in all required fields.");
+      setErrorMessage("Please enter an academic year label.");
       return;
     }
 
@@ -178,27 +136,18 @@ export default function AdminPanelPage() {
     try {
       const response = await fetch("/api/admin/academic-years", {
         method: editingId ? "PUT" : "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: editingId ?? undefined,
           yearLabel,
-          startDate: startDate.toISOString(),
-          endDate: endDate.toISOString(),
-          startTime,
-          endTime,
-          reason,
-          notiMessage: message,
-          automatic,
-          firstClosureDate: firstClosureDate?.toISOString() ?? null,
-          finalClosureDate: finalClosureDate?.toISOString() ?? null,
+          firstClosureDate: combineDateTime(firstClosureDate, firstClosureTime),
+          finalClosureDate: combineDateTime(finalClosureDate, finalClosureTime),
         }),
       });
 
       if (!response.ok) {
         const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(payload?.error || "Failed to save closure dates.");
+        throw new Error(payload?.error ?? "Failed to save academic year.");
       }
 
       setStatus("success");
@@ -208,7 +157,7 @@ export default function AdminPanelPage() {
       await loadHistory();
     } catch (error) {
       setStatus("error");
-      setErrorMessage(error instanceof Error ? error.message : "Failed to save closure dates.");
+      setErrorMessage(error instanceof Error ? error.message : "Failed to save academic year.");
     }
   }
 
@@ -216,33 +165,41 @@ export default function AdminPanelPage() {
     try {
       const response = await fetch("/api/admin/academic-years", {
         method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id }),
       });
 
       if (!response.ok) {
         const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(payload?.error || "Failed to delete closure record.");
+        throw new Error(payload?.error ?? "Failed to delete academic year.");
       }
 
       await loadHistory();
       setIsDeleteOpen(false);
       setDeleteTarget(null);
     } catch (error) {
-      setHistoryError(
-        error instanceof Error ? error.message : "Failed to delete closure record."
-      );
+      setHistoryError(error instanceof Error ? error.message : "Failed to delete academic year.");
     }
+  }
+
+  function openEditDialog(item: AcademicYearItem) {
+    setEditingId(item.id);
+    setYearLabel(item.yearLabel);
+    setFirstClosureDate(item.firstClosureDate ? new Date(item.firstClosureDate) : undefined);
+    setFirstClosureTime(extractTime(item.firstClosureDate));
+    setFinalClosureDate(item.finalClosureDate ? new Date(item.finalClosureDate) : undefined);
+    setFinalClosureTime(extractTime(item.finalClosureDate));
+    setStatus("idle");
+    setErrorMessage("");
+    setIsDialogOpen(true);
   }
 
   return (
     <main className="mx-auto w-full max-w-5xl space-y-6 px-4 pt-4 pb-6 text-slate-900 sm:px-6">
       <header className="space-y-1">
-        <h1 className="text-3xl font-semibold">Magazine Contribution Deadlines</h1>
+        <h1 className="text-3xl font-semibold">Academic Years</h1>
         <p className="text-slate-600">
-          Configure system closure dates and maintenance windows
+          Configure academic years and their submission closure dates.
         </p>
       </header>
 
@@ -251,9 +208,9 @@ export default function AdminPanelPage() {
       <Card className="w-full border-slate-200 bg-white">
         <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <CardTitle>Magazine Contribution Deadlines History</CardTitle>
+            <CardTitle>Academic Year History</CardTitle>
             <CardDescription className="text-slate-500">
-              Review previously scheduled closure windows
+              Manage academic years and set closure deadlines for student submissions.
             </CardDescription>
           </div>
           <Dialog
@@ -281,32 +238,18 @@ export default function AdminPanelPage() {
                 Add New
               </Button>
             </DialogTrigger>
-            <DialogContent className="w-[min(100vw-2rem,40rem)] max-h-[90vh] overflow-y-auto p-0">
+            <DialogContent className="w-[min(100vw-2rem,36rem)] max-h-[90vh] overflow-y-auto p-0">
               <div className="flex min-h-0 flex-col">
                 <DialogHeader className="sticky top-0 z-10 space-y-2 border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
                   <DialogTitle>
-                    {editingId ? "Edit Closure Dates" : "Add Closure Dates"}
+                    {editingId ? "Edit Academic Year" : "Add Academic Year"}
                   </DialogTitle>
                   <DialogDescription>
-                    Configure system closure dates and maintenance windows
+                    Set the year label and optional closure dates.
                   </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={onSave} className="space-y-6 px-4 py-4 sm:px-6">
-                <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium">Automatic Closure</p>
-                    <p className="text-xs text-slate-500">
-                      Automatically close system at scheduled time
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3 text-sm">
-                    <Switch checked={automatic} onCheckedChange={setAutomatic} />
-                    <span>{automatic ? "On" : "Off"}</span>
-                  </div>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2 md:col-span-2">
+                  <div className="space-y-2">
                     <Label htmlFor="yearLabel" className="text-slate-700">
                       Academic Year
                       <RequiredMark />
@@ -319,133 +262,75 @@ export default function AdminPanelPage() {
                       placeholder="e.g. 2025/2026"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="startDate" className="text-slate-700">
-                      Start Date
-                      <RequiredMark />
-                    </Label>
-                    <Input
-                      id="startDate"
-                      type="date"
-                      className="border-slate-200 bg-white text-slate-900"
-                      value={formatDateInputValue(startDate)}
-                      onChange={(event) => handleStartDateChange(event.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="endDate" className="text-slate-700">
-                      End Date
-                      <RequiredMark />
-                    </Label>
-                    <Input
-                      id="endDate"
-                      type="date"
-                      className="border-slate-200 bg-white text-slate-900"
-                      min={formatDateInputValue(startDate) || undefined}
-                      value={formatDateInputValue(endDate)}
-                      onChange={(event) => handleEndDateChange(event.target.value)}
-                    />
-                    {endDateError ? (
-                      <p className="text-sm text-rose-600">{endDateError}</p>
-                    ) : null}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="startTime" className="text-slate-700">
-                      Start Time
-                      <RequiredMark />
-                    </Label>
-                    <TimePicker
-                      value={startTime}
-                      onChange={setStartTime}
-                      placeholder="01:00"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="endTime" className="text-slate-700">
-                      End Time
-                      <RequiredMark />
-                    </Label>
-                    <TimePicker
-                      value={endTime}
-                      onChange={setEndTime}
-                      placeholder="02:30"
-                    />
-                  </div>
+
                   <div className="space-y-2">
                     <Label className="text-slate-700">First Closure Date</Label>
-                    <DatePicker
-                      value={firstClosureDate}
-                      onChange={setFirstClosureDate}
-                      placeholder="Pick first closure date"
-                    />
+                    <p className="text-xs text-slate-500">
+                      Students cannot create new submissions after this date and time.
+                    </p>
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <DatePicker
+                          value={firstClosureDate}
+                          onChange={setFirstClosureDate}
+                          placeholder="Pick date"
+                        />
+                      </div>
+                      <Input
+                        type="time"
+                        className="w-32 border-slate-200 bg-white text-slate-900"
+                        value={firstClosureTime}
+                        onChange={(e) => setFirstClosureTime(e.target.value)}
+                      />
+                    </div>
                   </div>
+
                   <div className="space-y-2">
                     <Label className="text-slate-700">Final Closure Date</Label>
-                    <DatePicker
-                      value={finalClosureDate}
-                      onChange={setFinalClosureDate}
-                      placeholder="Pick final closure date"
-                    />
+                    <p className="text-xs text-slate-500">
+                      All updates and comments are blocked after this date and time.
+                    </p>
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <DatePicker
+                          value={finalClosureDate}
+                          onChange={setFinalClosureDate}
+                          placeholder="Pick date"
+                        />
+                      </div>
+                      <Input
+                        type="time"
+                        className="w-32 border-slate-200 bg-white text-slate-900"
+                        value={finalClosureTime}
+                        onChange={(e) => setFinalClosureTime(e.target.value)}
+                      />
+                    </div>
                   </div>
-                </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="reason" className="text-slate-700">
-                    Closure Reason
-                  </Label>
-                  <textarea
-                    id="reason"
-                    rows={3}
-                    className="w-full rounded-md border border-slate-200 bg-white p-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value)}
-                    placeholder="Write closure reason here."
-                  />
-                </div>
+                  <div className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:justify-start">
+                    <Button
+                      type="submit"
+                      className="w-full bg-slate-900 text-white hover:bg-slate-800 sm:w-auto"
+                      disabled={status === "saving"}
+                    >
+                      {status === "saving" ? "Saving..." : editingId ? "Update" : "Save"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full sm:w-auto"
+                      onClick={() => setIsDialogOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="message" className="text-slate-700">
-                    Notification Message
-                    <RequiredMark />
-                  </Label>
-                  <textarea
-                    id="message"
-                    rows={3}
-                    className="w-full rounded-md border border-slate-200 bg-white p-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    placeholder="Write notification message here."
-                  />
-                </div>
-
-                <div className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:justify-start">
-                  <Button
-                    type="submit"
-                    className="w-full bg-slate-900 text-white hover:bg-slate-800 sm:w-auto"
-                    disabled={status === "saving"}
-                  >
-                    {status === "saving"
-                      ? "Saving..."
-                      : editingId
-                      ? "Update"
-                      : "Save Changes"}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full sm:w-auto"
-                    onClick={() => setIsDialogOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-
-                {status === "success" ? (
-                  <p className="text-sm text-emerald-600">Saved successfully.</p>
-                ) : null}
-                {status === "error" ? (
-                  <p className="text-sm text-rose-600">{errorMessage}</p>
-                ) : null}
+                  {status === "success" ? (
+                    <p className="text-sm text-emerald-600">Saved successfully.</p>
+                  ) : null}
+                  {status === "error" ? (
+                    <p className="text-sm text-rose-600">{errorMessage}</p>
+                  ) : null}
                 </form>
               </div>
             </DialogContent>
@@ -453,21 +338,21 @@ export default function AdminPanelPage() {
         </CardHeader>
         <CardContent className="space-y-5 px-4 sm:px-6">
           {historyLoading ? (
-            <p className="text-sm text-slate-500">Loading closure history...</p>
+            <p className="text-sm text-slate-500">Loading...</p>
           ) : historyError ? (
             <p className="text-sm text-rose-600">{historyError}</p>
           ) : history.length === 0 ? (
-            <p className="text-sm text-slate-500">No closure dates added yet.</p>
+            <p className="text-sm text-slate-500">No academic years added yet.</p>
           ) : (
             <>
+              {/* Desktop table */}
               <div className="hidden overflow-x-auto rounded-lg border border-slate-200 lg:block">
-                <table className="w-full min-w-[720px] border-collapse text-sm">
+                <table className="w-full border-collapse text-sm">
                   <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
                     <tr>
                       <th className="px-4 py-3">Academic Year</th>
-                      <th className="px-4 py-3">Start</th>
-                      <th className="px-4 py-3">End</th>
-                      <th className="px-4 py-3">Closure Date</th>
+                      <th className="px-4 py-3">First Closure</th>
+                      <th className="px-4 py-3">Final Closure</th>
                       <th className="px-4 py-3">Actions</th>
                     </tr>
                   </thead>
@@ -478,18 +363,13 @@ export default function AdminPanelPage() {
                           {item.yearLabel}
                         </td>
                         <td className="px-4 py-3 text-slate-700">
-                          {formatDateTime(item.startDate, item.startTime)}
+                          {formatDatetime(item.firstClosureDate)}
                         </td>
                         <td className="px-4 py-3 text-slate-700">
-                          {formatDateTime(item.endDate, item.endTime)}
-                        </td>
-                        <td className="px-4 py-3 text-slate-700">
-                          {item.firstClosureDate
-                            ? new Date(item.firstClosureDate).toLocaleDateString()
-                            : "-"}
+                          {formatDatetime(item.finalClosureDate)}
                         </td>
                         <td className="px-4 py-3">
-                          <div className="flex flex-wrap gap-2">
+                          <div className="flex flex-wrap items-start gap-2">
                             {item.isActive ? (
                               <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">
                                 Active
@@ -506,7 +386,7 @@ export default function AdminPanelPage() {
                                   Activate
                                 </Button>
                                 <p className="text-xs text-slate-500">
-                                  Activating will deactivate the currently active year.
+                                  Deactivates the current active year.
                                 </p>
                               </div>
                             )}
@@ -514,21 +394,7 @@ export default function AdminPanelPage() {
                               type="button"
                               variant="outline"
                               size="sm"
-                              onClick={() => {
-                                setEditingId(item.id);
-                                setYearLabel(item.yearLabel);
-                                setStartDate(new Date(item.startDate));
-                                setEndDate(new Date(item.endDate));
-                                setStartTime(formatTime(item.startTime));
-                                setEndTime(formatTime(item.endTime));
-                                setMessage(item.notiMessage);
-                                setReason("");
-                                setStatus("idle");
-                                setErrorMessage("");
-                                setFirstClosureDate(item.firstClosureDate ? new Date(item.firstClosureDate) : undefined);
-                                setFinalClosureDate(item.finalClosureDate ? new Date(item.finalClosureDate) : undefined);
-                                setIsDialogOpen(true);
-                              }}
+                              onClick={() => openEditDialog(item)}
                             >
                               Edit
                             </Button>
@@ -551,52 +417,34 @@ export default function AdminPanelPage() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Mobile cards */}
               <div className="space-y-4 lg:hidden">
                 {history.map((item) => (
                   <div
                     key={item.id}
                     className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
                   >
-                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                      <p className="text-base font-semibold text-slate-900">
-                        {item.yearLabel}
-                      </p>
-                      <p className="text-sm text-slate-500">
-                        {item.firstClosureDate
-                          ? new Date(item.firstClosureDate).toLocaleDateString()
-                          : "No final closure"}
-                      </p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-base font-semibold text-slate-900">{item.yearLabel}</p>
+                      {item.isActive ? (
+                        <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">
+                          Active
+                        </Badge>
+                      ) : null}
                     </div>
-                    <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+                    <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
                       <div>
-                        <dt className="text-xs uppercase tracking-wide text-slate-500">
-                          Start
-                        </dt>
-                        <dd className="text-slate-800">
-                          {formatDateTime(item.startDate, item.startTime)}
-                        </dd>
+                        <dt className="text-xs uppercase tracking-wide text-slate-500">First Closure</dt>
+                        <dd className="text-slate-800">{formatDatetime(item.firstClosureDate)}</dd>
                       </div>
                       <div>
-                        <dt className="text-xs uppercase tracking-wide text-slate-500">
-                          End
-                        </dt>
-                        <dd className="text-slate-800">
-                          {formatDateTime(item.endDate, item.endTime)}
-                        </dd>
-                      </div>
-                      <div className="sm:col-span-2">
-                        <dt className="text-xs uppercase tracking-wide text-slate-500">
-                          Notification
-                        </dt>
-                        <dd className="text-slate-800">{item.notiMessage}</dd>
+                        <dt className="text-xs uppercase tracking-wide text-slate-500">Final Closure</dt>
+                        <dd className="text-slate-800">{formatDatetime(item.finalClosureDate)}</dd>
                       </div>
                     </dl>
                     <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                      {item.isActive ? (
-                        <Badge className="w-fit bg-emerald-100 text-emerald-800 border-emerald-200">
-                          Active
-                        </Badge>
-                      ) : (
+                      {!item.isActive ? (
                         <div className="flex flex-col gap-1">
                           <Button
                             type="button"
@@ -606,30 +454,14 @@ export default function AdminPanelPage() {
                           >
                             Activate
                           </Button>
-                          <p className="text-xs text-slate-500">
-                            Activating will deactivate the currently active year.
-                          </p>
+                          <p className="text-xs text-slate-500">Deactivates the current active year.</p>
                         </div>
-                      )}
+                      ) : null}
                       <Button
                         type="button"
                         variant="outline"
                         className="w-full sm:w-auto"
-                        onClick={() => {
-                          setEditingId(item.id);
-                          setYearLabel(item.yearLabel);
-                          setStartDate(new Date(item.startDate));
-                          setEndDate(new Date(item.endDate));
-                          setStartTime(formatTime(item.startTime));
-                          setEndTime(formatTime(item.endTime));
-                          setMessage(item.notiMessage);
-                          setReason("");
-                          setStatus("idle");
-                          setErrorMessage("");
-                          setFirstClosureDate(item.firstClosureDate ? new Date(item.firstClosureDate) : undefined);
-                          setFinalClosureDate(item.finalClosureDate ? new Date(item.finalClosureDate) : undefined);
-                          setIsDialogOpen(true);
-                        }}
+                        onClick={() => openEditDialog(item)}
                       >
                         Edit
                       </Button>
@@ -662,26 +494,19 @@ export default function AdminPanelPage() {
       >
         <DialogContent className="w-[min(100vw-2rem,28rem)] max-w-md">
           <DialogHeader>
-            <DialogTitle>Delete Closure Record</DialogTitle>
+            <DialogTitle>Delete Academic Year</DialogTitle>
             <DialogDescription>
-              This action cannot be undone. This will permanently delete the
-              selected closure record.
+              This action cannot be undone. The academic year record will be permanently deleted.
             </DialogDescription>
           </DialogHeader>
-          <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-            {deleteTarget ? (
-              <div className="space-y-1">
-                <p className="font-semibold text-slate-900">{deleteTarget.yearLabel}</p>
-                <p>
-                  {new Date(deleteTarget.startDate).toLocaleDateString()} -{" "}
-                  {new Date(deleteTarget.endDate).toLocaleDateString()}
-                </p>
-                <p>
-                  {formatTime(deleteTarget.startTime)} - {formatTime(deleteTarget.endTime)}
-                </p>
-              </div>
-            ) : null}
-          </div>
+          {deleteTarget ? (
+            <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+              <p className="font-semibold text-slate-900">{deleteTarget.yearLabel}</p>
+              {deleteTarget.firstClosureDate ? (
+                <p>First closure: {formatDatetime(deleteTarget.firstClosureDate)}</p>
+              ) : null}
+            </div>
+          ) : null}
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button type="button" variant="outline" onClick={() => setIsDeleteOpen(false)}>
               Cancel
