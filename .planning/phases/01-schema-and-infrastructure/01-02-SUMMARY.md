@@ -63,7 +63,7 @@ Each task was committed atomically:
 1. **Task 1: Install Nodemailer and Create lib/mailer.ts** - `6a37208` (feat)
 2. **Task 2: Create .env.example** - `f6d6b62` (chore)
 
-**Plan metadata:** _(pending final commit)_
+**Plan metadata:** `b537f06` (docs)
 
 ## Files Created/Modified
 
@@ -114,3 +114,12 @@ None - no external service configuration required at this stage. SMTP credential
 ---
 *Phase: 01-schema-and-infrastructure*
 *Completed: 2026-02-25*
+
+## Self-Check: PASSED
+
+- FOUND: lib/mailer.ts
+- FOUND: .env.example
+- FOUND: .planning/phases/01-schema-and-infrastructure/01-02-SUMMARY.md
+- FOUND commit: 6a37208 (Task 1 - feat: nodemailer install and mailer.ts)
+- FOUND commit: f6d6b62 (Task 2 - chore: .env.example)
+- FOUND commit: b537f06 (docs: plan metadata)
