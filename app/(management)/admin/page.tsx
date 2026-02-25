@@ -31,7 +31,9 @@ type AcademicYearItem = {
   startTime: string;
   endTime: string;
   notiMessage: string;
-  closureDate: string | null;
+  firstClosureDate: string | null;
+  finalClosureDate: string | null;
+  isActive: boolean;
   createdAt: string;
 };
 
@@ -439,8 +441,8 @@ export default function AdminPanelPage() {
                           {formatDateTime(item.endDate, item.endTime)}
                         </td>
                         <td className="px-4 py-3 text-slate-700">
-                          {item.closureDate
-                            ? new Date(item.closureDate).toLocaleDateString()
+                          {item.firstClosureDate
+                            ? new Date(item.firstClosureDate).toLocaleDateString()
                             : "-"}
                         </td>
                         <td className="px-4 py-3">
@@ -495,8 +497,8 @@ export default function AdminPanelPage() {
                         {item.yearLabel}
                       </p>
                       <p className="text-sm text-slate-500">
-                        {item.closureDate
-                          ? new Date(item.closureDate).toLocaleDateString()
+                        {item.firstClosureDate
+                          ? new Date(item.firstClosureDate).toLocaleDateString()
                           : "No final closure"}
                       </p>
                     </div>

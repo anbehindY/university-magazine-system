@@ -3,49 +3,18 @@ import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
-    const today = new Date();
-
-    const academicYear =
-      (await prisma.academicYear.findFirst({
-        where: {
-          closureDate: {
-            gte: today,
-          },
-        },
-        orderBy: {
-          closureDate: "asc",
-        },
-        select: {
-          yearLabel: true,
-          closureDate: true,
-          endDate: true,
-        },
-      })) ??
-      (await prisma.academicYear.findFirst({
-        where: {
-          endDate: {
-            gte: today,
-          },
-        },
-        orderBy: {
-          endDate: "asc",
-        },
-        select: {
-          yearLabel: true,
-          closureDate: true,
-          endDate: true,
-        },
-      })) ??
-      (await prisma.academicYear.findFirst({
-        orderBy: {
-          endDate: "desc",
-        },
-        select: {
-          yearLabel: true,
-          closureDate: true,
-          endDate: true,
-        },
-      }));
+    const academicYear = await prisma.academicYear.findFirst({
+      where: {
+        isActive: true,
+      },
+      select: {
+        yearLabel: true,
+        firstClosureDate: true,
+        finalClosureDate: true,
+        endDate: true,
+        isActive: true,
+      },
+    });
 
     return NextResponse.json({ academicYear }, { status: 200 });
   } catch (error) {

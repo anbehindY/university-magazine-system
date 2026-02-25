@@ -146,11 +146,11 @@ export default function StudentSubmissionsPage() {
           throw new Error("Failed to load closure date.");
         }
         const payload = (await response.json()) as {
-          academicYear?: { yearLabel?: string | null; closureDate?: string | null; endDate?: string | null };
+          academicYear?: { yearLabel?: string | null; firstClosureDate?: string | null; finalClosureDate?: string | null; endDate?: string | null };
         };
         if (!isMounted) return;
 
-        const closureDate = payload.academicYear?.closureDate ?? payload.academicYear?.endDate ?? null;
+        const closureDate = payload.academicYear?.firstClosureDate ?? payload.academicYear?.endDate ?? null;
         setFinalClosureDate(closureDate);
         setClosureYearLabel(payload.academicYear?.yearLabel ?? null);
 

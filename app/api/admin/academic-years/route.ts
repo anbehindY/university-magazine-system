@@ -10,6 +10,9 @@ type AcademicYearPayload = {
   startTime?: string;
   endTime?: string;
   notiMessage?: string;
+  firstClosureDate?: string;
+  finalClosureDate?: string;
+  isActive?: boolean;
   automatic?: boolean;
   reason?: string;
 };
@@ -52,7 +55,9 @@ export async function GET() {
         startTime: true,
         endTime: true,
         notiMessage: true,
-        closureDate: true,
+        firstClosureDate: true,
+        finalClosureDate: true,
+        isActive: true,
         createdAt: true,
       },
     });
@@ -85,6 +90,8 @@ export async function POST(req: NextRequest) {
     const endDate = parseDate(body.endDate);
     const startTime = parseTime(body.startTime);
     const endTime = parseTime(body.endTime);
+    const firstClosureDate = parseDate(body.firstClosureDate);
+    const finalClosureDate = parseDate(body.finalClosureDate);
 
     if (
       !body.yearLabel ||
@@ -108,6 +115,8 @@ export async function POST(req: NextRequest) {
         startTime,
         endTime,
         notiMessage: body.notiMessage,
+        firstClosureDate,
+        finalClosureDate,
         updatedById: session.user.id,
       },
     });
@@ -140,6 +149,8 @@ export async function PUT(req: NextRequest) {
     const endDate = parseDate(body.endDate);
     const startTime = parseTime(body.startTime);
     const endTime = parseTime(body.endTime);
+    const firstClosureDate = parseDate(body.firstClosureDate);
+    const finalClosureDate = parseDate(body.finalClosureDate);
 
     if (
       !body.id ||
@@ -156,18 +167,48 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    const academicYear = await prisma.academicYear.update({
-      where: { id: body.id },
-      data: {
-        yearLabel: body.yearLabel,
-        startDate,
-        endDate,
-        startTime,
-        endTime,
-        notiMessage: body.notiMessage,
-        updatedById: session.user.id,
-      },
-    });
+    let academicYear;
+
+    if (body.isActive) {
+      // Enforce single-active-year invariant using a transaction
+      [, academicYear] = await prisma.$transaction([
+        prisma.academicYear.updateMany({
+          where: { id: { not: body.id } },
+          data: { isActive: false },
+        }),
+        prisma.academicYear.update({
+          where: { id: body.id },
+          data: {
+            yearLabel: body.yearLabel,
+            startDate,
+            endDate,
+            startTime,
+            endTime,
+            notiMessage: body.notiMessage,
+            firstClosureDate,
+            finalClosureDate,
+            isActive: true,
+            updatedById: session.user.id,
+          },
+        }),
+      ]);
+    } else {
+      academicYear = await prisma.academicYear.update({
+        where: { id: body.id },
+        data: {
+          yearLabel: body.yearLabel,
+          startDate,
+          endDate,
+          startTime,
+          endTime,
+          notiMessage: body.notiMessage,
+          firstClosureDate,
+          finalClosureDate,
+          isActive: false,
+          updatedById: session.user.id,
+        },
+      });
+    }
 
     return NextResponse.json({ academicYear }, { status: 200 });
   } catch (error) {
