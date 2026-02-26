@@ -103,7 +103,15 @@ Plans:
 2. A Marketing Manager can navigate to a selected submissions view showing all selected contributions across all faculties and, after final closure, can click a Download ZIP button that streams the archive to their browser
 3. A guest user navigating to their faculty view sees selected submissions for their assigned faculty only and can navigate to a reports page showing faculty-scoped statistics and exception data
 4. The reports page renders correct data for each role — coordinators and guests see their faculty, managers and admins see all faculties — and the exception report visually distinguishes submissions with no comment from those over 14 days without a comment
-   **Plans**: TBD
+   **Plans**: 5 plans
+
+Plans:
+
+- [ ] 05-01-PLAN.md — Foundation: install SWR, create Tabs component, refactor sidebar for role-based nav, fix academic-years API, create guest submissions API
+- [ ] 05-02-PLAN.md — Coordinator submissions page with slide-over panel (isSelected toggle, notes, SWR comment thread)
+- [ ] 05-03-PLAN.md — Manager submissions page with faculty filter and ZIP download + Guest submissions page (read-only)
+- [ ] 05-04-PLAN.md — Reports page with Statistics and Exceptions tabs, academic year selector, color-coded rows
+- [ ] 05-05-PLAN.md — Build verification and visual/functional checkpoint across all roles
 
 ## Progress
 
@@ -116,4 +124,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Closure Enforcement         | 3/3 | Complete   | 2026-02-26 |
 | 3. Coordinator and Comment API | 3/3 | Complete    | 2026-02-26 |
 | 4. Manager and Reports API     | 3/3 | Complete    | 2026-02-26 |
-| 5. UI Layer                    | 0/TBD          | Not started | -          |
+| 5. UI Layer                    | 0/5            | Not started | -          |
