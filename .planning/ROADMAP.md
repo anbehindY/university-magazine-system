@@ -108,6 +108,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | ------------------------------ | -------------- | ----------- | ---------- |
 | 1. Schema and Infrastructure   | 4/4            | Complete    | 2026-02-25 |
 | 2. Closure Enforcement         | 3/3 | Complete   | 2026-02-26 |
-| 3. Coordinator and Comment API | 0/3            | Not started | -          |
+| 3. Coordinator and Comment API | 1/3 | In Progress|  |
 | 4. Manager and Reports API     | 0/TBD          | Not started | -          |
 | 5. UI Layer                    | 0/TBD          | Not started | -          |

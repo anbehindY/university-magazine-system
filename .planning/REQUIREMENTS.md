@@ -21,7 +21,7 @@
 
 ### Coordinator Workflow
 
-- [ ] **COORD-01**: Marketing Coordinator can view only SUBMITTED submissions belonging to students in their assigned faculty
+- [x] **COORD-01**: Marketing Coordinator can view only SUBMITTED submissions belonging to students in their assigned faculty
 - [ ] **COORD-02**: Marketing Coordinator receives an email notification (via SMTP) when a student submits (transitions DRAFT → SUBMITTED)
 - [ ] **COORD-03**: Marketing Coordinator can mark or unmark a submission as "Selected for Publication" (toggleable boolean flag)
 - [ ] **COORD-04**: Marketing Coordinator can edit the notes field on a submission
@@ -29,7 +29,7 @@
 ### Comment System
 
 - [ ] **COMM-01**: Marketing Coordinator can add a comment to any submission in their faculty
-- [ ] **COMM-02**: Student can reply to comments on their own submission (two-way thread)
+- [x] **COMM-02**: Student can reply to comments on their own submission (two-way thread)
 - [ ] **COMM-03**: Comment thread is visible only to the submission owner (student) and their faculty's coordinator(s)
 - [ ] **COMM-04**: No new comments can be added to a submission after `finalClosureDate`
 
@@ -94,12 +94,12 @@
 | CLOS-02 | Phase 2 | Complete |
 | CLOS-03 | Phase 2 | Complete |
 | CLOS-04 | Phase 2 | Complete |
-| COORD-01 | Phase 3 | Pending |
+| COORD-01 | Phase 3 | Complete |
 | COORD-02 | Phase 3 | Pending |
 | COORD-03 | Phase 3 | Pending |
 | COORD-04 | Phase 3 | Pending |
 | COMM-01 | Phase 3 | Pending |
-| COMM-02 | Phase 3 | Pending |
+| COMM-02 | Phase 3 | Complete |
 | COMM-03 | Phase 3 | Pending |
 | COMM-04 | Phase 3 | Pending |
 | MGR-01 | Phase 4 | Pending |

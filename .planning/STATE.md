@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Students can submit and manage contributions, coordinators can review and select work, all within enforced academic year closure windows.
-**Current focus:** Phase 2 — Closure Enforcement
+**Current focus:** Phase 3 — Coordinator and Comment API
 
 ## Current Position
 
-Phase: 2 of 5 (Closure Enforcement)
-Plan: 3 of 3 in current phase
+Phase: 3 of 5 (Coordinator and Comment API)
+Plan: 1 of 4 in current phase
 Status: In progress
-Last activity: 2026-02-26 — Plan 02-03 complete (POST /api/comments stub with finalClosure gate, CLOS-03)
+Last activity: 2026-02-26 — Plan 03-01 complete (Schema migration: title on Submission, parentId self-relation on SubmissionComment)
 
-Progress: [████████░░] 40%
+Progress: [████████░░] 42%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
+- Total plans completed: 8
 - Average duration: 2 min
-- Total execution time: 0.14 hours
+- Total execution time: 0.15 hours
 
 **By Phase:**
 
@@ -29,9 +29,10 @@ Progress: [████████░░] 40%
 |-------|-------|-------|----------|
 | 01-schema-and-infrastructure | 4 | 8 min | 2 min |
 | 02-closure-enforcement | 3 | 4 min | 1 min |
+| 03-coordinator-and-comment-api | 1 | 1 min | 1 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-03 (1 min), 01-04 (3 min), 02-01 (1 min), 02-02 (1 min), 02-03 (1 min)
+- Last 5 plans: 01-04 (3 min), 02-01 (1 min), 02-02 (1 min), 02-03 (1 min), 03-01 (1 min)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -57,6 +58,8 @@ Recent decisions affecting current work:
 - File routes (02-02): DELETE gated on finalClosure only — students can delete drafts after first closure; final closure blocks all file removes per CLOS-02
 - Blob gate (02-02): throw in onBeforeGenerateToken (not onUploadCompleted) — token must be refused before CDN upload begins to avoid orphaned blobs
 - Comments stub (02-03): Route stub pattern used — auth gate (401) → closure gate (403) → 501 fallback; Phase 3 replaces 501 branch with full SubmissionComment logic
+- Schema migration (03-01): self-referential relation uses named string "CommentReplies" with onDelete:SetNull — deleting parent comment nullifies children's parentId rather than cascading delete
+- Schema migration (03-01): title field placed after agreed field in Submission as nullable String? @db.Text with no default — existing submissions get NULL
 
 ### Pending Todos
 
@@ -70,5 +73,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 02-03-PLAN.md — Phase 2 Plan 03 (POST /api/comments stub with finalClosure gate, CLOS-03) done. Phase 2 complete.
+Stopped at: Completed 03-01-PLAN.md — Phase 3 Plan 01 (Schema migration: title on Submission, parentId self-relation on SubmissionComment) done.
 Resume file: None
