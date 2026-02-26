@@ -14,10 +14,10 @@
 
 ### Closure Enforcement
 
-- [ ] **CLOS-01**: Student cannot create new submissions after `firstClosureDate` for the active academic year
+- [x] **CLOS-01**: Student cannot create new submissions after `firstClosureDate` for the active academic year
 - [x] **CLOS-02**: Student cannot update any existing submission after `finalClosureDate`
 - [x] **CLOS-03**: No new comments can be added to any submission after `finalClosureDate`
-- [ ] **CLOS-04**: Student must have `agreed = true` before a submission transitions to SUBMITTED status (enforced at API level, not just stored)
+- [x] **CLOS-04**: Student must have `agreed = true` before a submission transitions to SUBMITTED status (enforced at API level, not just stored)
 
 ### Coordinator Workflow
 
@@ -90,10 +90,10 @@
 | INFRA-02 | Phase 1 | Complete |
 | INFRA-03 | Phase 1 | Complete |
 | INFRA-04 | Phase 1 | Complete |
-| CLOS-01 | Phase 2 | Pending |
+| CLOS-01 | Phase 2 | Complete |
 | CLOS-02 | Phase 2 | Complete |
 | CLOS-03 | Phase 2 | Complete |
-| CLOS-04 | Phase 2 | Pending |
+| CLOS-04 | Phase 2 | Complete |
 | COORD-01 | Phase 3 | Pending |
 | COORD-02 | Phase 3 | Pending |
 | COORD-03 | Phase 3 | Pending |

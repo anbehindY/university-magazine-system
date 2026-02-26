@@ -56,6 +56,8 @@ Recent decisions affecting current work:
 - Comments stub (02-03): Route stub pattern used — auth gate (401) → closure gate (403) → 501 fallback; Phase 3 replaces 501 branch with full SubmissionComment logic
 - [Phase 02-closure-enforcement]: File routes (02-02): DELETE gated on finalClosure only — students can delete drafts after first closure; final closure blocks all file removes per CLOS-02
 - [Phase 02-closure-enforcement]: Blob gate (02-02): throw in onBeforeGenerateToken (not onUploadCompleted) — token must be refused before CDN upload begins to avoid orphaned blobs
+- [Phase 02-closure-enforcement]: Two-call pattern in POST: isPastFirstClosure() for gate, getActiveAcademicYear() separately for id; facultyId via prisma.user.findUnique not session
+- [Phase 02-closure-enforcement]: PUT agreed guard uses effectiveAgreed = body.agreed ?? existing.agreed — consults persisted value when body omits agreed field
 
 ### Pending Todos
 
