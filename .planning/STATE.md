@@ -5,33 +5,34 @@
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Students can submit and manage contributions, coordinators can review and select work, all within enforced academic year closure windows.
-**Current focus:** Phase 1 — Schema and Infrastructure
+**Current focus:** Phase 2 — Closure Enforcement
 
 ## Current Position
 
-Phase: 1 of 5 (Schema and Infrastructure)
-Plan: 4 of TBD in current phase
+Phase: 2 of 5 (Closure Enforcement)
+Plan: 3 of 3 in current phase
 Status: In progress
-Last activity: 2026-02-26 — Plan 01-04 complete (Admin UI DatePicker fields for firstClosureDate/finalClosureDate, Active badge, Activate button, PATCH handler)
+Last activity: 2026-02-26 — Plan 02-03 complete (POST /api/comments stub with finalClosure gate, CLOS-03)
 
-Progress: [████░░░░░░] 20%
+Progress: [████████░░] 40%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
+- Total plans completed: 7
 - Average duration: 2 min
-- Total execution time: 0.11 hours
+- Total execution time: 0.14 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-schema-and-infrastructure | 4 | 8 min | 2 min |
+| 02-closure-enforcement | 3 | 4 min | 1 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (2 min), 01-02 (2 min), 01-03 (1 min), 01-04 (3 min)
-- Trend: —
+- Last 5 plans: 01-03 (1 min), 01-04 (3 min), 02-01 (1 min), 02-02 (1 min), 02-03 (1 min)
+- Trend: Stable
 
 *Updated after each plan completion*
 
@@ -51,6 +52,9 @@ Recent decisions affecting current work:
 - Closure guard (01-03): End-of-day cutoff via setHours(23, 59, 59, 999) before Date.now() comparison — avoids midnight UTC boundary issue; no caching, no date-fns; returns false (not throw) for null dates or no active year
 - Admin UI (01-04): PATCH handler added for activation-only path — PUT requires full form fields, Activate button sends only {id, isActive:true}; inline warning instead of confirmation modal per CONTEXT.md
 - ZIP: Use `archiver` with serial streaming — never `Promise.all()` prefetch of blobs (memory limit risk)
+- Comments stub (02-03): Route stub pattern used — auth gate (401) → closure gate (403) → 501 fallback; Phase 3 replaces 501 branch with full SubmissionComment logic
+- [Phase 02-closure-enforcement]: File routes (02-02): DELETE gated on finalClosure only — students can delete drafts after first closure; final closure blocks all file removes per CLOS-02
+- [Phase 02-closure-enforcement]: Blob gate (02-02): throw in onBeforeGenerateToken (not onUploadCompleted) — token must be refused before CDN upload begins to avoid orphaned blobs
 
 ### Pending Todos
 
@@ -64,5 +68,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 01-04-PLAN.md — Phase 1 Plan 04 (Admin UI DatePicker fields and isActive activation) done. Ready for Plan 05.
+Stopped at: Completed 02-03-PLAN.md — Phase 2 Plan 03 (POST /api/comments stub with finalClosure gate, CLOS-03) done. Phase 2 complete.
 Resume file: None
