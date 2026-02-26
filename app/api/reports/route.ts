@@ -53,6 +53,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get("type");
     const academicYearIdParam = searchParams.get("academicYearId");
+    const overdue = searchParams.get("overdue");
 
     if (!type || (type !== "submissions" && type !== "exceptions")) {
       return NextResponse.json(
@@ -134,10 +135,55 @@ export async function GET(request: NextRequest) {
     }
 
     if (type === "exceptions") {
-      return NextResponse.json(
-        { error: "Exception reports not yet implemented." },
-        { status: 501 }
-      );
+      // Exception report (RPT-04, RPT-05)
+      const exceptions = await prisma.submission.findMany({
+        where: {
+          status: "SUBMITTED",
+          ...(scopedFacultyId ? { facultyId: scopedFacultyId } : {}),
+          ...(academicYearId ? { academicYearId } : {}),
+          comments: {
+            none: {
+              authorRole: "MARKETING_COORDINATOR",
+            },
+          },
+          ...(overdue === "true"
+            ? {
+                submittedAt: {
+                  lt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
+                },
+              }
+            : {}),
+        },
+        select: {
+          id: true,
+          title: true,
+          submittedAt: true,
+          facultyId: true,
+          user: { select: { name: true } },
+        },
+        orderBy: { submittedAt: "asc" },
+      });
+
+      const now = Date.now();
+      const data = exceptions.map((e) => ({
+        id: e.id,
+        title: e.title,
+        studentName: e.user.name,
+        facultyName: facultyMap.get(e.facultyId ?? "") ?? null,
+        submittedAt: e.submittedAt,
+        daysSinceSubmission: e.submittedAt
+          ? Math.floor(
+              (now - e.submittedAt.getTime()) / (24 * 60 * 60 * 1000)
+            )
+          : null,
+      }));
+
+      return NextResponse.json({
+        type: "exceptions",
+        academicYearId,
+        overdue: overdue === "true",
+        data,
+      });
     }
   } catch (error) {
     console.error("Error generating report:", error);
