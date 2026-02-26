@@ -4,6 +4,7 @@ import {
   isPastFirstClosure,
   isPastFinalClosure,
 } from "@/lib/closure-guard";
+import { sendMail } from "@/lib/mailer";
 import prisma from "@/lib/prisma";
 import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
@@ -181,6 +182,42 @@ export async function PUT(req: NextRequest) {
       where: { id: body.id },
       data: updateData,
     });
+
+    // COORD-02: Email notification on first SUBMITTED transition
+    // Fire only when submittedAt was null before (first time) and nextStatus is SUBMITTED
+    const isFirstSubmission = nextStatus === "SUBMITTED" && existing.submittedAt === null;
+    if (isFirstSubmission) {
+      const updatedSubmission = await prisma.submission.findUnique({
+        where: { id: body.id },
+        select: { facultyId: true, title: true },
+      });
+
+      if (updatedSubmission?.facultyId) {
+        const coordinators = await prisma.user.findMany({
+          where: {
+            role: "MARKETING_COORDINATOR",
+            facultyId: updatedSubmission.facultyId,
+          },
+          select: { email: true },
+        });
+
+        if (coordinators.length > 0) {
+          const emails = coordinators.map((c) => c.email);
+          const submissionTitle = updatedSubmission.title ?? "Untitled";
+          const studentName = session.user.name;
+          const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+          // Fire-and-forget — do NOT await; errors logged, not thrown
+          sendMail({
+            to: emails,
+            subject: `New submission: ${submissionTitle} — ${studentName}`,
+            html: `<p><strong>${studentName}</strong> has submitted a new contribution: <em>${submissionTitle}</em>.</p>
+                   <p><a href="${appUrl}/coordinator/submissions">View submissions</a></p>`,
+            text: `${studentName} has submitted a new contribution: ${submissionTitle}. Visit ${appUrl}/coordinator/submissions to review.`,
+          }).catch(console.error);
+        }
+      }
+    }
 
     return NextResponse.json({ submission }, { status: 200 });
   } catch (error) {
