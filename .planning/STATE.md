@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 3 of 5 (Coordinator and Comment API)
-Plan: 1 of 4 in current phase
+Plan: 3 of 4 in current phase
 Status: In progress
-Last activity: 2026-02-26 — Plan 03-01 complete (Schema migration: title on Submission, parentId self-relation on SubmissionComment)
+Last activity: 2026-02-26 — Plan 03-03 complete (Full comment POST/GET with role-scoped enforcement; coordinator email notification on first SUBMITTED transition)
 
-Progress: [████████░░] 42%
+Progress: [█████████░] 48%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8
+- Total plans completed: 10
 - Average duration: 2 min
-- Total execution time: 0.15 hours
+- Total execution time: 0.20 hours
 
 **By Phase:**
 
@@ -29,10 +29,10 @@ Progress: [████████░░] 42%
 |-------|-------|-------|----------|
 | 01-schema-and-infrastructure | 4 | 8 min | 2 min |
 | 02-closure-enforcement | 3 | 4 min | 1 min |
-| 03-coordinator-and-comment-api | 1 | 1 min | 1 min |
+| 03-coordinator-and-comment-api | 3 | 5 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-04 (3 min), 02-01 (1 min), 02-02 (1 min), 02-03 (1 min), 03-01 (1 min)
+- Last 5 plans: 02-02 (1 min), 02-03 (1 min), 03-01 (1 min), 03-02 (1 min), 03-03 (3 min)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -60,6 +60,8 @@ Recent decisions affecting current work:
 - Comments stub (02-03): Route stub pattern used — auth gate (401) → closure gate (403) → 501 fallback; Phase 3 replaces 501 branch with full SubmissionComment logic
 - Schema migration (03-01): self-referential relation uses named string "CommentReplies" with onDelete:SetNull — deleting parent comment nullifies children's parentId rather than cascading delete
 - Schema migration (03-01): title field placed after agreed field in Submission as nullable String? @db.Text with no default — existing submissions get NULL
+- Comments (03-03): session.user.role cast as string for Prisma authorRole — role guards above ensure non-null at create point; safe cast
+- Email (03-03): isFirstSubmission check uses existing.submittedAt === null — deduplication uses already-selected field, no extra query needed; sendMail is fire-and-forget (.catch(console.error))
 
 ### Pending Todos
 
@@ -73,5 +75,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 03-01-PLAN.md — Phase 3 Plan 01 (Schema migration: title on Submission, parentId self-relation on SubmissionComment) done.
+Stopped at: Completed 03-03-PLAN.md — Phase 3 Plan 03 (Full comment POST/GET with role-scoped enforcement; coordinator email notification on first SUBMITTED transition) done.
 Resume file: None
