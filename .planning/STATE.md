@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 5 of 5 (UI Layer)
-Plan: 1 of 5 in current phase
-Status: Plan 05-01 complete
-Last activity: 2026-02-26 — Plan 05-01 complete (SWR installed, Tabs component, role-based sidebar, faculty name display, guest submissions API, academic-years id fix; GUEST-01)
+Plan: 3 of 5 in current phase
+Status: Plan 05-03 complete
+Last activity: 2026-02-26 — Plan 05-03 complete (Manager submissions page with faculty filter and ZIP download, guest read-only selected articles page; GUEST-01)
 
-Progress: [██████████████] 65%
+Progress: [█████████████████] 75%
 
 ## Performance Metrics
 
@@ -31,10 +31,10 @@ Progress: [██████████████] 65%
 | 02-closure-enforcement | 3 | 4 min | 1 min |
 | 03-coordinator-and-comment-api | 3 | 5 min | 2 min |
 | 04-manager-and-reports-api | 3 | 7 min | 2 min |
-| 05-ui-layer | 1 | 3 min | 3 min |
+| 05-ui-layer | 3 | 8 min | 2.7 min |
 
 **Recent Trend:**
-- Last 5 plans: 03-03 (3 min), 04-01 (2 min), 04-02 (3 min), 04-03 (2 min), 05-01 (3 min)
+- Last 5 plans: 04-02 (3 min), 04-03 (2 min), 05-01 (3 min), 05-02 (2 min), 05-03 (3 min)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -74,6 +74,13 @@ Recent decisions affecting current work:
 - NavUser (05-01): Faculty name fetched via useEffect + /api/faculties, displayed as "role · Faculty Name" inline — fire-and-forget fetch, no spinner
 - Tabs (05-01): Uses same radix-ui monorepo import pattern as Switch component: import { Tabs as TabsPrimitive } from "radix-ui"
 - Guest API (05-01): Same guard order as coordinator — session → role → prisma.user.findUnique facultyId → isSelected=true query
+- Coordinator submissions UI (05-02): useSWR refreshInterval:15000 for comment polling — no setInterval; mutate() after POST for immediate revalidation
+- Coordinator submissions UI (05-02): Optimistic isSelected toggle — local state updated immediately, reverted on API failure with sonner toast error
+- Coordinator submissions UI (05-02): Notes saved via explicit button (not debounce/blur) — reduces spurious PATCH calls, clearer user intent
+- Coordinator submissions UI (05-02): Sheet panel layout — sticky header (toggle + notes), flex-1 overflow-y-auto comment body, sticky bottom comment input
+- Manager UI (05-03): Two useEffect pattern — one for static data (faculties + academic year) on mount, one for submissions refetch on selectedFacultyId change
+- Manager UI (05-03): Disabled button in span with tabIndex=0 inside TooltipTrigger asChild — disabled elements don't fire mouse events so Tooltip would not show otherwise
+- Manager UI (05-03): Empty string value for All Faculties SelectItem — avoids null/undefined controlled input warnings
 
 ### Pending Todos
 
@@ -86,5 +93,5 @@ None — Phase 5 Plan 01 complete. Foundation laid for all Wave 2 UI pages.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 05-01-PLAN.md — Phase 5 Plan 01 (SWR installed, Tabs component, role-based sidebar, faculty name display, guest submissions API, academic-years id fix; GUEST-01) done.
+Stopped at: Completed 05-03-PLAN.md — Phase 5 Plan 03 (manager submissions page with faculty filter and ZIP download, guest read-only page; GUEST-01) done.
 Resume file: None
