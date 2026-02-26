@@ -40,7 +40,7 @@
 
 ### Guest Access
 
-- [ ] **GUEST-01**: Guest user can view submissions flagged as "Selected for Publication" for their assigned faculty (read-only, no editing or commenting)
+- [x] **GUEST-01**: Guest user can view submissions flagged as "Selected for Publication" for their assigned faculty (read-only, no editing or commenting)
 - [ ] **GUEST-02**: Guest user can view statistical and exception reports scoped to their assigned faculty
 
 ### Reports
@@ -110,7 +110,7 @@
 | RPT-04 | Phase 4 | Complete |
 | RPT-05 | Phase 4 | Complete |
 | RPT-06 | Phase 4 | Complete |
-| GUEST-01 | Phase 5 | Pending |
+| GUEST-01 | Phase 5 | Complete |
 | GUEST-02 | Phase 5 | Pending |
 
 **Coverage:**

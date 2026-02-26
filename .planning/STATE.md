@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Students can submit and manage contributions, coordinators can review and select work, all within enforced academic year closure windows.
-**Current focus:** Phase 4 — Manager and Reports API
+**Current focus:** Phase 5 — UI Layer
 
 ## Current Position
 
-Phase: 4 of 5 (Manager and Reports API)
-Plan: 3 of 3 in current phase
-Status: Phase 4 complete
-Last activity: 2026-02-26 — Plan 04-03 complete (GET /api/manager/submissions/download streaming ZIP with inverted closure gate, serial blob fetching, Faculty/Student/filename structure; MGR-02)
+Phase: 5 of 5 (UI Layer)
+Plan: 1 of 5 in current phase
+Status: Plan 05-01 complete
+Last activity: 2026-02-26 — Plan 05-01 complete (SWR installed, Tabs component, role-based sidebar, faculty name display, guest submissions API, academic-years id fix; GUEST-01)
 
-Progress: [████████████] 60%
+Progress: [██████████████] 65%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 12
+- Total plans completed: 13
 - Average duration: 2 min
-- Total execution time: 0.25 hours
+- Total execution time: 0.3 hours
 
 **By Phase:**
 
@@ -31,9 +31,10 @@ Progress: [████████████] 60%
 | 02-closure-enforcement | 3 | 4 min | 1 min |
 | 03-coordinator-and-comment-api | 3 | 5 min | 2 min |
 | 04-manager-and-reports-api | 3 | 7 min | 2 min |
+| 05-ui-layer | 1 | 3 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 03-02 (1 min), 03-03 (3 min), 04-01 (2 min), 04-02 (3 min), 04-03 (2 min)
+- Last 5 plans: 03-03 (3 min), 04-01 (2 min), 04-02 (3 min), 04-03 (2 min), 05-01 (3 min)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -69,6 +70,10 @@ Recent decisions affecting current work:
 - Reports (04-02): Unified type-routing pattern with shared scopedFacultyId setup — null means unrestricted (manager/admin), string means faculty-scoped (coordinator/guest)
 - ZIP download (04-03): Inverted closure gate !(await isPastFinalClosure()) — the single endpoint in the project that blocks BEFORE the date; all others block after. Serial blob fetching via IIFE for-loop, never Promise.all()
 - ZIP download (04-03): NodeWebReadableStream import alias (import type { ReadableStream as NodeWebReadableStream } from "stream/web") resolves TypeScript mismatch between global ReadableStream and stream/web types for Readable.fromWeb parameter
+- Sidebar (05-01): buildPages() uses switch/case — clean role mapping, no implicit fallthrough, empty array default for unknown roles
+- NavUser (05-01): Faculty name fetched via useEffect + /api/faculties, displayed as "role · Faculty Name" inline — fire-and-forget fetch, no spinner
+- Tabs (05-01): Uses same radix-ui monorepo import pattern as Switch component: import { Tabs as TabsPrimitive } from "radix-ui"
+- Guest API (05-01): Same guard order as coordinator — session → role → prisma.user.findUnique facultyId → isSelected=true query
 
 ### Pending Todos
 
@@ -76,10 +81,10 @@ None yet.
 
 ### Blockers/Concerns
 
-None — Phase 4 complete. Blob URL expiry concern from earlier was resolved by fetching stored URLs directly (Vercel Blob public URLs do not expire). Comment visibility is enforced at query level (download endpoint uses include: { files: true, user: { select: { name: true } } } — no comment data included).
+None — Phase 5 Plan 01 complete. Foundation laid for all Wave 2 UI pages.
 
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 04-03-PLAN.md — Phase 4 Plan 03 (GET /api/manager/submissions/download streaming ZIP with inverted closure gate, serial blob fetching, Faculty/Student/filename structure; MGR-02) done. Phase 4 complete.
+Stopped at: Completed 05-01-PLAN.md — Phase 5 Plan 01 (SWR installed, Tabs component, role-based sidebar, faculty name display, guest submissions API, academic-years id fix; GUEST-01) done.
 Resume file: None
