@@ -121,6 +121,13 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "Missing submission id" }, { status: 400 });
     }
 
+    if (await isPastFinalClosure()) {
+      return NextResponse.json(
+        { error: "Submissions are locked. The final closure date has passed." },
+        { status: 403 }
+      );
+    }
+
     const existing = await prisma.submission.findFirst({
       where: {
         id: body.id,
@@ -129,6 +136,7 @@ export async function PUT(req: NextRequest) {
       select: {
         id: true,
         submittedAt: true,
+        agreed: true,
       },
     });
 
@@ -137,6 +145,16 @@ export async function PUT(req: NextRequest) {
     }
 
     const nextStatus = body.status ?? "DRAFT";
+
+    if (nextStatus === "SUBMITTED") {
+      const effectiveAgreed = typeof body.agreed === "boolean" ? body.agreed : existing.agreed;
+      if (!effectiveAgreed) {
+        return NextResponse.json(
+          { error: "You must accept the Terms and Conditions before submitting." },
+          { status: 400 }
+        );
+      }
+    }
 
     const updateData: {
       agreed?: boolean;
