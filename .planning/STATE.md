@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 4 of 5 (Manager and Reports API)
-Plan: 2 of 3 in current phase
-Status: In progress
-Last activity: 2026-02-26 — Plan 04-02 complete (GET /api/reports with $queryRaw statistical aggregation, Prisma nested-filter exceptions, role-scoped faculty filtering; RPT-01 through RPT-06)
+Plan: 3 of 3 in current phase
+Status: Phase 4 complete
+Last activity: 2026-02-26 — Plan 04-03 complete (GET /api/manager/submissions/download streaming ZIP with inverted closure gate, serial blob fetching, Faculty/Student/filename structure; MGR-02)
 
-Progress: [███████████░] 56%
+Progress: [████████████] 60%
 
 ## Performance Metrics
 
@@ -30,10 +30,10 @@ Progress: [███████████░] 56%
 | 01-schema-and-infrastructure | 4 | 8 min | 2 min |
 | 02-closure-enforcement | 3 | 4 min | 1 min |
 | 03-coordinator-and-comment-api | 3 | 5 min | 2 min |
-| 04-manager-and-reports-api | 2 | 5 min | 3 min |
+| 04-manager-and-reports-api | 3 | 7 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: 03-01 (1 min), 03-02 (1 min), 03-03 (3 min), 04-01 (2 min), 04-02 (3 min)
+- Last 5 plans: 03-02 (1 min), 03-03 (3 min), 04-01 (2 min), 04-02 (3 min), 04-03 (2 min)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -67,6 +67,8 @@ Recent decisions affecting current work:
 - Reports (04-02): $queryRaw with Prisma.sql for statistical aggregation — COUNT(DISTINCT) not available in Prisma ORM; BigInt from COUNT converted via Number() before JSON serialization
 - Reports (04-02): Prisma findMany with nested none filter for exceptions — comments.none.authorRole=MARKETING_COORDINATOR; native ORM filter preferred over raw SQL when supported
 - Reports (04-02): Unified type-routing pattern with shared scopedFacultyId setup — null means unrestricted (manager/admin), string means faculty-scoped (coordinator/guest)
+- ZIP download (04-03): Inverted closure gate !(await isPastFinalClosure()) — the single endpoint in the project that blocks BEFORE the date; all others block after. Serial blob fetching via IIFE for-loop, never Promise.all()
+- ZIP download (04-03): NodeWebReadableStream import alias (import type { ReadableStream as NodeWebReadableStream } from "stream/web") resolves TypeScript mismatch between global ReadableStream and stream/web types for Readable.fromWeb parameter
 
 ### Pending Todos
 
@@ -74,11 +76,10 @@ None yet.
 
 ### Blockers/Concerns
 
-- **Blob URL expiry**: Verify whether stored `SubmissionFile.url` values have expiry before Phase 4 ZIP work. May need `generateSignedUrl()` at assembly time.
-- **Comment visibility**: Manager and Guest views must explicitly exclude comment data even though comments sit on the same Submission record — enforce at API query level in Phase 4.
+None — Phase 4 complete. Blob URL expiry concern from earlier was resolved by fetching stored URLs directly (Vercel Blob public URLs do not expire). Comment visibility is enforced at query level (download endpoint uses include: { files: true, user: { select: { name: true } } } — no comment data included).
 
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 04-02-PLAN.md — Phase 4 Plan 02 (GET /api/reports with $queryRaw statistical aggregation and Prisma nested-filter exceptions; RPT-01 through RPT-06) done.
+Stopped at: Completed 04-03-PLAN.md — Phase 4 Plan 03 (GET /api/manager/submissions/download streaming ZIP with inverted closure gate, serial blob fetching, Faculty/Student/filename structure; MGR-02) done. Phase 4 complete.
 Resume file: None
