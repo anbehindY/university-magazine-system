@@ -10,16 +10,16 @@ See: .planning/PROJECT.md (updated 2026-02-25)
 ## Current Position
 
 Phase: 5 of 5 (UI Layer)
-Plan: 3 of 5 in current phase
-Status: Plan 05-03 complete
-Last activity: 2026-02-26 — Plan 05-03 complete (Manager submissions page with faculty filter and ZIP download, guest read-only selected articles page; GUEST-01)
+Plan: 4 of 5 in current phase
+Status: Plan 05-04 complete
+Last activity: 2026-02-26 — Plan 05-04 complete (Reports page with Statistics and Exceptions tabs, sortable table, color-coded exception rows; GUEST-02)
 
-Progress: [█████████████████] 75%
+Progress: [████████████████████] 80%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 13
+- Total plans completed: 14
 - Average duration: 2 min
 - Total execution time: 0.3 hours
 
@@ -31,10 +31,10 @@ Progress: [█████████████████] 75%
 | 02-closure-enforcement | 3 | 4 min | 1 min |
 | 03-coordinator-and-comment-api | 3 | 5 min | 2 min |
 | 04-manager-and-reports-api | 3 | 7 min | 2 min |
-| 05-ui-layer | 3 | 8 min | 2.7 min |
+| 05-ui-layer | 4 | 10 min | 2.5 min |
 
 **Recent Trend:**
-- Last 5 plans: 04-02 (3 min), 04-03 (2 min), 05-01 (3 min), 05-02 (2 min), 05-03 (3 min)
+- Last 5 plans: 04-03 (2 min), 05-01 (3 min), 05-02 (2 min), 05-03 (3 min), 05-04 (2 min)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -81,6 +81,9 @@ Recent decisions affecting current work:
 - Manager UI (05-03): Two useEffect pattern — one for static data (faculties + academic year) on mount, one for submissions refetch on selectedFacultyId change
 - Manager UI (05-03): Disabled button in span with tabIndex=0 inside TooltipTrigger asChild — disabled elements don't fire mouse events so Tooltip would not show otherwise
 - Manager UI (05-03): Empty string value for All Faculties SelectItem — avoids null/undefined controlled input warnings
+- Reports UI (05-04): Exceptions lazy-loaded on first tab switch to avoid unnecessary API call on mount
+- Reports UI (05-04): Exception rows sorted descending by daysSinceSubmission (most overdue first); color-coded via conditional class helper (bg-red-50 >=14 days, bg-amber-50 <14 days)
+- Reports UI (05-04): Overdue toggle refetches with/without ?overdue=true param rather than client-side filtering
 
 ### Pending Todos
 
@@ -93,5 +96,5 @@ None — Phase 5 Plan 01 complete. Foundation laid for all Wave 2 UI pages.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 05-03-PLAN.md — Phase 5 Plan 03 (manager submissions page with faculty filter and ZIP download, guest read-only page; GUEST-01) done.
+Stopped at: Completed 05-04-PLAN.md — Phase 5 Plan 04 (reports page with Statistics and Exceptions tabs, sortable table, color-coded exception rows; GUEST-02) done.
 Resume file: None
