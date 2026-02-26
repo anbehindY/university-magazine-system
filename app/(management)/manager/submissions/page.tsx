@@ -46,7 +46,7 @@ export default function ManagerSubmissionsPage() {
   const [submissions, setSubmissions] = useState<SubmissionRow[]>([]);
   const [faculties, setFaculties] = useState<Faculty[]>([]);
   const [finalClosureDate, setFinalClosureDate] = useState<string | null>(null);
-  const [selectedFacultyId, setSelectedFacultyId] = useState<string>("");
+  const [selectedFacultyId, setSelectedFacultyId] = useState<string>("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
@@ -99,7 +99,7 @@ export default function ManagerSubmissionsPage() {
       setError(null);
 
       try {
-        const url = selectedFacultyId
+        const url = selectedFacultyId && selectedFacultyId !== "all"
           ? `/api/manager/submissions?facultyId=${encodeURIComponent(selectedFacultyId)}`
           : "/api/manager/submissions";
 
@@ -171,7 +171,7 @@ export default function ManagerSubmissionsPage() {
     return format(d, "dd MMM yyyy, HH:mm");
   }
 
-  const selectedFacultyName = selectedFacultyId
+  const selectedFacultyName = selectedFacultyId && selectedFacultyId !== "all"
     ? faculties.find((f) => f.id === selectedFacultyId)?.name
     : null;
 
@@ -205,7 +205,7 @@ export default function ManagerSubmissionsPage() {
                 <SelectValue placeholder="All Faculties" />
               </SelectTrigger>
               <SelectContent className="border-slate-200 bg-white">
-                <SelectItem value="" className="text-slate-900">
+                <SelectItem value="all" className="text-slate-900">
                   All Faculties
                 </SelectItem>
                 {faculties.map((faculty) => (
