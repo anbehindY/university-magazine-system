@@ -45,12 +45,12 @@
 
 ### Reports
 
-- [ ] **RPT-01**: Report shows number of submissions per faculty for each academic year
-- [ ] **RPT-02**: Report shows percentage of total submissions contributed by each faculty for any academic year
-- [ ] **RPT-03**: Report shows number of distinct student contributors per faculty per academic year
-- [ ] **RPT-04**: Exception report: all submitted contributions that have received no coordinator comment
-- [ ] **RPT-05**: Exception report: all submitted contributions with no coordinator comment where submission date is more than 14 days ago
-- [ ] **RPT-06**: All reports are role-scoped — Coordinator and Guest see their faculty only; Marketing Manager and Administrator see all faculties
+- [x] **RPT-01**: Report shows number of submissions per faculty for each academic year
+- [x] **RPT-02**: Report shows percentage of total submissions contributed by each faculty for any academic year
+- [x] **RPT-03**: Report shows number of distinct student contributors per faculty per academic year
+- [x] **RPT-04**: Exception report: all submitted contributions that have received no coordinator comment
+- [x] **RPT-05**: Exception report: all submitted contributions with no coordinator comment where submission date is more than 14 days ago
+- [x] **RPT-06**: All reports are role-scoped — Coordinator and Guest see their faculty only; Marketing Manager and Administrator see all faculties
 
 ## v2 Requirements
 
@@ -104,12 +104,12 @@
 | COMM-04 | Phase 3 | Complete |
 | MGR-01 | Phase 4 | Complete |
 | MGR-02 | Phase 4 | Complete |
-| RPT-01 | Phase 4 | Pending |
-| RPT-02 | Phase 4 | Pending |
-| RPT-03 | Phase 4 | Pending |
-| RPT-04 | Phase 4 | Pending |
-| RPT-05 | Phase 4 | Pending |
-| RPT-06 | Phase 4 | Pending |
+| RPT-01 | Phase 4 | Complete |
+| RPT-02 | Phase 4 | Complete |
+| RPT-03 | Phase 4 | Complete |
+| RPT-04 | Phase 4 | Complete |
+| RPT-05 | Phase 4 | Complete |
+| RPT-06 | Phase 4 | Complete |
 | GUEST-01 | Phase 5 | Pending |
 | GUEST-02 | Phase 5 | Pending |
 
