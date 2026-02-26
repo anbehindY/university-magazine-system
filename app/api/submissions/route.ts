@@ -1,4 +1,9 @@
 import { auth } from "@/lib/auth";
+import {
+  getActiveAcademicYear,
+  isPastFirstClosure,
+  isPastFinalClosure,
+} from "@/lib/closure-guard";
 import prisma from "@/lib/prisma";
 import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
@@ -58,6 +63,26 @@ export async function POST(req: NextRequest) {
 
     const body = (await req.json()) as SubmissionPayload;
 
+    if (await isPastFirstClosure()) {
+      return NextResponse.json(
+        { error: "New submissions are no longer accepted. The first closure date has passed." },
+        { status: 403 }
+      );
+    }
+
+    const activeYear = await getActiveAcademicYear();
+    if (!activeYear) {
+      return NextResponse.json(
+        { error: "No active academic year. Submissions are not open." },
+        { status: 403 }
+      );
+    }
+
+    const dbUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { facultyId: true },
+    });
+
     const submission = await prisma.submission.create({
       data: {
         userId: session.user.id,
@@ -65,6 +90,8 @@ export async function POST(req: NextRequest) {
         notes: body.notes ?? null,
         status: body.status ?? "DRAFT",
         submittedAt: body.status === "SUBMITTED" ? new Date() : null,
+        academicYearId: activeYear.id,
+        facultyId: dbUser?.facultyId ?? null,
       },
     });
 
