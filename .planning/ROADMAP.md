@@ -65,7 +65,13 @@ Plans:
 3. A coordinator can POST a comment to a submission in their faculty and the comment appears in the thread; a student can POST a reply to that comment on their own submission; a coordinator from a different faculty receives a 403
 4. A coordinator can PATCH `isSelected` to toggle the publication flag on a submission in their faculty; a coordinator from a different faculty receives a 403
 5. A coordinator can PATCH the `notes` field on a submission in their faculty; the updated value is returned in subsequent GET responses
-   **Plans**: TBD
+   **Plans**: 3 plans
+
+Plans:
+
+- [ ] 03-01-PLAN.md — Schema migration: add title to Submission and parentId self-relation to SubmissionComment
+- [ ] 03-02-PLAN.md — Coordinator submissions API: GET faculty-scoped list (COORD-01), PATCH isSelected + notes (COORD-03, COORD-04)
+- [ ] 03-03-PLAN.md — Comment API: full POST/GET replacing stub (COMM-01-04), email trigger on first SUBMITTED transition (COORD-02)
 
 ### Phase 4: Manager and Reports API
 
@@ -102,6 +108,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | ------------------------------ | -------------- | ----------- | ---------- |
 | 1. Schema and Infrastructure   | 4/4            | Complete    | 2026-02-25 |
 | 2. Closure Enforcement         | 3/3 | Complete   | 2026-02-26 |
-| 3. Coordinator and Comment API | 0/TBD          | Not started | -          |
+| 3. Coordinator and Comment API | 0/3            | Not started | -          |
 | 4. Manager and Reports API     | 0/TBD          | Not started | -          |
 | 5. UI Layer                    | 0/TBD          | Not started | -          |
