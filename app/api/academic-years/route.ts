@@ -8,6 +8,7 @@ export async function GET() {
         isActive: true,
       },
       select: {
+        id: true,
         yearLabel: true,
         firstClosureDate: true,
         finalClosureDate: true,
