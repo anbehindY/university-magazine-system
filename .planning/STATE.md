@@ -35,7 +35,6 @@ Progress: [████████░░] 40%
 - Trend: Stable
 
 *Updated after each plan completion*
-| Phase 02-closure-enforcement P01 | 1 | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -53,11 +52,11 @@ Recent decisions affecting current work:
 - Closure guard (01-03): End-of-day cutoff via setHours(23, 59, 59, 999) before Date.now() comparison — avoids midnight UTC boundary issue; no caching, no date-fns; returns false (not throw) for null dates or no active year
 - Admin UI (01-04): PATCH handler added for activation-only path — PUT requires full form fields, Activate button sends only {id, isActive:true}; inline warning instead of confirmation modal per CONTEXT.md
 - ZIP: Use `archiver` with serial streaming — never `Promise.all()` prefetch of blobs (memory limit risk)
+- Submissions (02-01): Two-call pattern in POST — isPastFirstClosure() for gate, getActiveAcademicYear() separately for id; facultyId via prisma.user.findUnique not session
+- Submissions (02-01): PUT agreed guard uses effectiveAgreed = body.agreed ?? existing.agreed — consults persisted value when body omits agreed field
+- File routes (02-02): DELETE gated on finalClosure only — students can delete drafts after first closure; final closure blocks all file removes per CLOS-02
+- Blob gate (02-02): throw in onBeforeGenerateToken (not onUploadCompleted) — token must be refused before CDN upload begins to avoid orphaned blobs
 - Comments stub (02-03): Route stub pattern used — auth gate (401) → closure gate (403) → 501 fallback; Phase 3 replaces 501 branch with full SubmissionComment logic
-- [Phase 02-closure-enforcement]: File routes (02-02): DELETE gated on finalClosure only — students can delete drafts after first closure; final closure blocks all file removes per CLOS-02
-- [Phase 02-closure-enforcement]: Blob gate (02-02): throw in onBeforeGenerateToken (not onUploadCompleted) — token must be refused before CDN upload begins to avoid orphaned blobs
-- [Phase 02-closure-enforcement]: Two-call pattern in POST: isPastFirstClosure() for gate, getActiveAcademicYear() separately for id; facultyId via prisma.user.findUnique not session
-- [Phase 02-closure-enforcement]: PUT agreed guard uses effectiveAgreed = body.agreed ?? existing.agreed — consults persisted value when body omits agreed field
 
 ### Pending Todos
 
