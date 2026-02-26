@@ -35,8 +35,8 @@
 
 ### Marketing Manager
 
-- [ ] **MGR-01**: Marketing Manager can view all submissions flagged as "Selected for Publication" across all faculties (read-only, no editing or commenting)
-- [ ] **MGR-02**: Marketing Manager can download a ZIP archive of all files (Word docs + images) from selected submissions, available only after `finalClosureDate` — ZIP organised by Faculty > Student > files
+- [x] **MGR-01**: Marketing Manager can view all submissions flagged as "Selected for Publication" across all faculties (read-only, no editing or commenting)
+- [x] **MGR-02**: Marketing Manager can download a ZIP archive of all files (Word docs + images) from selected submissions, available only after `finalClosureDate` — ZIP organised by Faculty > Student > files
 
 ### Guest Access
 
@@ -102,8 +102,8 @@
 | COMM-02 | Phase 3 | Complete |
 | COMM-03 | Phase 3 | Complete |
 | COMM-04 | Phase 3 | Complete |
-| MGR-01 | Phase 4 | Pending |
-| MGR-02 | Phase 4 | Pending |
+| MGR-01 | Phase 4 | Complete |
+| MGR-02 | Phase 4 | Complete |
 | RPT-01 | Phase 4 | Pending |
 | RPT-02 | Phase 4 | Pending |
 | RPT-03 | Phase 4 | Pending |

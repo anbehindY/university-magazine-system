@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Students can submit and manage contributions, coordinators can review and select work, all within enforced academic year closure windows.
-**Current focus:** Phase 3 — Coordinator and Comment API
+**Current focus:** Phase 4 — Manager and Reports API
 
 ## Current Position
 
-Phase: 3 of 5 (Coordinator and Comment API)
-Plan: 3 of 4 in current phase
+Phase: 4 of 5 (Manager and Reports API)
+Plan: 1 of 3 in current phase
 Status: In progress
-Last activity: 2026-02-26 — Plan 03-03 complete (Full comment POST/GET with role-scoped enforcement; coordinator email notification on first SUBMITTED transition)
+Last activity: 2026-02-26 — Plan 04-01 complete (GET /api/manager/submissions with MARKETING_MANAGER role gate, faculty resolution, application-layer sort; archiver installed for ZIP)
 
-Progress: [█████████░] 48%
+Progress: [██████████░] 52%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 10
+- Total plans completed: 11
 - Average duration: 2 min
-- Total execution time: 0.20 hours
+- Total execution time: 0.22 hours
 
 **By Phase:**
 
@@ -30,9 +30,10 @@ Progress: [█████████░] 48%
 | 01-schema-and-infrastructure | 4 | 8 min | 2 min |
 | 02-closure-enforcement | 3 | 4 min | 1 min |
 | 03-coordinator-and-comment-api | 3 | 5 min | 2 min |
+| 04-manager-and-reports-api | 1 | 2 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: 02-02 (1 min), 02-03 (1 min), 03-01 (1 min), 03-02 (1 min), 03-03 (3 min)
+- Last 5 plans: 02-03 (1 min), 03-01 (1 min), 03-02 (1 min), 03-03 (3 min), 04-01 (2 min)
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -62,6 +63,7 @@ Recent decisions affecting current work:
 - Schema migration (03-01): title field placed after agreed field in Submission as nullable String? @db.Text with no default — existing submissions get NULL
 - Comments (03-03): session.user.role cast as string for Prisma authorRole — role guards above ensure non-null at create point; safe cast
 - Email (03-03): isFirstSubmission check uses existing.submittedAt === null — deduplication uses already-selected field, no extra query needed; sendMail is fire-and-forget (.catch(console.error))
+- Manager submissions (04-01): Faculty name resolved via separate prisma.faculty.findMany() + Map<string, string> — Submission.facultyId is a snapshot string with no ORM relation to Faculty; application-layer sort used because Prisma orderBy cannot sort by resolved names
 
 ### Pending Todos
 
@@ -75,5 +77,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 03-03-PLAN.md — Phase 3 Plan 03 (Full comment POST/GET with role-scoped enforcement; coordinator email notification on first SUBMITTED transition) done.
+Stopped at: Completed 04-01-PLAN.md — Phase 4 Plan 01 (GET /api/manager/submissions with MARKETING_MANAGER role gate; archiver installed for ZIP download) done.
 Resume file: None
