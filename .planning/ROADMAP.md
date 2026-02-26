@@ -84,7 +84,13 @@ Plans:
 2. A Marketing Manager calling `GET /api/manager/submissions/download` after `finalClosureDate` receives a streaming ZIP archive structured as `Faculty/StudentName/filename`; calling the same route before `finalClosureDate` returns a 403
 3. The reports endpoint returns correct counts for submissions per faculty per academic year, percentage of total, and distinct student contributors per faculty — with coordinator and guest requests filtered to their faculty and manager/admin requests returning all faculties
 4. The exception report returns all SUBMITTED contributions with no coordinator comment, and the 14-day exception report returns only those submitted more than 14 days ago without a comment — both scoped correctly by role
-   **Plans**: TBD
+   **Plans**: 3 plans
+
+Plans:
+
+- [ ] 04-01-PLAN.md — Manager submissions API: install archiver, create GET /api/manager/submissions with role gate and faculty name resolution
+- [ ] 04-02-PLAN.md — Reports API: create GET /api/reports with type=submissions (stats) and type=exceptions (no-comment filter), role-scoped faculty filtering
+- [ ] 04-03-PLAN.md — ZIP download: create GET /api/manager/submissions/download with streaming archiver, serial blob fetch, Faculty/Student/file structure
 
 ### Phase 5: UI Layer
 
@@ -109,5 +115,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. Schema and Infrastructure   | 4/4            | Complete    | 2026-02-25 |
 | 2. Closure Enforcement         | 3/3 | Complete   | 2026-02-26 |
 | 3. Coordinator and Comment API | 3/3 | Complete    | 2026-02-26 |
-| 4. Manager and Reports API     | 0/TBD          | Not started | -          |
+| 4. Manager and Reports API     | 0/3            | Not started | -          |
 | 5. UI Layer                    | 0/TBD          | Not started | -          |
