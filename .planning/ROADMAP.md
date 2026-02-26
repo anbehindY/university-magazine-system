@@ -51,7 +51,7 @@ Plans:
 
 - [ ] 02-01-PLAN.md — Submissions route gates: firstClosure guard on POST (CLOS-01), finalClosure guard on PUT (CLOS-02 partial), agreed guard on SUBMITTED transition (CLOS-04), populate academicYearId/facultyId on create
 - [ ] 02-02-PLAN.md — File mutation route gates: finalClosure guard on POST/DELETE /api/submissions/files and onBeforeGenerateToken in /api/submissions/upload (CLOS-02)
-- [ ] 02-03-PLAN.md — Comments stub route: create /api/comments POST stub enforcing finalClosure gate (CLOS-03), returns 501 for pre-closure requests until Phase 3 implements full thread
+- [x] 02-03-PLAN.md — Comments stub route: create /api/comments POST stub enforcing finalClosure gate (CLOS-03), returns 501 for pre-closure requests until Phase 3 implements full thread (completed 2026-02-26)
 
 ### Phase 3: Coordinator and Comment API
 

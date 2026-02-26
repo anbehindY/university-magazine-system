@@ -23,8 +23,8 @@
 
 - [x] **COORD-01**: Marketing Coordinator can view only SUBMITTED submissions belonging to students in their assigned faculty
 - [x] **COORD-02**: Marketing Coordinator receives an email notification (via SMTP) when a student submits (transitions DRAFT → SUBMITTED)
-- [ ] **COORD-03**: Marketing Coordinator can mark or unmark a submission as "Selected for Publication" (toggleable boolean flag)
-- [ ] **COORD-04**: Marketing Coordinator can edit the notes field on a submission
+- [x] **COORD-03**: Marketing Coordinator can mark or unmark a submission as "Selected for Publication" (toggleable boolean flag)
+- [x] **COORD-04**: Marketing Coordinator can edit the notes field on a submission
 
 ### Comment System
 
@@ -96,8 +96,8 @@
 | CLOS-04 | Phase 2 | Complete |
 | COORD-01 | Phase 3 | Complete |
 | COORD-02 | Phase 3 | Complete |
-| COORD-03 | Phase 3 | Pending |
-| COORD-04 | Phase 3 | Pending |
+| COORD-03 | Phase 3 | Complete |
+| COORD-04 | Phase 3 | Complete |
 | COMM-01 | Phase 3 | Complete |
 | COMM-02 | Phase 3 | Complete |
 | COMM-03 | Phase 3 | Complete |
