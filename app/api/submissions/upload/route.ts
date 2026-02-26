@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth";
+import { isPastFinalClosure } from "@/lib/closure-guard";
 import prisma from "@/lib/prisma";
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { headers } from "next/headers";
@@ -31,6 +32,10 @@ export async function POST(request: Request) {
             ? (JSON.parse(clientPayload) as { submissionId?: string })
             : (clientPayload as { submissionId?: string } | null);
         const submissionId = parsedPayload?.submissionId;
+
+        if (await isPastFinalClosure()) {
+          throw new Error("Submissions are locked. The final closure date has passed.");
+        }
 
         if (!submissionId) {
           throw new Error("Missing submission id.");
