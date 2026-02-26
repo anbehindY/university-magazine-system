@@ -4,12 +4,7 @@ import {
   Calendar,
   ChartColumn,
   CircleCheckBig,
-  ClipboardList,
   FileText,
-  LayoutDashboard,
-  Megaphone,
-  Settings,
-  Shield,
   Upload,
   Users,
 } from "lucide-react";
@@ -27,86 +22,35 @@ import {
 import getAvatarUrl from "@/lib/getAvatarUrl";
 
 function buildPages(role?: string | null) {
-  if (role && role !== "ADMINISTRATOR") {
-    const normalizedRole = role ?? "STUDENT";
-    const items = [
-      {
-        title: "Dashboard",
-        url: "/",
-        icon: LayoutDashboard,
-      },
-    ];
-
-    if (normalizedRole === "STUDENT") {
-      items.push({
-        title: "Your Submissions",
-        url: "/submissions",
-        icon: Upload,
-      });
-    }
-
-    return items;
+  switch (role) {
+    case "MARKETING_COORDINATOR":
+      return [
+        { title: "Submissions", url: "/coordinator/submissions", icon: FileText },
+        { title: "Reports", url: "/reports", icon: ChartColumn },
+      ];
+    case "MARKETING_MANAGER":
+      return [
+        { title: "Selected Submissions", url: "/manager/submissions", icon: CircleCheckBig },
+        { title: "Reports", url: "/reports", icon: ChartColumn },
+      ];
+    case "GUEST":
+      return [
+        { title: "Selected Articles", url: "/guest/submissions", icon: CircleCheckBig },
+        { title: "Reports", url: "/reports", icon: ChartColumn },
+      ];
+    case "STUDENT":
+      return [
+        { title: "My Submissions", url: "/submissions", icon: Upload },
+      ];
+    case "ADMINISTRATOR":
+      return [
+        { title: "Closure Dates", url: "/admin", icon: Calendar },
+        { title: "Upload Rules", url: "/admin/upload-rules", icon: Upload },
+        { title: "User Management", url: "/users", icon: Users },
+      ];
+    default:
+      return [];
   }
-
-  const items = [
-    {
-      title: "Faculty Submissions",
-      url: "#",
-      icon: FileText,
-    },
-    {
-      title: "Selected Articles",
-      url: "#",
-      icon: CircleCheckBig,
-    },
-    {
-      title: "Analytics",
-      url: "#",
-      icon: ChartColumn,
-    },
-    {
-      title: "Dashboard",
-      url: "/",
-      icon: LayoutDashboard,
-    },
-    {
-      title: "User Management",
-      url: "/users",
-      icon: Users,
-    },
-    {
-      title: "Reports & Analytics",
-      url: "#",
-      icon: ClipboardList,
-    },
-    {
-      title: "Closure Dates",
-      url: "/admin",
-      icon: Calendar,
-    },
-    {
-      title: "Upload Rules",
-      url: "/admin/upload-rules",
-      icon: Upload,
-    },
-    {
-      title: "Audit Log",
-      url: "#",
-      icon: ClipboardList,
-    },
-    {
-      title: "Notifications",
-      url: "#",
-      icon: Megaphone,
-    },
-    {
-      title: "Settings",
-      url: "#",
-      icon: Settings,
-    },
-  ];
-
-  return items;
 }
 
 type SidebarUser = {
@@ -114,6 +58,7 @@ type SidebarUser = {
   email?: string | null;
   image?: string | null;
   role?: string | null;
+  facultyId?: string | null;
 };
 
 export function AppSidebar({
@@ -124,6 +69,7 @@ export function AppSidebar({
     name: user?.name ?? "User",
     email: user?.email ?? "",
     role: user?.role ?? null,
+    facultyId: user?.facultyId ?? null,
     avatar: user?.image ?? getAvatarUrl(user?.email ?? user?.name ?? "user"),
   };
 
@@ -132,14 +78,14 @@ export function AppSidebar({
       <SidebarHeader>
         <div className="flex items-center gap-3 px-3 py-3 transition-[gap,padding] duration-200 ease-linear group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:justify-center">
           <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-400 text-slate-900 shadow-sm">
-            <Shield className="size-5" />
+            <FileText className="size-5" />
           </span>
           <div className="min-w-0 overflow-hidden transition-[max-width,opacity,transform] duration-200 ease-linear max-w-[12rem] group-data-[collapsible=icon]:max-w-0 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:-translate-x-2">
             <div className="text-sm font-semibold leading-none text-white">
-              Admin Portal
+              University Magazine
             </div>
             <div className="mt-1 text-xs text-white/60">
-              Enterprise Control Panel
+              Contribution Portal
             </div>
           </div>
         </div>

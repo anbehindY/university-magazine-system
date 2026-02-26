@@ -1,7 +1,7 @@
 "use client";
 
 import { LogOut } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -25,9 +25,25 @@ export function NavUser({
     email: string;
     avatar: string;
     role?: string | null;
+    facultyId?: string | null;
   };
 }) {
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [facultyName, setFacultyName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user.facultyId) return;
+
+    fetch("/api/faculties")
+      .then((res) => res.json())
+      .then((data: { faculties?: { id: string; name: string }[] }) => {
+        const match = data.faculties?.find((f) => f.id === user.facultyId);
+        if (match) setFacultyName(match.name);
+      })
+      .catch(() => {
+        // silently ignore — faculty name is cosmetic
+      });
+  }, [user.facultyId]);
 
   async function handleSignOut() {
     if (isSigningOut) return;
@@ -61,6 +77,7 @@ export function NavUser({
               </span>
               <span className="truncate text-xs text-white/60">
                 {user.role ?? "Administrator"}
+                {facultyName ? ` · ${facultyName}` : ""}
               </span>
             </div>
             <button
