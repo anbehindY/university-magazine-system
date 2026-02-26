@@ -99,6 +99,9 @@ export default function ReportsPage() {
 
   // Track which tab is active (to lazy-load exceptions)
   const [activeTab, setActiveTab] = useState("statistics");
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
 
   // ── Fetch academic year on mount ────────────────────────────────────────────
   useEffect(() => {
@@ -251,7 +254,7 @@ export default function ReportsPage() {
       {/* Academic year selector */}
       <div className="flex items-center gap-3">
         <span className="text-sm font-medium text-slate-700">Academic Year</span>
-        {yearLoading ? (
+        {yearLoading || !mounted ? (
           <Skeleton className="h-9 w-44" />
         ) : (
           <Select

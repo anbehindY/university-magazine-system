@@ -50,6 +50,9 @@ export default function ManagerSubmissionsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
 
   // Fetch faculties and academic year on mount
   useEffect(() => {
@@ -193,28 +196,32 @@ export default function ManagerSubmissionsPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         {/* Faculty filter */}
         <div className="flex items-center gap-3">
-          <Select
-            value={selectedFacultyId}
-            onValueChange={setSelectedFacultyId}
-          >
-            <SelectTrigger className="w-56 border-slate-200 bg-white text-slate-900">
-              <SelectValue placeholder="All Faculties" />
-            </SelectTrigger>
-            <SelectContent className="border-slate-200 bg-white">
-              <SelectItem value="" className="text-slate-900">
-                All Faculties
-              </SelectItem>
-              {faculties.map((faculty) => (
-                <SelectItem
-                  key={faculty.id}
-                  value={faculty.id}
-                  className="text-slate-900"
-                >
-                  {faculty.name}
+          {mounted ? (
+            <Select
+              value={selectedFacultyId}
+              onValueChange={setSelectedFacultyId}
+            >
+              <SelectTrigger className="w-56 border-slate-200 bg-white text-slate-900">
+                <SelectValue placeholder="All Faculties" />
+              </SelectTrigger>
+              <SelectContent className="border-slate-200 bg-white">
+                <SelectItem value="" className="text-slate-900">
+                  All Faculties
                 </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+                {faculties.map((faculty) => (
+                  <SelectItem
+                    key={faculty.id}
+                    value={faculty.id}
+                    className="text-slate-900"
+                  >
+                    {faculty.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <div className="h-9 w-56 rounded-md border border-slate-200 bg-white" />
+          )}
 
           {selectedFacultyName && !loading && (
             <Badge
