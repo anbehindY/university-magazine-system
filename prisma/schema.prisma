@@ -154,6 +154,7 @@ model Submission {
   user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   status         SubmissionStatus @default(DRAFT)
   agreed         Boolean          @default(false)
+  title          String?          @db.Text
   notes          String?          @db.Text
   submittedAt    DateTime?        @map("submitted_at")
   createdAt      DateTime         @default(now()) @map("created_at")
@@ -180,6 +181,9 @@ model SubmissionComment {
   authorRole   String     @map("author_role")
   body         String     @db.Text
   createdAt    DateTime   @default(now()) @map("created_at")
+  parentId     String?    @map("parent_id")
+  parent       SubmissionComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: SetNull)
+  replies      SubmissionComment[] @relation("CommentReplies")
 
   @@index([submissionId])
   @@map("submission_comment")
