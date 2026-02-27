@@ -15,12 +15,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 type SubmissionRow = {
   id: string;
@@ -36,16 +30,9 @@ type Faculty = {
   name: string;
 };
 
-type AcademicYear = {
-  id: string;
-  yearLabel: string;
-  finalClosureDate: string | null;
-};
-
 export default function ManagerSubmissionsPage() {
   const [submissions, setSubmissions] = useState<SubmissionRow[]>([]);
   const [faculties, setFaculties] = useState<Faculty[]>([]);
-  const [finalClosureDate, setFinalClosureDate] = useState<string | null>(null);
   const [selectedFacultyId, setSelectedFacultyId] = useState<string>("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -60,27 +47,15 @@ export default function ManagerSubmissionsPage() {
 
     async function fetchStaticData() {
       try {
-        const [facultiesRes, yearRes] = await Promise.all([
-          fetch("/api/faculties"),
-          fetch("/api/academic-years"),
-        ]);
-
+        const facultiesRes = await fetch("/api/faculties");
         if (cancelled) return;
 
         if (facultiesRes.ok) {
           const data = (await facultiesRes.json()) as { faculties: Faculty[] };
           if (!cancelled) setFaculties(data.faculties ?? []);
         }
-
-        if (yearRes.ok) {
-          const data = (await yearRes.json()) as {
-            academicYear: AcademicYear | null;
-          };
-          if (!cancelled)
-            setFinalClosureDate(data.academicYear?.finalClosureDate ?? null);
-        }
       } catch {
-        // Non-critical — faculty filter still works, tooltip falls back to disabled
+        // Non-critical — faculty filter still works
       }
     }
 
@@ -135,8 +110,6 @@ export default function ManagerSubmissionsPage() {
     };
   }, [selectedFacultyId]);
 
-  const isDownloadDisabled =
-    !finalClosureDate || new Date(finalClosureDate) > new Date();
 
   async function handleDownloadZip() {
     setDownloading(true);
@@ -234,44 +207,23 @@ export default function ManagerSubmissionsPage() {
         </div>
 
         {/* Download ZIP button */}
-        <TooltipProvider>
-          {isDownloadDisabled ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span tabIndex={0}>
-                  <Button
-                    disabled
-                    className="gap-2 bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-50"
-                  >
-                    <Download className="h-4 w-4" />
-                    Download ZIP
-                  </Button>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>
-                ZIP download is available after the final closure date
-              </TooltipContent>
-            </Tooltip>
+        <Button
+          onClick={handleDownloadZip}
+          disabled={downloading}
+          className="gap-2 bg-slate-900 text-white hover:bg-slate-800"
+        >
+          {downloading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Downloading...
+            </>
           ) : (
-            <Button
-              onClick={handleDownloadZip}
-              disabled={downloading}
-              className="gap-2 bg-slate-900 text-white hover:bg-slate-800"
-            >
-              {downloading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Downloading...
-                </>
-              ) : (
-                <>
-                  <Download className="h-4 w-4" />
-                  Download ZIP
-                </>
-              )}
-            </Button>
+            <>
+              <Download className="h-4 w-4" />
+              Download ZIP
+            </>
           )}
-        </TooltipProvider>
+        </Button>
       </div>
 
       {/* Content area */}
