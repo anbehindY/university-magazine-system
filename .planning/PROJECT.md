@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A secure, role-based web application for collecting and managing student contributions to a large university's annual magazine. Students submit Word documents and images through a structured workflow with closure dates, T&C agreement, and coordinator oversight. Coordinators review, comment, and select contributions for publication; a Marketing Manager downloads selected work as a ZIP after final closure.
+A secure, role-based web application for collecting and managing student contributions to a university annual magazine. Students submit Word documents and images through a structured workflow with academic year closure dates and T&C agreement. Marketing Coordinators review, comment, and select contributions for publication. A Marketing Manager oversees all faculties, accesses statistical and exception reports, and downloads selected submissions as a ZIP archive. Guests view selected work for their assigned faculty.
 
 ## Core Value
 
@@ -12,99 +12,93 @@ Students can submit and manage their contributions, and coordinators can review,
 
 ### Validated
 
-<!-- Already built and confirmed in codebase -->
-
 - ✓ User authentication with email/password — existing
-- ✓ Role-based access control (5 roles: ADMINISTRATOR, MARKETING_MANAGER, MARKETING_COORDINATOR, STUDENT, GUEST) — existing
-- ✓ Faculty structure with per-user faculty assignment — existing
-- ✓ Administrator can create, edit, ban, and reactivate user accounts — existing
-- ✓ Student can submit Word documents and images (DRAFT/SUBMITTED workflow) — existing
-- ✓ File upload to Vercel Blob (Word .doc/.docx and images) — existing
-- ✓ Terms & Conditions agreement field on submission — existing
-- ✓ Academic year configuration by administrator — existing
-- ✓ Upload rules configuration by administrator — existing
+- ✓ Role-based access control (5 roles) — existing
+- ✓ Faculty structure with per-user assignment — existing
+- ✓ Administrator user management (create, edit, ban, reactivate) — existing
+- ✓ Student submission workflow (DRAFT/SUBMITTED) — existing
+- ✓ File upload to Vercel Blob — existing
+- ✓ Terms & Conditions agreement — existing
+- ✓ Academic year configuration — existing
+- ✓ Upload rules configuration — existing
+- ✓ Dual closure dates (first blocks new submissions, final blocks all updates) — v1.0
+- ✓ Submission model with selection flag, faculty/year snapshots — v1.0
+- ✓ Comment threading (submission-level, two-way) — v1.0
+- ✓ Email notifications via Nodemailer/Gmail SMTP — v1.0
+- ✓ Closure enforcement on all mutation routes — v1.0
+- ✓ Coordinator faculty-scoped submission access — v1.0
+- ✓ Coordinator email on new submission — v1.0
+- ✓ Coordinator selection toggle and notes editing — v1.0
+- ✓ Comment system (coordinator + student, role-scoped visibility) — v1.0
+- ✓ Manager cross-faculty selected submissions view — v1.0
+- ✓ Manager ZIP download (Faculty/Student/files structure) — v1.0
+- ✓ Guest read-only selected submissions view — v1.0
+- ✓ Guest faculty-scoped reports access — v1.0
+- ✓ Statistical reports (per-faculty counts, percentages, contributors) — v1.0
+- ✓ Exception reports (no comment, 14-day overdue) — v1.0
+- ✓ Reports role-scoped (coordinator/guest see faculty, manager/admin see all) — v1.0
+- ✓ Full UI layer for all roles with UAT verification — v1.0
+- ✓ Active year validation (cannot activate past academic years) — v1.0
 
 ### Active
 
-**Submission workflow:**
-- [ ] Student cannot create new submissions after the first closure date
-- [ ] Student cannot update any submissions after the final closure date
-- [ ] Student must accept Terms & Conditions before submitting (gate enforced, not just stored)
-
-**Coordinator workflow:**
-- [ ] Marketing Coordinator can view only submissions from students in their own faculty
-- [ ] Marketing Coordinator receives email notification (SMTP/Gmail via Nodemailer) when a student submits
-- [ ] Marketing Coordinator can add comments to a submission; student can reply (two-way thread per submission)
-- [ ] Marketing Coordinator can edit submission metadata (notes/title)
-- [ ] Marketing Coordinator can mark/unmark a submission as "Selected for Publication"
-
-**Marketing Manager workflow:**
-- [ ] Marketing Manager can view all selected contributions (read-only, all faculties)
-- [ ] Marketing Manager can download a ZIP of all files from selected submissions after the final closure date
-- [ ] ZIP is organised by Faculty > Student > files
-
-**Guest access:**
-- [ ] Guest can view selected submissions for their assigned faculty (read-only)
-- [ ] Guest can view reports for their faculty
-
-**Reports (role-scoped):**
-- [ ] Number of contributions per faculty for each academic year
-- [ ] Percentage of contributions by each faculty for any academic year
-- [ ] Number of contributors (distinct students) per faculty for each academic year
-- [ ] Exception report: contributions without a coordinator comment
-- [ ] Exception report: contributions submitted more than 14 days ago without a coordinator comment
-- [ ] Reports scoped by role: Coordinator sees their faculty only; Manager/Admin see all; Guest sees their faculty
-
-**Infrastructure:**
-- [ ] Nodemailer configured with SMTP (Gmail for testing)
-- [ ] ZIP generation on-demand for selected submission files
+(No active requirements — next milestone TBD)
 
 ### Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Coordinator replacing/re-uploading student files | Requirements specify metadata edit only |
-| Per-file comments | Comments are on the submission level only |
-| Production-ready email delivery | SMTP/Gmail for testing purposes |
-| Student can edit after final closure | Enforced hard stop |
-| Real-time collaboration or live editing | Outside magazine contribution scope |
-| Mobile app | Web-first; responsive via Tailwind/shadcn |
+| Per-file comments | Comments are submission-level only |
+| Coordinator file replacement | Metadata-only editing confirmed |
+| Real-time updates (WebSocket/SSE) | Low-frequency use; polling sufficient |
+| Production email delivery | Gmail SMTP for testing; config swap |
+| Student editing after final closure | Hard stop enforced |
+| Comment editing or deletion | Append-only preserves accountability |
+| Student-to-student visibility | Per-student isolation required |
+| Pre-generated ZIP | On-demand sufficient at scale |
+| Native mobile app | Web-first; responsive via Tailwind |
+| Rich text comments | Plain text sufficient |
 
 ## Context
 
-- Built on Next.js 15 App Router (full-stack), Better-Auth, Prisma + PostgreSQL (Neon), Vercel Blob, Tailwind CSS + shadcn/ui
-- Codebase is brownfield — core auth, user management, submission flow, and faculty structure already exist
-- Academic year model already has first/final closure date fields (partially implemented in admin UI)
-- The submission page is the largest file (1,126 lines) — refactoring may be warranted alongside new features
+Shipped v1.0 MVP with 32,675 LOC TypeScript across 132 files.
+Tech stack: Next.js 16, React 19, Prisma 7, PostgreSQL (Neon), Better Auth, Vercel Blob, Nodemailer, Tailwind CSS 4, shadcn/ui.
+UAT: 20/20 tests passed across 2 rounds covering all roles and workflows.
 
 ## Constraints
 
-- **Tech stack**: Next.js 15 App Router, TypeScript, Prisma, PostgreSQL — must stay consistent
+- **Tech stack**: Next.js 16 App Router, TypeScript, Prisma, PostgreSQL — must stay consistent
 - **File storage**: Vercel Blob — all uploads stay on this provider
 - **Email**: Nodemailer + Gmail SMTP — testing only, not production scale
-- **Auth**: Better-Auth admin plugin — role management must work within its constraints
-- **Coordinator scope**: Faculty-scoped access is enforced at the API layer, not just the UI
+- **Auth**: Better Auth admin plugin — role management within its constraints
+- **Coordinator scope**: Faculty-scoped access enforced at API layer
 
 ## Assumptions
 
-1. "Editing" by a coordinator means metadata (notes, title) only — not replacing or modifying the student's actual Word doc or image files
-2. Comments are a two-way thread at the submission level (not per-file)
-3. "Selected for publication" is a simple boolean flag on a submission (not a multi-stage approval workflow)
-4. The ZIP download includes all files (Word docs + images) from all submissions flagged as Selected, organised by Faculty > Student > files
-5. "First closure date" blocks new submissions; "final closure date" blocks all updates including comments
-6. Reports are accessible to all roles but scoped to their access level (coordinators see their faculty; guests see their faculty; manager/admin see everything)
-7. Exception report "after 14 days" measures from the student's `submittedAt` timestamp
-8. Guest accounts are created by the administrator (same user creation flow, GUEST role)
-9. Mobile responsiveness is delivered via existing Tailwind/shadcn responsive utilities — no dedicated mobile redesign needed
+1. "Editing" by a coordinator means metadata (notes, title) only
+2. Comments are two-way threads at the submission level (not per-file)
+3. "Selected for publication" is a simple boolean flag
+4. ZIP includes all files from selected submissions, organised by Faculty > Student > files
+5. First closure blocks new submissions; final closure blocks all updates including comments
+6. Reports are role-scoped (coordinator/guest see their faculty; manager/admin see all)
+7. Exception "14 days" measures from student's submittedAt to finalClosureDate
+8. Guest accounts created by administrator (GUEST role)
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Comments on submission (not per-file) | Simplifies data model; matches coordinator workflow | — Pending |
-| SMTP/Gmail for emails | Testing purposes; easy to swap for production service later | — Pending |
-| ZIP generated on-demand | No background jobs needed; files already on Vercel Blob | — Pending |
-| Metadata-only coordinator edit | Preserves student file integrity | — Pending |
+| Comments on submission (not per-file) | Simpler model; matches workflow | ✓ Good |
+| SMTP/Gmail for emails | Testing only; easy to swap | ✓ Good |
+| ZIP on-demand (not pre-generated) | No background jobs; files on Blob | ✓ Good |
+| Metadata-only coordinator edit | Preserves student file integrity | ✓ Good |
+| Serial blob streaming for ZIP | Avoids memory exhaustion from Promise.all | ✓ Good |
+| SWR with 15s polling for comments | Simple; avoids WebSocket complexity | ✓ Good |
+| Closure guard returns false (not throws) | Callers decide response; cleaner API | ✓ Good |
+| Single-active-year via $transaction | Prevents data inconsistency | ✓ Good |
+| Optimistic UI for selection toggle | Immediate feedback; rollback on error | ✓ Good |
+| Raw SQL for statistical reports | COUNT(DISTINCT) not in Prisma ORM | ✓ Good |
+| Active year validation (current/future only) | Prevents accidental past-year activation | ✓ Good |
 
 ---
-*Last updated: 2026-02-25 after initialization*
+*Last updated: 2026-03-02 after v1.0 milestone*
