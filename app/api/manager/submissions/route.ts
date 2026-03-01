@@ -22,25 +22,32 @@ export async function GET(req: NextRequest) {
 
     const facultyIdParam = req.nextUrl.searchParams.get("facultyId");
     const facultyId = facultyIdParam ?? undefined;
+    const academicYearIdParam = req.nextUrl.searchParams.get("academicYearId");
 
     const submissions = await prisma.submission.findMany({
       where: {
         isSelected: true,
         ...(facultyId ? { facultyId } : {}),
+        ...(academicYearIdParam ? { academicYearId: academicYearIdParam } : {}),
       },
       select: {
         id: true,
         title: true,
         submittedAt: true,
         facultyId: true,
+        academicYearId: true,
         user: { select: { name: true } },
         _count: { select: { files: true } },
       },
     });
 
-    const faculties = await prisma.faculty.findMany({
-      select: { id: true, name: true },
-    });
+    const [faculties, academicYears] = await Promise.all([
+      prisma.faculty.findMany({ select: { id: true, name: true } }),
+      prisma.academicYear.findMany({
+        select: { id: true, yearLabel: true, isActive: true },
+        orderBy: { yearLabel: "desc" },
+      }),
+    ]);
 
     const facultyMap = new Map<string, string>(
       faculties.map((f) => [f.id, f.name])
@@ -57,18 +64,18 @@ export async function GET(req: NextRequest) {
           "",
         submittedAt: s.submittedAt,
         fileCount: s._count.files,
+        academicYearId: s.academicYearId,
       }))
       .sort((a, b) => {
         const facultyCompare = a.facultyName.localeCompare(b.facultyName);
         if (facultyCompare !== 0) return facultyCompare;
-        // descending by submittedAt within each faculty
         return (
           new Date(b.submittedAt ?? 0).getTime() -
           new Date(a.submittedAt ?? 0).getTime()
         );
       });
 
-    return NextResponse.json({ submissions: result });
+    return NextResponse.json({ submissions: result, academicYears });
   } catch (error) {
     console.error("Error fetching manager submissions:", error);
     return NextResponse.json(

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { Download, FileIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
@@ -15,10 +16,35 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
+
+type SubmissionFile = {
+  id: string;
+  url: string;
+  filename: string;
+  contentType: string | null;
+  size: number | null;
+};
 
 type SubmissionRow = {
   id: string;
@@ -28,6 +54,7 @@ type SubmissionRow = {
   submittedAt: string | null;
   isSelected: boolean;
   notes: string | null;
+  files: SubmissionFile[];
   fileCount: number;
 };
 
@@ -45,6 +72,13 @@ type Comment = {
 // ---------------------------------------------------------------------------
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
+
+function formatFileSize(bytes: number | null) {
+  if (bytes === null || bytes === 0) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 function formatSubmittedDate(value: string | null) {
   if (!value) return "-";
@@ -100,11 +134,23 @@ export default function CoordinatorSubmissionsPage() {
   const [notesValue, setNotesValue] = useState<string>("");
   const [notesSaving, setNotesSaving] = useState(false);
 
+  // Filtering & sorting state
+  const [filterStatus, setFilterStatus] = useState<"all" | "selected" | "not-selected">("all");
+  const [sortBy, setSortBy] = useState<"date-desc" | "date-asc" | "selected">("date-desc");
+
   // Comment compose state
   const [commentBody, setCommentBody] = useState("");
   const [replyToId, setReplyToId] = useState<string | null>(null);
   const [replyToAuthor, setReplyToAuthor] = useState<string>("");
   const [commentPosting, setCommentPosting] = useState(false);
+
+  // Selection confirmation dialog state
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    submissionId: string;
+    currentSelected: boolean;
+    title: string | null;
+  }>({ open: false, submissionId: "", currentSelected: false, title: null });
 
   // ---------------------------------------------------------------------------
   // Load submissions on mount
@@ -292,20 +338,88 @@ export default function CoordinatorSubmissionsPage() {
   }
 
   // ---------------------------------------------------------------------------
+  // Filtered & sorted submissions
+  // ---------------------------------------------------------------------------
+
+  const filteredSubmissions = submissions
+    .filter((s) => {
+      if (filterStatus === "selected") return s.isSelected;
+      if (filterStatus === "not-selected") return !s.isSelected;
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortBy === "selected") {
+        if (a.isSelected !== b.isSelected) return a.isSelected ? -1 : 1;
+        return new Date(b.submittedAt ?? 0).getTime() - new Date(a.submittedAt ?? 0).getTime();
+      }
+      if (sortBy === "date-asc") {
+        return new Date(a.submittedAt ?? 0).getTime() - new Date(b.submittedAt ?? 0).getTime();
+      }
+      // date-desc (default)
+      return new Date(b.submittedAt ?? 0).getTime() - new Date(a.submittedAt ?? 0).getTime();
+    });
+
+  // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
 
   return (
-    <main className="mx-auto w-full max-w-6xl space-y-6 px-4 pt-4 pb-6 text-slate-900 sm:px-6">
+    <main className="space-y-6 text-slate-900">
       {/* Page header */}
       <header className="space-y-1">
-        <h1 className="text-3xl font-semibold">Submissions</h1>
+        <div className="flex flex-wrap items-center gap-2">
+          <h1 className="text-3xl font-semibold">Submissions</h1>
+          {!loading && (
+            <Badge className="bg-slate-100 text-slate-700 border-slate-200">
+              {submissions.length} {submissions.length === 1 ? "submission" : "submissions"}
+            </Badge>
+          )}
+        </div>
         <p className="text-slate-600">
           Review, comment on, and select student submissions for publication.
         </p>
       </header>
 
-      <div className="border-t border-slate-200" />
+      <Separator className="bg-slate-200" />
+
+      {/* Filters & sort */}
+      {!loading && !error && submissions.length > 0 && (
+        <div className="flex flex-wrap items-center gap-3">
+          <Select
+            value={filterStatus}
+            onValueChange={(v) => setFilterStatus(v as typeof filterStatus)}
+          >
+            <SelectTrigger className="w-44 border-slate-200 bg-white text-slate-900">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="border-slate-200 bg-white">
+              <SelectItem value="all" className="text-slate-900">All Submissions</SelectItem>
+              <SelectItem value="selected" className="text-slate-900">Selected Only</SelectItem>
+              <SelectItem value="not-selected" className="text-slate-900">Not Selected</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={sortBy}
+            onValueChange={(v) => setSortBy(v as typeof sortBy)}
+          >
+            <SelectTrigger className="w-48 border-slate-200 bg-white text-slate-900">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="border-slate-200 bg-white">
+              <SelectItem value="date-desc" className="text-slate-900">Newest First</SelectItem>
+              <SelectItem value="date-asc" className="text-slate-900">Oldest First</SelectItem>
+              <SelectItem value="selected" className="text-slate-900">Selected First</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {filterStatus !== "all" && (
+            <Badge variant="outline" className="border-slate-200 bg-slate-50 text-slate-700">
+              Showing {filteredSubmissions.length} of {submissions.length}
+            </Badge>
+          )}
+        </div>
+      )}
 
       {/* Loading skeleton */}
       {loading && (
@@ -335,6 +449,11 @@ export default function CoordinatorSubmissionsPage() {
       {/* Submissions table */}
       {!loading && !error && submissions.length > 0 && (
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+          {filteredSubmissions.length === 0 ? (
+            <div className="px-6 py-12 text-center">
+              <p className="text-slate-500">No submissions match the current filter.</p>
+            </div>
+          ) : (
           <table className="w-full text-left">
             <thead className="border-b border-slate-200 bg-slate-50 text-slate-700">
               <tr>
@@ -352,7 +471,7 @@ export default function CoordinatorSubmissionsPage() {
               </tr>
             </thead>
             <tbody>
-              {submissions.map((submission) => (
+              {filteredSubmissions.map((submission) => (
                 <tr
                   key={submission.id}
                   className="cursor-pointer border-t border-slate-200 text-slate-900 hover:bg-slate-50"
@@ -385,6 +504,7 @@ export default function CoordinatorSubmissionsPage() {
               ))}
             </tbody>
           </table>
+          )}
         </div>
       )}
 
@@ -418,10 +538,12 @@ export default function CoordinatorSubmissionsPage() {
                     id="is-selected-toggle"
                     checked={selectedSubmission.isSelected}
                     onCheckedChange={() =>
-                      handleToggleSelected(
-                        selectedSubmission.id,
-                        selectedSubmission.isSelected
-                      )
+                      setConfirmDialog({
+                        open: true,
+                        submissionId: selectedSubmission.id,
+                        currentSelected: selectedSubmission.isSelected,
+                        title: selectedSubmission.title,
+                      })
                     }
                   />
                   <Label
@@ -460,6 +582,36 @@ export default function CoordinatorSubmissionsPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Uploaded files */}
+              {(selectedSubmission.files?.length ?? 0) > 0 && (
+                <div className="border-b border-slate-200 px-5 py-4 space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    Files ({selectedSubmission.files.length})
+                  </p>
+                  <ul className="space-y-1.5">
+                    {selectedSubmission.files.map((file) => (
+                      <li key={file.id}>
+                        <a
+                          href={file.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 transition-colors"
+                        >
+                          <FileIcon className="h-4 w-4 shrink-0 text-slate-400" />
+                          <span className="flex-1 truncate">{file.filename}</span>
+                          {file.size !== null && (
+                            <span className="shrink-0 text-xs text-slate-400">
+                              {formatFileSize(file.size)}
+                            </span>
+                          )}
+                          <Download className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               {/* Comment thread */}
               <div className="flex flex-1 flex-col overflow-y-auto">
@@ -562,6 +714,74 @@ export default function CoordinatorSubmissionsPage() {
           )}
         </SheetContent>
       </Sheet>
+
+      {/* Selection confirmation dialog */}
+      <Dialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => {
+          if (!open) setConfirmDialog((prev) => ({ ...prev, open: false }));
+        }}
+      >
+        <DialogContent showCloseButton={false} className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {confirmDialog.currentSelected
+                ? "Remove from Selection"
+                : "Select for Publication"}
+            </DialogTitle>
+            <DialogDescription className="text-slate-600">
+              {confirmDialog.currentSelected ? (
+                <>
+                  Are you sure you want to remove{" "}
+                  <span className="font-medium text-slate-900">
+                    {confirmDialog.title ?? "this submission"}
+                  </span>{" "}
+                  from the selected publications?
+                </>
+              ) : (
+                <>
+                  Are you sure you want to select{" "}
+                  <span className="font-medium text-slate-900">
+                    {confirmDialog.title ?? "this submission"}
+                  </span>{" "}
+                  for publication?
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-3 sm:gap-3">
+            <Button
+              variant="outline"
+              onClick={() =>
+                setConfirmDialog((prev) => ({ ...prev, open: false }))
+              }
+            >
+              Cancel
+            </Button>
+            <Button
+              className={
+                confirmDialog.currentSelected
+                  ? "bg-red-600 text-white hover:bg-red-700"
+                  : "bg-slate-900 text-white hover:bg-slate-800"
+              }
+              onClick={() => {
+                handleToggleSelected(
+                  confirmDialog.submissionId,
+                  confirmDialog.currentSelected
+                );
+                toast.success(
+                  confirmDialog.currentSelected
+                    ? "Submission removed from selection."
+                    : "Submission selected for publication."
+                );
+                setConfirmDialog((prev) => ({ ...prev, open: false }));
+              }}
+            >
+              {confirmDialog.currentSelected ? "Remove" : "Confirm Selection"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

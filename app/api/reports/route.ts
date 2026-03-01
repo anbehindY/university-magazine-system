@@ -136,6 +136,14 @@ export async function GET(request: NextRequest) {
 
     if (type === "exceptions") {
       // Exception report (RPT-04, RPT-05)
+      // Fetch the final closure date for the academic year — waiting time is
+      // measured from submission date to the closure deadline, not the current date.
+      const academicYearRecord = await prisma.academicYear.findUnique({
+        where: { id: academicYearId },
+        select: { finalClosureDate: true },
+      });
+      const closureTime = academicYearRecord?.finalClosureDate?.getTime() ?? Date.now();
+
       const exceptions = await prisma.submission.findMany({
         where: {
           status: "SUBMITTED",
@@ -149,7 +157,7 @@ export async function GET(request: NextRequest) {
           ...(overdue === "true"
             ? {
                 submittedAt: {
-                  lt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
+                  lt: new Date(closureTime - 14 * 24 * 60 * 60 * 1000),
                 },
               }
             : {}),
@@ -160,11 +168,14 @@ export async function GET(request: NextRequest) {
           submittedAt: true,
           facultyId: true,
           user: { select: { name: true } },
+          files: {
+            select: { id: true, url: true, pathname: true, contentType: true, size: true },
+            orderBy: { createdAt: "asc" as const },
+          },
         },
         orderBy: { submittedAt: "asc" },
       });
 
-      const now = Date.now();
       const data = exceptions.map((e) => ({
         id: e.id,
         title: e.title,
@@ -173,9 +184,16 @@ export async function GET(request: NextRequest) {
         submittedAt: e.submittedAt,
         daysSinceSubmission: e.submittedAt
           ? Math.floor(
-              (now - e.submittedAt.getTime()) / (24 * 60 * 60 * 1000)
+              (closureTime - e.submittedAt.getTime()) / (24 * 60 * 60 * 1000)
             )
           : null,
+        files: e.files.map((f) => ({
+          id: f.id,
+          url: f.url,
+          filename: f.pathname.split("/").pop() ?? f.id,
+          contentType: f.contentType,
+          size: f.size,
+        })),
       }));
 
       return NextResponse.json({

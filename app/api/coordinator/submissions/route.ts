@@ -34,10 +34,17 @@ export async function GET() {
 
     const coordinatorFacultyId = dbUser.facultyId;
 
+    // Coordinators only see submissions for the active academic year
+    const activeYear = await prisma.academicYear.findFirst({
+      where: { isActive: true },
+      select: { id: true },
+    });
+
     const submissions = await prisma.submission.findMany({
       where: {
         status: "SUBMITTED",
         facultyId: coordinatorFacultyId,
+        ...(activeYear ? { academicYearId: activeYear.id } : {}),
       },
       orderBy: { submittedAt: "desc" },
       select: {
@@ -48,6 +55,10 @@ export async function GET() {
         isSelected: true,
         notes: true,
         user: { select: { name: true } },
+        files: {
+          select: { id: true, url: true, pathname: true, contentType: true, size: true },
+          orderBy: { createdAt: "asc" as const },
+        },
         _count: { select: { files: true } },
       },
     });
@@ -60,6 +71,13 @@ export async function GET() {
       submittedAt: s.submittedAt,
       isSelected: s.isSelected,
       notes: s.notes,
+      files: s.files.map((f) => ({
+        id: f.id,
+        url: f.url,
+        filename: f.pathname.split("/").pop() ?? f.id,
+        contentType: f.contentType,
+        size: f.size,
+      })),
       fileCount: s._count.files,
     }));
 

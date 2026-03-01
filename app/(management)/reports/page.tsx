@@ -1,7 +1,22 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
+import {
+  ChevronUp,
+  ChevronDown,
+  ChevronsUpDown,
+  FileText,
+  Users,
+  Building2,
+  AlertTriangle,
+  Clock,
+  AlertCircle,
+  Percent,
+  Download,
+  FileIcon,
+} from "lucide-react";
+import { useSession } from "@/lib/auth-client";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -16,6 +31,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -24,6 +46,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 type AcademicYear = {
   id: string;
   yearLabel: string;
+  isActive?: boolean;
 };
 
 type StatRow = {
@@ -34,6 +57,14 @@ type StatRow = {
   distinctContributors: number;
 };
 
+type ExceptionFile = {
+  id: string;
+  url: string;
+  filename: string;
+  contentType: string | null;
+  size: number | null;
+};
+
 type ExceptionRow = {
   id: string;
   title: string | null;
@@ -41,6 +72,7 @@ type ExceptionRow = {
   facultyName: string | null;
   submittedAt: string | null;
   daysSinceSubmission: number | null;
+  files?: ExceptionFile[];
 };
 
 type SortColumn = "facultyName" | "submissionCount" | "percentageOfTotal" | "distinctContributors";
@@ -59,6 +91,13 @@ function formatDate(value: string | null) {
   });
 }
 
+function formatFileSize(bytes: number | null) {
+  if (bytes === null || bytes === 0) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 function SortIcon({
   column,
   sortCol,
@@ -74,11 +113,25 @@ function SortIcon({
     : <ChevronDown className="inline h-3 w-3 ml-1" />;
 }
 
+function DetailField({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">{label}</dt>
+      <dd className="mt-0.5 text-sm text-slate-900">{value}</dd>
+    </div>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function ReportsPage() {
+  // Role detection: coordinators/guests only see the active year (no year picker)
+  const { data: session } = useSession();
+  const role = session?.user?.role ?? null;
+  const canSwitchYear = role === "MARKETING_MANAGER" || role === "ADMINISTRATOR";
+
   // Academic year selector
-  const [activeYear, setActiveYear] = useState<AcademicYear | null>(null);
+  const [allYears, setAllYears] = useState<AcademicYear[]>([]);
   const [selectedYearId, setSelectedYearId] = useState<string>("");
   const [yearLoading, setYearLoading] = useState(true);
 
@@ -97,6 +150,9 @@ export default function ReportsPage() {
   const [exceptionsError, setExceptionsError] = useState<string | null>(null);
   const [overdueOnly, setOverdueOnly] = useState(false);
 
+  // Exception detail slide-over
+  const [selectedExceptionId, setSelectedExceptionId] = useState<string | null>(null);
+
   // Track which tab is active (to lazy-load exceptions)
   const [activeTab, setActiveTab] = useState("statistics");
   const [mounted, setMounted] = useState(false);
@@ -112,10 +168,13 @@ export default function ReportsPage() {
         const res = await fetch("/api/academic-years");
         if (cancelled) return;
         if (res.ok) {
-          const data = (await res.json()) as { academicYear: AcademicYear | null };
-          if (!cancelled && data.academicYear) {
-            setActiveYear(data.academicYear);
-            setSelectedYearId(data.academicYear.id);
+          const data = (await res.json()) as {
+            academicYear: AcademicYear | null;
+            allYears?: AcademicYear[];
+          };
+          if (!cancelled) {
+            if (data.allYears?.length) setAllYears(data.allYears);
+            if (data.academicYear) setSelectedYearId(data.academicYear.id);
           }
         }
       } catch {
@@ -230,17 +289,29 @@ export default function ReportsPage() {
   const totalContributors = statsData.reduce((s, r) => s + r.distinctContributors, 0);
   const totalFaculties = statsData.length;
 
-  // ── Exception row color ─────────────────────────────────────────────────────
+  // ── Exception counts & helpers ──────────────────────────────────────────────
+  const overdueCount = exceptionsData.filter((e) => (e.daysSinceSubmission ?? 0) >= 14).length;
+  const pendingCount = exceptionsData.filter((e) => (e.daysSinceSubmission ?? 0) < 14).length;
+
+  const selectedException = exceptionsData.find((e) => e.id === selectedExceptionId) ?? null;
+
   function exceptionRowClass(days: number | null) {
     if (days === null) return "";
     if (days >= 14) return "bg-red-50 text-red-900";
     return "bg-amber-50 text-amber-900";
   }
 
+  function daysLabel(days: number | null) {
+    if (days === null) return "-";
+    if (days === 0) return "Today";
+    if (days === 1) return "1 day";
+    return `${days} days`;
+  }
+
   // ─── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <main className="mx-auto w-full max-w-6xl space-y-6 px-4 pt-4 pb-6 text-slate-900 sm:px-6">
+    <main className="space-y-6 text-slate-900">
       {/* Page header */}
       <header className="space-y-1">
         <h1 className="text-3xl font-semibold">Reports</h1>
@@ -251,12 +322,12 @@ export default function ReportsPage() {
 
       <Separator className="bg-slate-200" />
 
-      {/* Academic year selector */}
+      {/* Academic year selector — managers/admins can switch years; coordinators/guests see active year only */}
       <div className="flex items-center gap-3">
         <span className="text-sm font-medium text-slate-700">Academic Year</span>
         {yearLoading || !mounted ? (
           <Skeleton className="h-9 w-44" />
-        ) : (
+        ) : canSwitchYear ? (
           <Select
             value={selectedYearId}
             onValueChange={(val) => setSelectedYearId(val)}
@@ -265,17 +336,23 @@ export default function ReportsPage() {
               <SelectValue placeholder="Select year" />
             </SelectTrigger>
             <SelectContent className="border-slate-200 bg-white">
-              {activeYear ? (
-                <SelectItem value={activeYear.id} className="text-slate-900">
-                  {activeYear.yearLabel}
-                </SelectItem>
+              {allYears.length > 0 ? (
+                allYears.map((year) => (
+                  <SelectItem key={year.id} value={year.id} className="text-slate-900">
+                    {year.yearLabel}
+                  </SelectItem>
+                ))
               ) : (
                 <SelectItem value="" disabled className="text-slate-400">
-                  No active year
+                  No academic years
                 </SelectItem>
               )}
             </SelectContent>
           </Select>
+        ) : (
+          <span className="text-sm text-slate-900">
+            {allYears.find((y) => y.id === selectedYearId)?.yearLabel ?? "—"}
+          </span>
         )}
       </div>
 
@@ -288,81 +365,14 @@ export default function ReportsPage() {
 
         {/* ── Statistics tab ── */}
         <TabsContent value="statistics" className="space-y-6">
-          {/* Summary cards */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {statsLoading ? (
-              <>
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <Card key={i} className="border-slate-200 bg-white">
-                    <CardHeader className="pb-2">
-                      <Skeleton className="h-4 w-32" />
-                    </CardHeader>
-                    <CardContent>
-                      <Skeleton className="h-8 w-16" />
-                    </CardContent>
-                  </Card>
-                ))}
-              </>
-            ) : (
-              <>
-                <Card className="border-slate-200 bg-white">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-slate-500">
-                      Total Submissions
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-3xl font-bold text-slate-900">{totalSubmissions}</p>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-slate-200 bg-white">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-slate-500">
-                      Total Contributors
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-3xl font-bold text-slate-900">{totalContributors}</p>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-slate-200 bg-white">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-slate-500">
-                      Faculties
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-3xl font-bold text-slate-900">{totalFaculties}</p>
-                  </CardContent>
-                </Card>
-              </>
-            )}
-          </div>
-
-          {/* Data table */}
           {statsLoading ? (
-            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-              <table className="w-full text-left">
-                <thead className="border-b border-slate-200 bg-slate-50">
-                  <tr>
-                    {["Faculty Name", "Submissions", "% of Total", "Contributors"].map((h) => (
-                      <th key={h} className="px-4 py-3 text-sm font-medium text-slate-700">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <tr key={i} className="border-t border-slate-200">
-                      <td className="px-4 py-3"><Skeleton className="h-4 w-40" /></td>
-                      <td className="px-4 py-3"><Skeleton className="h-4 w-16" /></td>
-                      <td className="px-4 py-3"><Skeleton className="h-4 w-16" /></td>
-                      <td className="px-4 py-3"><Skeleton className="h-4 w-16" /></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Card key={i} className="border-slate-200 bg-white">
+                  <CardHeader className="pb-2"><Skeleton className="h-4 w-32" /></CardHeader>
+                  <CardContent><Skeleton className="h-8 w-16" /></CardContent>
+                </Card>
+              ))}
             </div>
           ) : statsError ? (
             <div className="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
@@ -372,87 +382,303 @@ export default function ReportsPage() {
             <div className="rounded-xl border border-slate-200 bg-white px-6 py-12 text-center">
               <p className="text-slate-500">No submission data available for this academic year.</p>
             </div>
+          ) : statsData.length === 1 ? (
+            /* ── Single-faculty view (Coordinator / Guest) ── */
+            (() => {
+              const faculty = statsData[0];
+              return (
+                <div className="space-y-6">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-5 w-5 text-slate-400" />
+                    <h2 className="text-lg font-semibold">{faculty.facultyName ?? "Your Faculty"}</h2>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <Card className="border-slate-200 bg-white">
+                      <CardHeader className="pb-2">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-sm font-medium text-slate-500">
+                            Submissions
+                          </CardTitle>
+                          <div className="rounded-lg bg-blue-50 p-2">
+                            <FileText className="h-4 w-4 text-blue-600" />
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-3xl font-bold text-slate-900">{faculty.submissionCount}</p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {faculty.submissionCount === 1 ? "submission" : "submissions"} this year
+                        </p>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-slate-200 bg-white">
+                      <CardHeader className="pb-2">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-sm font-medium text-slate-500">
+                            Contributors
+                          </CardTitle>
+                          <div className="rounded-lg bg-emerald-50 p-2">
+                            <Users className="h-4 w-4 text-emerald-600" />
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-3xl font-bold text-slate-900">{faculty.distinctContributors}</p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          unique {faculty.distinctContributors === 1 ? "student" : "students"}
+                        </p>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-slate-200 bg-white">
+                      <CardHeader className="pb-2">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-sm font-medium text-slate-500">
+                            Share of Total
+                          </CardTitle>
+                          <div className="rounded-lg bg-purple-50 p-2">
+                            <Percent className="h-4 w-4 text-purple-600" />
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-3xl font-bold text-slate-900">{faculty.percentageOfTotal.toFixed(1)}%</p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          of all submissions university-wide
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              );
+            })()
           ) : (
-            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-              <table className="w-full text-left">
-                <thead className="border-b border-slate-200 bg-slate-50">
-                  <tr>
-                    {(
-                      [
-                        { col: "facultyName", label: "Faculty Name" },
-                        { col: "submissionCount", label: "Submissions" },
-                        { col: "percentageOfTotal", label: "% of Total" },
-                        { col: "distinctContributors", label: "Contributors" },
-                      ] as { col: SortColumn; label: string }[]
-                    ).map(({ col, label }) => (
-                      <th
-                        key={col}
-                        className="cursor-pointer px-4 py-3 text-sm font-medium text-slate-700 select-none hover:text-slate-900"
-                        onClick={() => handleSort(col)}
-                      >
-                        {label}
-                        <SortIcon column={col} sortCol={sortCol} sortDir={sortDir} />
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedStats.map((row) => (
-                    <tr
-                      key={row.facultyId}
-                      className="border-t border-slate-200 text-slate-900 hover:bg-slate-50"
-                    >
-                      <td className="px-4 py-3 text-sm font-medium">
-                        {row.facultyName ?? <span className="italic text-slate-400">Unknown</span>}
-                      </td>
-                      <td className="px-4 py-3 text-sm">{row.submissionCount}</td>
-                      <td className="px-4 py-3 text-sm">{row.percentageOfTotal.toFixed(1)}%</td>
-                      <td className="px-4 py-3 text-sm">{row.distinctContributors}</td>
+            /* ── Multi-faculty view (Manager / Admin) ── */
+            <>
+              {/* Summary cards */}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <Card className="border-slate-200 bg-white">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-sm font-medium text-slate-500">
+                        Total Submissions
+                      </CardTitle>
+                      <div className="rounded-lg bg-blue-50 p-2">
+                        <FileText className="h-4 w-4 text-blue-600" />
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-3xl font-bold text-slate-900">{totalSubmissions}</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {totalSubmissions === 1 ? "submission" : "submissions"} this year
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-slate-200 bg-white">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-sm font-medium text-slate-500">
+                        Total Contributors
+                      </CardTitle>
+                      <div className="rounded-lg bg-emerald-50 p-2">
+                        <Users className="h-4 w-4 text-emerald-600" />
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-3xl font-bold text-slate-900">{totalContributors}</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      unique {totalContributors === 1 ? "student" : "students"}
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-slate-200 bg-white">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-sm font-medium text-slate-500">
+                        Faculties
+                      </CardTitle>
+                      <div className="rounded-lg bg-purple-50 p-2">
+                        <Building2 className="h-4 w-4 text-purple-600" />
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-3xl font-bold text-slate-900">{totalFaculties}</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      with submissions
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Per-faculty data table */}
+              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                <table className="w-full text-left">
+                  <thead className="border-b border-slate-200 bg-slate-50">
+                    <tr>
+                      {(
+                        [
+                          { col: "facultyName", label: "Faculty Name" },
+                          { col: "submissionCount", label: "Submissions" },
+                          { col: "percentageOfTotal", label: "% of Total" },
+                          { col: "distinctContributors", label: "Contributors" },
+                        ] as { col: SortColumn; label: string }[]
+                      ).map(({ col, label }) => (
+                        <th
+                          key={col}
+                          className="cursor-pointer px-4 py-3 text-sm font-medium text-slate-700 select-none hover:text-slate-900"
+                          onClick={() => handleSort(col)}
+                        >
+                          {label}
+                          <SortIcon column={col} sortCol={sortCol} sortDir={sortDir} />
+                        </th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {sortedStats.map((row) => (
+                      <tr
+                        key={row.facultyId}
+                        className="border-t border-slate-200 text-slate-900 hover:bg-slate-50"
+                      >
+                        <td className="px-4 py-3 text-sm font-medium">
+                          {row.facultyName ?? <span className="italic text-slate-400">Unknown</span>}
+                        </td>
+                        <td className="px-4 py-3 text-sm">{row.submissionCount}</td>
+                        <td className="px-4 py-3 text-sm">{row.percentageOfTotal.toFixed(1)}%</td>
+                        <td className="px-4 py-3 text-sm">{row.distinctContributors}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </TabsContent>
 
         {/* ── Exceptions tab ── */}
         <TabsContent value="exceptions" className="space-y-4">
-          {/* Overdue toggle */}
-          <div className="flex items-center gap-2">
+          {/* Summary cards */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {exceptionsLoading ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <Card key={i} className="border-slate-200 bg-white">
+                  <CardHeader className="pb-2"><Skeleton className="h-4 w-32" /></CardHeader>
+                  <CardContent><Skeleton className="h-8 w-16" /></CardContent>
+                </Card>
+              ))
+            ) : (
+              <>
+                <Card className="border-slate-200 bg-white">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-sm font-medium text-slate-500">
+                        Total Exceptions
+                      </CardTitle>
+                      <div className="rounded-lg bg-amber-50 p-2">
+                        <AlertTriangle className="h-4 w-4 text-amber-600" />
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-3xl font-bold text-slate-900">{exceptionsData.length}</p>
+                    <p className="mt-1 text-xs text-slate-500">without coordinator comment</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-red-100 bg-white">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-sm font-medium text-red-600">
+                        Overdue
+                      </CardTitle>
+                      <div className="rounded-lg bg-red-50 p-2">
+                        <AlertCircle className="h-4 w-4 text-red-600" />
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-3xl font-bold text-red-700">{overdueCount}</p>
+                    <p className="mt-1 text-xs text-slate-500">14+ days waiting</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-slate-200 bg-white">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-sm font-medium text-slate-500">
+                        Awaiting Comment
+                      </CardTitle>
+                      <div className="rounded-lg bg-blue-50 p-2">
+                        <Clock className="h-4 w-4 text-blue-600" />
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-3xl font-bold text-slate-900">{pendingCount}</p>
+                    <p className="mt-1 text-xs text-slate-500">under 14 days</p>
+                  </CardContent>
+                </Card>
+              </>
+            )}
+          </div>
+
+          {/* Overdue toggle with counts */}
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => handleOverdueToggle(false)}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                 !overdueOnly
                   ? "bg-slate-900 text-white"
                   : "bg-slate-100 text-slate-700 hover:bg-slate-200"
               }`}
             >
               All Exceptions
+              {!exceptionsLoading && (
+                <Badge className={`text-xs ${!overdueOnly ? "bg-white/20 text-white" : "bg-slate-200 text-slate-600"}`}>
+                  {exceptionsData.length}
+                </Badge>
+              )}
             </button>
             <button
               type="button"
               onClick={() => handleOverdueToggle(true)}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                 overdueOnly
                   ? "bg-slate-900 text-white"
                   : "bg-slate-100 text-slate-700 hover:bg-slate-200"
               }`}
             >
-              Overdue Only (14+ days)
+              Overdue Only
+              {!exceptionsLoading && (
+                <Badge className={`text-xs ${overdueOnly ? "bg-white/20 text-white" : "bg-red-100 text-red-700"}`}>
+                  {overdueOnly ? exceptionsData.length : overdueCount}
+                </Badge>
+              )}
             </button>
+            {!exceptionsLoading && !overdueOnly && exceptionsData.length > 0 && (
+              <span className="ml-2 text-xs text-slate-500">
+                {overdueCount} overdue, {pendingCount} awaiting comment
+              </span>
+            )}
           </div>
 
           {/* Color legend */}
           <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600">
             <span className="flex items-center gap-1.5">
               <span className="inline-block h-3 w-3 rounded-sm bg-red-200" />
-              14+ days overdue
+              Overdue (14+ days without coordinator comment)
             </span>
             <span className="flex items-center gap-1.5">
               <span className="inline-block h-3 w-3 rounded-sm bg-amber-200" />
-              No coordinator comment
+              Awaiting comment (under 14 days)
             </span>
           </div>
 
@@ -462,7 +688,7 @@ export default function ReportsPage() {
               <table className="w-full text-left">
                 <thead className="border-b border-slate-200 bg-slate-50">
                   <tr>
-                    {["Student Name", "Title", "Faculty", "Submitted Date", "Days Since"].map(
+                    {["Student Name", "Title", "Faculty", "Submitted Date", "Waiting Days"].map(
                       (h) => (
                         <th key={h} className="px-4 py-3 text-sm font-medium text-slate-700">
                           {h}
@@ -503,7 +729,7 @@ export default function ReportsPage() {
                     <th className="px-4 py-3 text-sm font-medium text-slate-700">Title</th>
                     <th className="px-4 py-3 text-sm font-medium text-slate-700">Faculty</th>
                     <th className="px-4 py-3 text-sm font-medium text-slate-700">Submitted Date</th>
-                    <th className="px-4 py-3 text-sm font-medium text-slate-700">Days Since</th>
+                    <th className="px-4 py-3 text-sm font-medium text-slate-700">Waiting Days</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -515,7 +741,8 @@ export default function ReportsPage() {
                     .map((row) => (
                       <tr
                         key={row.id}
-                        className={`border-t border-slate-200 ${exceptionRowClass(row.daysSinceSubmission)}`}
+                        className={`cursor-pointer border-t border-slate-200 ${exceptionRowClass(row.daysSinceSubmission)}`}
+                        onClick={() => setSelectedExceptionId(row.id)}
                       >
                         <td className="px-4 py-3 text-sm font-medium">
                           {row.studentName ?? <span className="italic opacity-60">Unknown</span>}
@@ -528,7 +755,7 @@ export default function ReportsPage() {
                         </td>
                         <td className="px-4 py-3 text-sm">{formatDate(row.submittedAt)}</td>
                         <td className="px-4 py-3 text-sm">
-                          {row.daysSinceSubmission !== null ? row.daysSinceSubmission : "-"}
+                          {daysLabel(row.daysSinceSubmission)}
                         </td>
                       </tr>
                     ))}
@@ -536,6 +763,87 @@ export default function ReportsPage() {
               </table>
             </div>
           )}
+
+          {/* Exception detail slide-over (read-only) */}
+          <Sheet
+            open={!!selectedExceptionId}
+            onOpenChange={(open) => {
+              if (!open) setSelectedExceptionId(null);
+            }}
+          >
+            <SheetContent className="overflow-y-auto border-l border-slate-200 bg-white sm:max-w-md">
+              {selectedException && (
+                <>
+                  <SheetHeader className="px-5 py-4 border-b border-slate-200">
+                    <SheetTitle className="text-lg leading-snug">
+                      {selectedException.title ?? (
+                        <span className="italic text-slate-400">Untitled</span>
+                      )}
+                    </SheetTitle>
+                    <SheetDescription className="text-sm text-slate-500">
+                      Exception detail — no coordinator comment received
+                    </SheetDescription>
+                  </SheetHeader>
+
+                  <div className="space-y-5 px-5 py-5">
+                    {/* Status badge */}
+                    <div>
+                      {(selectedException.daysSinceSubmission ?? 0) >= 14 ? (
+                        <Badge className="bg-red-100 text-red-800 border-red-200">
+                          Overdue — {daysLabel(selectedException.daysSinceSubmission)} without comment
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-amber-100 text-amber-800 border-amber-200">
+                          Awaiting comment — {daysLabel(selectedException.daysSinceSubmission)}
+                        </Badge>
+                      )}
+                    </div>
+
+                    {/* Detail fields */}
+                    <div className="space-y-3">
+                      <DetailField label="Student" value={selectedException.studentName ?? "Unknown"} />
+                      <DetailField label="Faculty" value={selectedException.facultyName ?? "Unknown"} />
+                      <DetailField label="Submitted" value={formatDate(selectedException.submittedAt)} />
+                      <DetailField
+                        label={allYears.find((y) => y.id === selectedYearId)?.isActive ? "Waiting for Comment" : "Waited for Comment"}
+                        value={daysLabel(selectedException.daysSinceSubmission)}
+                      />
+                    </div>
+
+                    {/* Uploaded files */}
+                    {(selectedException.files?.length ?? 0) > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                          Files ({selectedException.files!.length})
+                        </p>
+                        <ul className="space-y-1.5">
+                          {selectedException.files!.map((file) => (
+                            <li key={file.id}>
+                              <a
+                                href={file.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 transition-colors"
+                              >
+                                <FileIcon className="h-4 w-4 shrink-0 text-slate-400" />
+                                <span className="flex-1 truncate">{file.filename}</span>
+                                {file.size !== null && (
+                                  <span className="shrink-0 text-xs text-slate-400">
+                                    {formatFileSize(file.size)}
+                                  </span>
+                                )}
+                                <Download className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </SheetContent>
+          </Sheet>
         </TabsContent>
       </Tabs>
     </main>

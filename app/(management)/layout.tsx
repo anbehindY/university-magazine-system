@@ -17,7 +17,7 @@ export default async function Layout({
       <AppSidebar user={user} />
       <SidebarInset>
         <ManagementHeader />
-        <section className="px-6">{children}</section>
+        <section className="px-6 pt-6 pb-8 sm:px-8 lg:px-10">{children}</section>
       </SidebarInset>
     </SidebarProvider>
   );

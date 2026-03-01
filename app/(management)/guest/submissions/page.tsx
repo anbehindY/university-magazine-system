@@ -67,13 +67,13 @@ export default function GuestSubmissionsPage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-6xl space-y-6 px-4 pt-4 pb-6 text-slate-900 sm:px-6">
+    <main className="space-y-6 text-slate-900">
       <header className="space-y-1">
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-3xl font-semibold">Selected Articles</h1>
           {!loading && (
             <Badge className="bg-slate-100 text-slate-700 border-slate-200">
-              {submissions.length}
+              {submissions.length} {submissions.length === 1 ? "article" : "articles"}
             </Badge>
           )}
         </div>

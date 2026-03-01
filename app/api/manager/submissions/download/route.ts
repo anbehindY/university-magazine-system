@@ -1,12 +1,12 @@
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { getActiveAcademicYear, isPastFinalClosure } from "@/lib/closure-guard";
 import { headers } from "next/headers";
 import archiver from "archiver";
 import { Readable } from "stream";
 import type { ReadableStream as NodeWebReadableStream } from "stream/web";
+import { NextRequest } from "next/server";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   // Guard 1: Authentication
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) {
@@ -24,24 +24,16 @@ export async function GET() {
     );
   }
 
-  // Guard 3: Inverted closure gate — this endpoint is ONLY available AFTER final closure.
-  // All other closure-gated endpoints in this project block AFTER the date (preventing
-  // submissions/changes post-deadline). This endpoint is the single exception: it blocks
-  // BEFORE the final closure date because the ZIP represents a finalized publication-ready
-  // export that should only be generated once all selection windows have closed.
-  if (!(await isPastFinalClosure())) {
-    return new Response(
-      JSON.stringify({
-        error: "Download unavailable. Final closure date has not passed.",
-      }),
-      { status: 403, headers: { "Content-Type": "application/json" } }
-    );
-  }
-
   try {
-    // Fetch all selected submissions with their files and submitting user
+    // Accept optional academicYearId filter
+    const academicYearId = request.nextUrl.searchParams.get("academicYearId");
+
+    // Fetch selected submissions, optionally scoped to a specific academic year
     const submissions = await prisma.submission.findMany({
-      where: { isSelected: true },
+      where: {
+        isSelected: true,
+        ...(academicYearId ? { academicYearId } : {}),
+      },
       include: {
         files: true,
         user: { select: { name: true } },
@@ -135,12 +127,17 @@ export async function GET() {
     })();
 
     // Bridge Node.js Readable stream to Web ReadableStream.
-    // Node.js v24 provides Readable.toWeb natively.
     const webStream = Readable.toWeb(archive) as unknown as ReadableStream;
 
-    // Derive ZIP filename from active academic year label if available
-    const activeYear = await getActiveAcademicYear();
-    const yearLabel = activeYear?.yearLabel ?? "";
+    // Derive ZIP filename from academic year label if available
+    let yearLabel = "";
+    if (academicYearId) {
+      const year = await prisma.academicYear.findUnique({
+        where: { id: academicYearId },
+        select: { yearLabel: true },
+      });
+      yearLabel = year?.yearLabel ?? "";
+    }
     const zipFilename = yearLabel
       ? `selected-submissions-${yearLabel}.zip`
       : "selected-submissions.zip";

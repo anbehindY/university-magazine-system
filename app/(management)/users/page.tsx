@@ -359,7 +359,7 @@ export default function UsersPage() {
   }
 
   return (
-    <main className="space-y-8 py-8 text-slate-900">
+    <main className="space-y-6 text-slate-900">
       <div className="space-y-2">
         <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
           User Management

@@ -1,8 +1,39 @@
 # 🎓 University Magazine System
 
-> 📰 A collaborative school project for publishing and managing a university magazine.
+> 📰 A web-based submission and review platform for a university annual magazine. Students submit articles and supporting files to their faculty; Marketing Coordinators review, comment on, and select contributions for publication; a Marketing Manager oversees all faculties and downloads selected work; Guests can browse selected articles for their assigned faculty; and Administrators manage users, faculties, and academic-year settings.
 
-## ✨ Contributor Setup
+## 🛠️ Tech Stack
+
+- **Framework** — Next.js 16 (App Router, React 19)
+- **Database** — PostgreSQL with Prisma ORM
+- **Auth** — Better Auth (email/password, role-based access)
+- **Storage** — Vercel Blob (file uploads)
+- **Email** — Nodemailer (SMTP notifications)
+- **UI** — Tailwind CSS 4, Radix UI, shadcn/ui components, Lucide icons
+
+## 👥 User Roles
+
+| Role | Capabilities |
+| --- | --- |
+| 🎒 **Student** | Submit articles with file uploads during the open submission period; add/remove submissions before the final closure date |
+| 📋 **Marketing Coordinator** | Review submissions for their faculty; leave comments; select or deselect articles for publication |
+| 📊 **Marketing Manager** | View submissions across all faculties and academic years; download selected submissions as ZIP archives; access cross-faculty reports |
+| 👀 **Guest** | View selected articles for their assigned faculty (read-only) |
+| ⚙️ **Administrator** | Manage users, faculties, academic years, closure dates, and upload rules; full system configuration |
+
+## ✨ Key Features
+
+- 📅 Academic-year-based submission periods with configurable first and final closure dates
+- 📎 File upload with configurable rules (max file size, allowed types, max files per submission)
+- ✅ Coordinator review workflow with selection confirmation and commenting
+- 📈 Reports dashboard with per-faculty statistics and exception tracking (submissions without comments)
+- 📦 Per-year ZIP download of selected submissions for the Marketing Manager
+- 📧 Email notifications for submission events
+- 🔒 Role-based navigation and access control throughout
+
+---
+
+## 🚀 Contributor Setup
 
 ### 1. 📦 Install dependencies
 
@@ -35,14 +66,13 @@ Option B: Hosted Postgres with Neon
 
 ### 3. 🔐 Configure environment variables
 
-Create `.env` with at least:
+Copy `.env.example` to `.env` and fill in the values:
 
 ```bash
-DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DB_NAME
-DEFAULT_ADMIN_EMAIL=admin@example.com
-DEFAULT_ADMIN_PASSWORD=change-me
-DEFAULT_ADMIN_NAME=Default Admin
+cp .env.example .env
 ```
+
+See `.env.example` for all required variables (database URL, auth secret, Vercel Blob token, SMTP credentials, and seed data).
 
 ### 4. 🧬 Prepare Prisma
 

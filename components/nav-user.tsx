@@ -1,9 +1,8 @@
 "use client";
 
 import { LogOut } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   SidebarMenu,
   SidebarMenuButton,
@@ -15,6 +14,39 @@ function getInitials(name?: string | null) {
   if (!name) return "SJ";
   const parts = name.trim().split(/\s+/).slice(0, 2);
   return parts.map((part) => part[0]?.toUpperCase()).join("");
+}
+
+function StableAvatar({ src, name }: { src: string; name: string }) {
+  const [failed, setFailed] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const onError = useCallback(() => setFailed(true), []);
+
+  return (
+    <span className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-amber-400 text-xs font-semibold text-slate-900">
+      {getInitials(name)}
+      {!failed && (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img
+          ref={imgRef}
+          src={src}
+          alt={name}
+          onError={onError}
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      )}
+    </span>
+  );
+}
+
+function formatRole(role: string) {
+  const labels: Record<string, string> = {
+    MARKETING_COORDINATOR: "Coordinator",
+    MARKETING_MANAGER: "Manager",
+    ADMINISTRATOR: "Admin",
+    STUDENT: "Student",
+    GUEST: "Guest",
+  };
+  return labels[role] ?? role.replaceAll("_", " ");
 }
 
 export function NavUser({
@@ -49,7 +81,13 @@ export function NavUser({
     if (isSigningOut) return;
     setIsSigningOut(true);
     try {
-      await signOut();
+      await signOut({
+        fetchOptions: {
+          onSuccess: () => {
+            window.location.href = "/sign-in";
+          },
+        },
+      });
     } finally {
       setIsSigningOut(false);
     }
@@ -65,18 +103,13 @@ export function NavUser({
           className="hover:bg-white/10 focus-visible:ring-0 focus-visible:ring-transparent focus-visible:outline-none focus:outline-none"
         >
           <div>
-            <Avatar className="h-9 w-9 rounded-full">
-              <AvatarImage src={user.avatar} alt={user.name} />
-              <AvatarFallback className="rounded-full bg-amber-400 text-slate-900">
-                {getInitials(user.name)}
-              </AvatarFallback>
-            </Avatar>
-            <div className="grid flex-1 text-left text-sm leading-tight">
-              <span className="truncate font-medium text-white">
+            <StableAvatar src={user.avatar} name={user.name} />
+            <div className="grid flex-1 text-left leading-tight">
+              <span className="truncate text-sm font-medium text-white">
                 {user.name}
               </span>
-              <span className="truncate text-xs text-white/60">
-                {user.role ?? "Administrator"}
+              <span className="truncate text-[11px] text-white/50">
+                {formatRole(user.role ?? "Administrator")}
                 {facultyName ? ` · ${facultyName}` : ""}
               </span>
             </div>

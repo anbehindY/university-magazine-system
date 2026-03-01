@@ -173,7 +173,7 @@ export default function AdminPanelPage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-5xl space-y-6 px-4 pt-4 pb-6 text-slate-900 sm:px-6">
+    <main className="space-y-6 text-slate-900">
       <header className="space-y-1">
         <h1 className="text-3xl font-semibold">Academic Years</h1>
         <p className="text-slate-600">
