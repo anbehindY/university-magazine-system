@@ -16,6 +16,19 @@ function parseDateTime(value?: string | null) {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
+/**
+ * A year can only be activated if it covers the current or a future calendar year.
+ * yearLabel format: "2025-2026" — we parse the start year and compare to current year.
+ * e.g. in 2026: "2025-2026" OK, "2026-2027" OK, "2024-2025" rejected.
+ */
+function canActivateYear(yearLabel: string): boolean {
+  const match = yearLabel.match(/^(\d{4})-(\d{4})$/);
+  if (!match) return false;
+  const startYear = parseInt(match[1], 10);
+  const currentYear = new Date().getFullYear();
+  return startYear >= currentYear - 1;
+}
+
 export async function GET() {
   try {
     const session = await auth.api.getSession({
@@ -123,6 +136,13 @@ export async function PUT(req: NextRequest) {
     let academicYear;
 
     if (body.isActive) {
+      if (!canActivateYear(body.yearLabel)) {
+        return NextResponse.json(
+          { error: "Cannot activate a past academic year. Only current or upcoming years can be set as active." },
+          { status: 400 }
+        );
+      }
+
       // Enforce single-active-year invariant using a transaction
       [, academicYear] = await prisma.$transaction([
         prisma.academicYear.updateMany({
@@ -188,6 +208,18 @@ export async function PATCH(req: NextRequest) {
     let academicYear;
 
     if (body.isActive === true) {
+      // Validate the year is current or upcoming before activation
+      const record = await prisma.academicYear.findUnique({
+        where: { id: body.id },
+        select: { yearLabel: true },
+      });
+      if (!record || !canActivateYear(record.yearLabel)) {
+        return NextResponse.json(
+          { error: "Cannot activate a past academic year. Only current or upcoming years can be set as active." },
+          { status: 400 }
+        );
+      }
+
       // Enforce single-active-year invariant using a transaction
       [, academicYear] = await prisma.$transaction([
         prisma.academicYear.updateMany({
