@@ -41,11 +41,15 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    const [faculties, academicYears] = await Promise.all([
+    const [faculties, academicYears, activeYear] = await Promise.all([
       prisma.faculty.findMany({ select: { id: true, name: true } }),
       prisma.academicYear.findMany({
         select: { id: true, yearLabel: true, isActive: true },
         orderBy: { yearLabel: "desc" },
+      }),
+      prisma.academicYear.findFirst({
+        where: { isActive: true },
+        select: { finalClosureDate: true },
       }),
     ]);
 
@@ -75,7 +79,11 @@ export async function GET(req: NextRequest) {
         );
       });
 
-    return NextResponse.json({ submissions: result, academicYears });
+    return NextResponse.json({
+      submissions: result,
+      academicYears,
+      finalClosureDate: activeYear?.finalClosureDate ?? null,
+    });
   } catch (error) {
     console.error("Error fetching manager submissions:", error);
     return NextResponse.json(

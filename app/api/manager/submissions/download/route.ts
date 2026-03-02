@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth";
+import { isPastFinalClosure } from "@/lib/closure-guard";
 import prisma from "@/lib/prisma";
 import { headers } from "next/headers";
 import archiver from "archiver";
@@ -20,6 +21,14 @@ export async function GET(request: NextRequest) {
   if (session.user.role !== "MARKETING_MANAGER") {
     return new Response(
       JSON.stringify({ error: "Forbidden. Marketing Manager access required." }),
+      { status: 403, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
+  // Guard 3: Inverted closure gate: block downloads BEFORE finalClosureDate (MGR-02)
+  if (!(await isPastFinalClosure())) {
+    return new Response(
+      JSON.stringify({ error: "ZIP download is only available after the final closure date." }),
       { status: 403, headers: { "Content-Type": "application/json" } }
     );
   }
