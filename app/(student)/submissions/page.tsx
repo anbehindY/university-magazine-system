@@ -129,7 +129,6 @@ export default function StudentSubmissionsPage() {
         submissionId?: string;
       };
       setAgreed(Boolean(parsed.agreed));
-      setTitle(parsed.title ?? "");
       setNotes(parsed.notes ?? "");
       setDraftFileNames(Array.isArray(parsed.fileNames) ? parsed.fileNames : []);
       setDraftSavedAt(parsed.savedAt ?? null);
@@ -351,7 +350,6 @@ export default function StudentSubmissionsPage() {
         DRAFT_STORAGE_KEY,
         JSON.stringify({
           agreed,
-          title,
           notes,
           fileNames,
           savedAt,
@@ -415,6 +413,11 @@ export default function StudentSubmissionsPage() {
 
     if (isClosed) {
       toast.error("Editing is closed for this submission period.");
+      return;
+    }
+
+    if (!title.trim()) {
+      toast.error("Please enter a title for your submission.");
       return;
     }
 
@@ -665,6 +668,18 @@ export default function StudentSubmissionsPage() {
                     </Alert>
                   ) : null}
 
+                  <div className="space-y-1">
+                    <Label htmlFor="submission-title">Title</Label>
+                    <Input
+                      id="submission-title"
+                      placeholder="Give your submission a title"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      disabled={isClosed || isBusy}
+                      required
+                    />
+                  </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="submission-files">Upload files</Label>
                     <label
@@ -780,17 +795,6 @@ export default function StudentSubmissionsPage() {
                         </ul>
                       </div>
                     ) : null}
-
-                  <div className="space-y-1">
-                    <Label htmlFor="submission-title">Title</Label>
-                    <Input
-                      id="submission-title"
-                      placeholder="Give your submission a title (optional)"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      disabled={isClosed || isBusy}
-                    />
-                  </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="submission-notes">Draft notes</Label>
