@@ -17,12 +17,12 @@
 
 </details>
 
-### Phase 6: Critical Fixes — Closure Gate + Submission Title
+### Phase 6: Critical Fixes — Closure Gate + Submission Title (COMPLETE 2026-03-03)
 
 **Goal:** Fix ZIP download closure gate (MGR-02) and add submission title field (COORD-02) so managers can only download after final closure and coordinator emails show meaningful submission names
 **Depends on:** Phase 4, Phase 5
 **Requirements:** MGR-02, COORD-02
-**Plans:** 4/5 plans executed
+**Plans:** 5/5 plans complete
 **Gap Closure:** Closes gaps from v1.0 milestone audit + UAT session
 **Success Criteria** (what must be TRUE):
 
@@ -37,9 +37,9 @@
 Plans:
 - [x] 06-01-PLAN.md — ZIP download closure gate + manager UI Tooltip
 - [x] 06-02-PLAN.md — Submission title field end-to-end wiring
-- [ ] 06-03-PLAN.md — Remove ZIP closure gate (API + UI) — gap closure
-- [ ] 06-04-PLAN.md — Student form: title to top, required, no localStorage, closure info icon — gap closure
-- [ ] 06-05-PLAN.md — Edit form file cleanup, API title validation, email verification — gap closure
+- [x] 06-03-PLAN.md — Remove ZIP closure gate (API + UI) — gap closure
+- [x] 06-04-PLAN.md — Student form: title to top, required, no localStorage, closure info icon — gap closure
+- [x] 06-05-PLAN.md — Edit form file cleanup, API title validation, email verification — gap closure
 
 ### Phase 7: Student Comment Thread
 
@@ -87,7 +87,7 @@ Plans:
 | 3. Coordinator and Comment API | v1.0      | 3/3            | Complete | 2026-02-26 |
 | 4. Manager and Reports API     | v1.0      | 3/3            | Complete | 2026-02-26 |
 | 5. UI Layer                    | v1.0      | 5/5            | Complete | 2026-03-02 |
-| 6. Critical Fixes              | 4/5 | In Progress|  | —          |
+| 6. Critical Fixes              | v1.0      | 5/5            | Complete | 2026-03-03 |
 | 7. Student Comment Thread      | v1.0      | 0/?            | Pending  | —          |
 | 8. Upload Rules Enforcement    | v1.0      | 0/?            | Pending  | —          |
 | 9. Pagination                  | v1.0      | 0/?            | Pending  | —          |

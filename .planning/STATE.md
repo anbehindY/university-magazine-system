@@ -11,16 +11,16 @@ See: .planning/PROJECT.md (updated 2026-03-02)
 
 Milestone: v1.0 MVP — GAP CLOSURE
 Status: In Progress (Phases 6-9 pending)
-Last activity: 2026-03-03 — Phase 06-04 complete (student form UAT fixes: title first/required, localStorage removal, Info icon)
+Last activity: 2026-03-03 — Phase 06-05 complete (edit form file sections fix, API title validation, coordinator email confirmation)
 
-Progress: [████████████░░░░░░░░] 60% (5/9 phases complete, 06 in progress 4/5 plans done)
+Progress: [█████████████░░░░░░░] 65% (6/9 phases complete, 06 done)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 18
-- Total commits: 109
-- Total files modified: 132
+- Total plans completed: 19
+- Total commits: 111
+- Total files modified: 134
 - Lines of code: 32,675 TypeScript
 - Timeline: 11 days (2026-02-19 → 2026-03-02)
 
@@ -37,6 +37,7 @@ Progress: [████████████░░░░░░░░] 60% (5/
 | Phase 06-critical-fixes P02 | 3 | 2 tasks | 2 files |
 | Phase 06-critical-fixes P03 | 5 | 2 tasks | 2 files |
 | Phase 06-critical-fixes P04 | 2 | 2 tasks | 1 file |
+| Phase 06-critical-fixes P05 | 2 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -52,10 +53,13 @@ All decisions logged in PROJECT.md Key Decisions table.
 - [Phase 06-critical-fixes]: Title required validation added to onSubmit only — drafts intentionally allow empty titles
 - [Phase 06-critical-fixes]: Title removed from localStorage entirely — DB draft is sole persistence mechanism for title
 - [Phase 06-critical-fixes]: Blue styling only on non-closed closure Alert; destructive state retains default red styling
+- [Phase 06-critical-fixes]: Remove setUploadedBlobs seeding from startEditSubmission — uploadedBlobs only tracks current-session uploads; editingFiles holds pre-existing files
+- [Phase 06-critical-fixes]: API title validation on SUBMITTED status only — POST and PUT handlers return 400; drafts intentionally exempt
+- [Phase 06-critical-fixes]: Email already correct (findMany returns all faculty coordinators, array passed to sendMail); clarifying comment added
 
 ### Pending Todos
 
-- Phase 6: Critical Fixes (MGR-02 closure gate reversed DONE + COORD-02 title field DONE + gap plan 05 remaining)
+- Phase 6: Critical Fixes COMPLETE (all 5 plans done)
 - Phase 7: Student Comment Thread (COMM-02 + COMM-03)
 - Phase 8: Upload Rules Enforcement (UPLOAD-01 + UPLOAD-02 + UPLOAD-03)
 - Phase 9: Pagination (UX-01 + UX-02)
@@ -68,5 +72,5 @@ All decisions logged in PROJECT.md Key Decisions table.
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Completed 06-critical-fixes 06-04-PLAN.md (student form UAT fixes)
+Stopped at: Completed 06-critical-fixes 06-05-PLAN.md (edit form file sections fix, API title validation)
 Resume file: None
