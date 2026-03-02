@@ -1,27 +1,42 @@
 ---
 phase: 06-critical-fixes
-verified: 2026-03-02T15:30:00Z
+verified: 2026-03-03T12:00:00Z
 status: passed
 score: 7/7 must-haves verified
-re_verification: false
+re_verification: true
+previous_status: passed
+previous_score: 7/7
+previous_note: "Previous VERIFICATION.md was written before the UAT session (2026-03-02T15:30:00Z). UAT revealed 3 major and 4 minor issues. Gap closure plans 03-05 were executed to address them. This document supersedes the pre-UAT report."
+gaps_closed:
+  - "Marketing Manager ZIP download ungated — closure gate removed from API route and UI button"
+  - "Title input is the first required field in the student submission form"
+  - "Title persists via DB draft saves only, not localStorage"
+  - "Closure date Alert has Info icon and blue visual distinction"
+  - "Edit form separates previously uploaded files from new file selection — no duplication"
+  - "API validates title is present when submitting (not on drafts)"
+  - "Submission notification email reaches every coordinator in the student's faculty (confirmed via findMany)"
+gaps_remaining: []
+regressions: []
 human_verification:
-  - test: "Before finalClosureDate — navigate to /manager/submissions as a Marketing Manager and observe Download ZIP buttons"
-    expected: "Each Download ZIP button is disabled; hovering (or focusing) the button reveals a Tooltip reading 'Available after DD MMM YYYY'"
-    why_human: "Client-side date derivation (Date.now() > new Date(finalClosureDate).getTime()) and Tooltip display require browser interaction to confirm"
-  - test: "After finalClosureDate — click Download ZIP button for a year that has selected submissions"
-    expected: "A ZIP file is downloaded; API returns 200 with streaming content, no 403"
-    why_human: "Date-gated behaviour requires a real or mocked time context; cannot be confirmed statically"
-  - test: "Create a submission with a title as a Student, then trigger SUBMITTED status"
-    expected: "Coordinator receives an email whose subject line reads 'New submission: <title> — <student name>' rather than 'New submission: Untitled — <student name>'"
-    why_human: "SMTP email delivery and subject-line content require a live mailer environment to confirm"
+  - test: "Submit a submission with a title as a Student and check coordinator inbox"
+    expected: "Email subject reads 'New submission: <title> — <student name>'; email arrives at EVERY coordinator in the student's faculty"
+    why_human: "SMTP delivery and multi-recipient behaviour require a live mailer environment (Mailpit or production SMTP)"
+  - test: "Open the student submission form and verify the Info icon and blue Alert for closure date"
+    expected: "A blue info Alert with an Info (i) icon appears before the title input. When closure is past, it switches to the red destructive variant."
+    why_human: "Visual style and icon rendering require browser inspection"
+  - test: "Edit an existing submission — verify previously uploaded files appear separately from new file selection"
+    expected: "'Previously uploaded files' section shows existing files with Download/Delete links. Selecting new files shows a separate 'New files to upload' section. No duplication."
+    why_human: "UI state interactions (startEditSubmission, file selection) require browser interaction to confirm"
 ---
 
 # Phase 06: Critical Fixes Verification Report
 
 **Phase Goal:** Fix ZIP download closure gate (MGR-02) and add submission title field (COORD-02) so managers can only download after final closure and coordinator emails show meaningful submission names
-**Verified:** 2026-03-02T15:30:00Z
+**Verified:** 2026-03-03T12:00:00Z
 **Status:** PASSED
-**Re-verification:** No — initial verification
+**Re-verification:** Yes — after UAT session (2026-03-02) and gap closure plans 03-05 (2026-03-03)
+
+**Note on Goal Evolution:** The original goal text says "managers can only download after final closure." UAT revealed the user explicitly rejected the date gate: "I want the marketing manager to be able to download the zip any time." The ROADMAP success criteria were updated to reflect this. The MGR-02 requirement in v1.0-REQUIREMENTS.md still carries the original wording ("available only after finalClosureDate") but the ROADMAP — as the living contract — supersedes it. This verification checks against the updated ROADMAP success criteria.
 
 ---
 
@@ -29,24 +44,24 @@ human_verification:
 
 | Requirement | Source Plan | Description | Status | Evidence |
 | ----------- | ----------- | ----------- | ------ | -------- |
-| MGR-02 | 06-01-PLAN.md | Marketing Manager can download ZIP only after `finalClosureDate` — organised Faculty > Student > files | SATISFIED | `isPastFinalClosure()` gate at line 29 of download/route.ts; disabled button + Tooltip in manager page |
-| COORD-02 | 06-02-PLAN.md | Coordinator email notification subject includes student-provided title (not "Untitled") | SATISFIED | `title: body.title ?? null` in prisma.create (line 92, submissions/route.ts); title input in student form (line 786); email subject uses `updatedSubmission.title ?? "Untitled"` (line 213) |
+| MGR-02 | 06-01-PLAN.md, 06-03-PLAN.md | Marketing Manager ZIP download — originally date-gated, user-revised to always available | SATISFIED (revised) | Download route has auth + role guards only (no `isPastFinalClosure` import or call in `download/route.ts`); manager page button `disabled={downloadingYearId !== null}` only — no date check, no Tooltip wrapper (confirmed at lines 303–320 of manager page) |
+| COORD-02 | 06-02-PLAN.md, 06-04-PLAN.md, 06-05-PLAN.md | Coordinator email subject includes student-provided title; title is required first field | SATISFIED | `title?: string \| null` in `SubmissionPayload` (line 15, submissions/route.ts); `title: body.title ?? null` in `prisma.submission.create` (line 99); `updateData.title` set conditionally in PUT (line 195); title input is first form field after closure alerts (line 671–681 of student page); `required` attribute present; `!title.trim()` guard in `onSubmit` (line 415); title NOT in localStorage read/write; `sendMail` called with `to: emails` array from `findMany` (line 234); email subject `"New submission: ${submissionTitle} — ${studentName}"` (line 235) |
 
-No orphaned requirements — both IDs declared in plan frontmatter match the phase goal and appear in v1.0-REQUIREMENTS.md.
+No orphaned requirements — both IDs declared in plan frontmatter match the phase goal and appear in v1.0-REQUIREMENTS.md. The MGR-02 requirement description carries legacy wording but the evolved implementation is confirmed by the user-approved ROADMAP success criteria.
 
 ---
 
-## Observable Truths
+## Observable Truths (ROADMAP Success Criteria)
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
-| 1 | A Marketing Manager calling GET /api/manager/submissions/download BEFORE finalClosureDate receives a 403 response | VERIFIED | `if (!(await isPastFinalClosure()))` guard at line 29 of `app/api/manager/submissions/download/route.ts` returns `{ status: 403 }` with message "ZIP download is only available after the final closure date." |
-| 2 | The manager UI Download ZIP button is disabled before finalClosureDate with a Tooltip explaining why | VERIFIED | `disabled={!isPastFinalClosure \|\| downloadingYearId !== null}` on Button (line 323 of manager page); `TooltipContent` renders "Available after DD MMM YYYY" when `!isPastFinalClosure` (line 341–347) |
-| 3 | After finalClosureDate the Download ZIP button is enabled and functions normally | VERIFIED (automated) | When `isPastFinalClosure` is true the `disabled` prop becomes `downloadingYearId !== null` only, restoring normal behaviour; download logic unchanged; NEEDS HUMAN to confirm at runtime |
-| 4 | A student can enter a title when creating or editing a submission and the title is persisted to the database | VERIFIED | `title` state + `Input` UI at line 784–793; `title: title \|\| null` in `saveDraftToDb` fetch body (line 306); `prisma.submission.create({ data: { title: body.title ?? null } })` at line 92 in submissions/route.ts |
-| 5 | When a coordinator receives an email for a new submission the subject line includes the student-provided title | VERIFIED (wiring complete) | PUT handler re-fetches `updatedSubmission.title`, uses `submissionTitle ?? "Untitled"` in `subject: "New submission: ${submissionTitle} — ${studentName}"` (lines 197–220); now fed with real title from DB; NEEDS HUMAN to confirm email delivery |
-| 6 | Editing an existing submission restores the previously saved title in the input field | VERIFIED | `startEditSubmission()` at line 204 calls `setTitle(submission.title ?? "")` (line 215) |
-| 7 | Draft title is preserved in localStorage and restored on page reload | VERIFIED | localStorage save includes `title` in JSON at line 354; `useEffect` restore reads `parsed.title ?? ""` and calls `setTitle` at line 132 |
+| 1 | A Marketing Manager can download ZIP at any time without date restriction | VERIFIED | `app/api/manager/submissions/download/route.ts`: no `isPastFinalClosure` import, no closure guard — proceeds from role check directly to archiver logic. Confirmed by grep: zero matches for `isPastFinalClosure` or `closure-guard` in the file. Commits `a22446c` (API) and `58abe2b` (UI) in git history. |
+| 2 | A student can enter a required title as the first field in the submission form | VERIFIED | Line 671–681 of `app/(student)/submissions/page.tsx`: `<div className="space-y-1">` with `<Label htmlFor="submission-title">Title</Label>` and `<Input id="submission-title" ... required />` appears immediately after closure Alert blocks and before the file upload `<label>` (line 685). Placeholder is "Give your submission a title" (no "(optional)"). |
+| 3 | Title persists via DB draft saves only (no localStorage) | VERIFIED | localStorage `useEffect` reads `parsed.agreed`, `parsed.notes`, `parsed.fileNames`, `parsed.savedAt`, `parsed.submissionId` — no `setTitle` call (line 120–140). `localStorage.setItem` in `onSaveDraft` writes `{ agreed, notes, fileNames, savedAt, submissionId }` — no `title` key (lines 345–354). `saveDraftToDb` body still includes `title: title \|\| null` (line 301) so title persists to DB. |
+| 4 | Closure date info has an info icon and visual distinction | VERIFIED (automated) | Line 651–668: `<Alert className="border-blue-200 bg-blue-50 text-blue-900">` with `<Info className="h-4 w-4" />` as first child. `Info` imported from `lucide-react` (line 5). Blue styling applied when `!isClosed`; destructive variant when closed. Needs human to confirm visual appearance. |
+| 5 | Edit form separates existing files from new file selection cleanly | VERIFIED (automated) | `startEditSubmission` sets `setUploadedBlobs([])` (line 228) — no longer seeds from existing files. Three separate sections at lines 720–811: "Previously uploaded files" (`editingFiles.length > 0`), "New files to upload" (`files.length > 0`), "Draft files" fallback (`!editingSubmissionId && files.length === 0 && draftFileNames.length > 0`). Commit `07fcfa0` in git history. Needs human to confirm in browser. |
+| 6 | API validates title is present on submission (not drafts) | VERIFIED | POST handler: `if (body.status === "SUBMITTED" && !body.title?.trim())` returns 400 at line 83–88. PUT handler: `if (!body.title?.trim())` inside `if (nextStatus === "SUBMITTED")` block at lines 168–173. Neither check fires for DRAFT saves. |
+| 7 | Submission notification email reaches every coordinator in the student's faculty | VERIFIED | Lines 217–225: `prisma.user.findMany({ where: { role: "MARKETING_COORDINATOR", facultyId: updatedSubmission.facultyId } })` returns all coordinators; `emails = coordinators.map((c) => c.email)` builds array; `sendMail({ to: emails, ... })` at line 233–239 passes array. Comment at line 217 reads "Notify ALL coordinators in the student's faculty (not just one)". Needs human to confirm delivery in live environment. |
 
 **Score: 7/7 truths verified**
 
@@ -54,20 +69,20 @@ No orphaned requirements — both IDs declared in plan frontmatter match the pha
 
 ## Required Artifacts
 
-### Plan 01 (MGR-02) Artifacts
+### Plan 01 + 03 (MGR-02) Artifacts
 
 | Artifact | Expected | Status | Details |
 |----------|----------|--------|---------|
-| `app/api/manager/submissions/download/route.ts` | Inverted closure gate blocking pre-deadline ZIP downloads | VERIFIED | Contains `isPastFinalClosure` import (line 2) and guarded return at line 29–34 with comment "Inverted closure gate: block downloads BEFORE finalClosureDate (MGR-02)" |
-| `app/api/manager/submissions/route.ts` | `finalClosureDate` field in GET response payload | VERIFIED | `prisma.academicYear.findFirst` for `finalClosureDate` inside `Promise.all` (lines 50–53); returned at line 85 as `finalClosureDate: activeYear?.finalClosureDate ?? null` |
-| `app/(management)/manager/submissions/page.tsx` | Disabled button state + Tooltip showing closure date | VERIFIED | Tooltip imports at lines 19–23; `finalClosureDate` state at line 54; `isPastFinalClosure` derived at lines 57–59; `TooltipContent` at lines 341–347 |
+| `app/api/manager/submissions/download/route.ts` | ZIP download route without closure gate (auth + role only) | VERIFIED | File is 158 lines. No `isPastFinalClosure` import. No closure guard block. After role check at line 20-25, handler proceeds directly to `try { ... }` with archiver logic. |
+| `app/api/manager/submissions/route.ts` | `finalClosureDate` field in GET response payload | VERIFIED | `prisma.academicYear.findFirst({ where: { isActive: true }, select: { finalClosureDate: true } })` at lines 50-53; returned at line 85 as `finalClosureDate: activeYear?.finalClosureDate ?? null`. Harmless — UI no longer reads it for gating. |
+| `app/(management)/manager/submissions/page.tsx` | Always-enabled Download ZIP button (disabled only during active download) | VERIFIED | Line 303-320: plain `<Button disabled={downloadingYearId !== null}>`. No Tooltip imports, no `finalClosureDate` state, no `isPastFinalClosure` variable — zero grep matches for any of these in the file. |
 
-### Plan 02 (COORD-02) Artifacts
+### Plan 02 + 04 + 05 (COORD-02) Artifacts
 
 | Artifact | Expected | Status | Details |
 |----------|----------|--------|---------|
-| `app/api/submissions/route.ts` | `SubmissionPayload` type with `title` field; title wired to prisma create and update | VERIFIED | `title?: string \| null` in `SubmissionPayload` type (line 15); `title: body.title ?? null` in `prisma.submission.create` (line 92); `if (body.title !== undefined) { updateData.title = body.title ?? null; }` in PUT (lines 180–182) |
-| `app/(student)/submissions/page.tsx` | Title input field in form with state, localStorage persistence, edit restoration | VERIFIED | `const [title, setTitle] = useState("")` (line 48); `Input` rendered at lines 784–793; `setTitle(parsed.title ?? "")` in localStorage useEffect (line 132); `setTitle(submission.title ?? "")` in `startEditSubmission` (line 215); `setTitle("")` in `resetSubmissionForm` (line 191) |
+| `app/api/submissions/route.ts` | `SubmissionPayload` with `title`; title in create/update; title validation on SUBMITTED; all-coordinator email | VERIFIED | `title?: string \| null` at line 15; `title: body.title ?? null` at line 99; `updateData.title` at lines 194-196; POST title check at lines 83-88; PUT title check at lines 168-173; `findMany` for all coordinators at lines 217-225; `sendMail({ to: emails })` at line 233. |
+| `app/(student)/submissions/page.tsx` | Title as first required input; no localStorage for title; Info Alert; separate file sections | VERIFIED | `const [title, setTitle] = useState("")` at line 49; title `<Input required>` at lines 671-681 (before file upload at line 685); localStorage useEffect reads no `title` (lines 120-140); localStorage write excludes `title` (lines 345-354); `<Info className="h-4 w-4" />` at line 655; `<Alert className="border-blue-200 bg-blue-50">` at line 651; three-section file display at lines 720-811; `setUploadedBlobs([])` in `startEditSubmission` at line 228. |
 
 ---
 
@@ -75,23 +90,30 @@ No orphaned requirements — both IDs declared in plan frontmatter match the pha
 
 | From | To | Via | Status | Details |
 |------|----|-----|--------|---------|
-| `app/api/manager/submissions/download/route.ts` | `lib/closure-guard.ts` | `isPastFinalClosure()` import and inverted check | WIRED | Import at line 2; pattern `!(await isPastFinalClosure())` at line 29 confirmed |
-| `app/(management)/manager/submissions/page.tsx` | `app/api/manager/submissions/route.ts` | `finalClosureDate` read from fetch response | WIRED | `data.finalClosureDate !== undefined` check at line 122; `setFinalClosureDate(data.finalClosureDate)` wired; API returns `finalClosureDate` at line 85 |
-| `app/(student)/submissions/page.tsx` | `app/api/submissions/route.ts` | `title` field sent in POST/PUT fetch body | WIRED | `title: title \|\| null` in `JSON.stringify` body at line 306; `SubmissionPayload` type accepts it at line 15 |
-| `app/api/submissions/route.ts` | `prisma.submission.create` | `body.title` passed to prisma create data | WIRED | `title: body.title ?? null` at line 92 inside `data:` object of `prisma.submission.create` call |
+| `app/(management)/manager/submissions/page.tsx` | `/api/manager/submissions/download` | `fetch` in `handleDownloadZip` | WIRED | `fetch(url)` at line 161; URL pattern includes `/api/manager/submissions/download`; no closure gate on either side |
+| `app/(student)/submissions/page.tsx` | `/api/submissions` | `title: title \|\| null` in `saveDraftToDb` body | WIRED | `JSON.stringify({ ..., title: title \|\| null, ... })` at line 301; `SubmissionPayload` accepts `title` at line 15 |
+| `app/api/submissions/route.ts` | `prisma.submission.create` | `body.title` passed to create data | WIRED | `title: body.title ?? null` at line 99 inside `data:` object |
+| `app/api/submissions/route.ts` | `sendMail` | `to: emails` array from `findMany` | WIRED | `emails = coordinators.map((c) => c.email)` at line 227; `sendMail({ to: emails })` at line 233 |
+| `app/(student)/submissions/page.tsx` | `startEditSubmission` | `setTitle(submission.title ?? "")` | WIRED | Line 215: `setTitle(submission.title ?? "")` in `startEditSubmission`; `setUploadedBlobs([])` at line 228 confirms de-duplication fix |
 
 ---
 
 ## Commit Verification
 
-All four task commits from SUMMARY files exist in the git history:
+All six gap closure commits from SUMMARY files verified in git history:
 
-| Commit | Description |
-|--------|-------------|
-| `7a476f8` | feat(06-01): add closure gate to ZIP download route and expose finalClosureDate in manager submissions API |
-| `dbf8e31` | feat(06-01): disable Download ZIP button before finalClosureDate with Tooltip |
-| `8e1d369` | feat(06-02): add title to SubmissionPayload type and wire to Prisma create/update |
-| `b633e27` | feat(06-02): add title input to student submission form with state, localStorage, and edit restoration |
+| Commit | Plan | Description |
+|--------|------|-------------|
+| `7a476f8` | 06-01 | feat: add closure gate to ZIP download route (later reversed) |
+| `dbf8e31` | 06-01 | feat: disable Download ZIP button before finalClosureDate (later reversed) |
+| `8e1d369` | 06-02 | feat: add title to SubmissionPayload type and wire to Prisma |
+| `b633e27` | 06-02 | feat: add title input to student submission form |
+| `a22446c` | 06-03 | fix: remove closure gate from ZIP download API route |
+| `58abe2b` | 06-03 | fix: remove Tooltip gate and closure disabled state from Download ZIP button |
+| `782a1e7` | 06-04 | feat: move title to first field, make required, remove localStorage |
+| `cf049ea` | 06-04 | feat: add info icon and visual distinction to closure date Alert |
+| `07fcfa0` | 06-05 | fix: fix edit mode file sections to eliminate duplication |
+| `0582886` | 06-05 | feat: add API title validation on submission and confirm coordinator email |
 
 ---
 
@@ -99,48 +121,61 @@ All four task commits from SUMMARY files exist in the git history:
 
 Files reviewed: `app/api/manager/submissions/download/route.ts`, `app/api/manager/submissions/route.ts`, `app/(management)/manager/submissions/page.tsx`, `app/api/submissions/route.ts`, `app/(student)/submissions/page.tsx`
 
-No blocker anti-patterns found. No placeholder returns, no TODO/FIXME stubs in the modified sections, no console-log-only implementations.
+No blocker anti-patterns found.
 
 | File | Pattern | Severity | Assessment |
 |------|---------|----------|------------|
-| `app/(management)/manager/submissions/page.tsx` | `isPastFinalClosure` is `false` when `finalClosureDate` is `null` (buttons always disabled if no active year) | Info | Intentional safe default — no active year means no closure date is known; buttons are correctly blocked |
-| `app/api/submissions/route.ts` | `sendMail(...)` is fire-and-forget with `.catch(console.error)` | Info | Pre-existing intentional decision documented in Phase 3; not introduced in Phase 6 |
+| `app/api/submissions/route.ts` | `sendMail(...)` is fire-and-forget with `.catch(console.error)` | Info | Pre-existing intentional decision documented in Phase 3; not introduced in Phase 6. SMTP failures are logged but not surfaced to the user — consistent with the existing pattern. |
+| `app/(student)/submissions/page.tsx` | `uploadedBlobs` section (lines 844-857) shows post-upload blobs; in edit mode `uploadedBlobs` starts empty so section is hidden until new files are uploaded | Info | Correct behaviour — this is intentional. Newly uploaded blobs are appended; existing files are in `editingFiles`. No duplication. |
+| `app/api/submissions/route.ts` | Title validation in PUT is inside the `if (nextStatus === "SUBMITTED")` block, which means the explicit `if (!body.title?.trim())` at line 168 runs after the `effectiveAgreed` check at line 160 | Info | Order is correct: agreed check runs first, then title check. Both are inside the `SUBMITTED` guard. No issue. |
 
 ---
 
 ## Human Verification Required
 
-### 1. Download ZIP button Tooltip before finalClosureDate
+### 1. Coordinator email delivery and subject line
 
-**Test:** Log in as a Marketing Manager. Navigate to `/manager/submissions`. If the active academic year's `finalClosureDate` is in the future (or is null), hover or keyboard-focus the Download ZIP button.
-**Expected:** Button is visually disabled; a Tooltip appears reading "Available after DD MMM YYYY" (or "Available after the final closure date" if date is null).
-**Why human:** Tooltip visibility depends on browser mouse/focus events and Radix UI Tooltip component behaviour — cannot be confirmed from static code analysis.
+**Test:** As a Student, open the submission form, enter a title (e.g. "Climate Change Essay"), attach a file, agree to T&C, and click Submit. Check the coordinator inbox for the student's faculty.
+**Expected:** Email subject reads "New submission: Climate Change Essay — Student Name". Email arrives for EVERY coordinator assigned to that faculty (not just one).
+**Why human:** SMTP delivery and multi-recipient routing require a live mailer environment (Mailpit or production SMTP).
 
-### 2. Download ZIP succeeds after finalClosureDate
+### 2. Info icon and blue Alert visual appearance
 
-**Test:** Set `finalClosureDate` to a past date for the active academic year (via admin UI or direct DB update). Navigate to `/manager/submissions` and click Download ZIP.
-**Expected:** A `.zip` file downloads; no error toast; API returns 200.
-**Why human:** Date-gated logic requires a controlled time context or data setup; static analysis confirms the gate is inverted correctly but not that the download pipeline functions end-to-end.
+**Test:** Open the student submission form as a Student. Observe the Alert block before the Title input.
+**Expected:** A blue info Alert (border-blue-200, bg-blue-50) with an Info (i) icon appears on the left. When the final closure date has passed, it switches to a red destructive variant.
+**Why human:** Visual style and icon rendering require browser inspection to confirm correct Radix/shadcn Alert layout with the icon.
 
-### 3. Coordinator email subject includes student-provided title
+### 3. Edit mode file section separation
 
-**Test:** As a Student, open the submission form, enter a title (e.g. "My Article"), agree to terms, and click Submit. Check the coordinator's inbox.
-**Expected:** Email subject reads "New submission: My Article — Student Name" (not "New submission: Untitled — Student Name").
-**Why human:** SMTP delivery and subject-line content require a live mailer environment (Mailpit or production SMTP).
-
----
-
-## Gaps Summary
-
-No gaps found. Both requirements are fully implemented and wired end-to-end:
-
-- **MGR-02:** The ZIP download API route correctly calls `isPastFinalClosure()` and returns 403 before the final closure date. The manager submissions API exposes `finalClosureDate` in its response. The manager UI derives `isPastFinalClosure` client-side from that date and disables the Download ZIP button with a Tooltip showing the formatted date.
-
-- **COORD-02:** The `SubmissionPayload` type now includes `title`. The POST handler persists `title` to the database via `prisma.submission.create`. The PUT handler conditionally updates `title` via `updateData`. The student form renders a controlled `Input` for title, saves it to localStorage, restores it on page reload, pre-populates it when editing an existing submission, and clears it on form reset. The email notification path in the PUT handler already read `submission.title` — it now receives real student-provided values instead of always getting `null`/`"Untitled"`.
-
-Three items flagged for human verification are behavioural confirmations, not gaps — all automated evidence is present and wired.
+**Test:** As a Student, edit an existing submission that has at least one uploaded file. Select one or more new files to add.
+**Expected:** Two distinct sections appear: "Previously uploaded files" showing existing files with Download and Delete links; "New files to upload" showing the newly selected files with a Remove button. The sections are separate with no duplicated file entries.
+**Why human:** UI state interactions (startEditSubmission, file selection, uploadedBlobs lifecycle) require browser interaction to confirm no visual duplication remains.
 
 ---
 
-_Verified: 2026-03-02T15:30:00Z_
+## Re-Verification Summary
+
+The previous VERIFICATION.md (2026-03-02T15:30:00Z, status: passed) was written before the UAT session. UAT identified seven gaps — three major, four minor. Gap closure plans 03-05 resolved all seven:
+
+**Gaps from UAT — all closed:**
+
+1. **ZIP download ungated (major):** User rejected the closure gate. Plans 06-03 removed `isPastFinalClosure` from the API route and the Tooltip/disabled state from the UI button. Confirmed: zero references to `isPastFinalClosure` or `TooltipProvider` remain in either file.
+
+2. **Title required and at top of form (major):** Plan 06-04 moved the title `<Input>` to first position in the form (after closure alerts, before file upload), added `required` attribute, and added `!title.trim()` guard in `onSubmit`. Confirmed at lines 671–681.
+
+3. **Title localStorage persistence removed (major):** Plan 06-04 removed `setTitle` from the localStorage read effect and `title` from the localStorage write. Confirmed: neither localStorage path touches title; DB draft via `saveDraftToDb` is the sole persistence mechanism.
+
+4. **Closure date info icon and visual distinction (minor):** Plan 06-04 added `<Info className="h-4 w-4" />` and `border-blue-200 bg-blue-50 text-blue-900` classes to the non-closed Alert. Confirmed at lines 651–668.
+
+5. **Edit form file duplication (major):** Plan 06-05 removed `setUploadedBlobs` seeding from `startEditSubmission` and restructured the file display into three independent sections. Confirmed at lines 720–811.
+
+6. **API title validation on submission (major):** Plan 06-05 added title checks in both POST (line 83) and PUT (line 168) handlers. Confirmed: both return 400 when submitting without a title; drafts are unaffected.
+
+7. **Email to all coordinators (major, was already working):** Plan 06-05 confirmed that `prisma.user.findMany` with faculty filter returns all coordinators; email sends to an array. No code change was needed — a clarifying comment was added.
+
+All seven gaps are closed. No regressions were detected. Seven automated truths verified. Three items flagged for human verification are behavioural confirmations (email delivery, visual styling, UI interaction), not gaps.
+
+---
+
+_Verified: 2026-03-03T12:00:00Z_
 _Verifier: Claude (gsd-verifier)_
