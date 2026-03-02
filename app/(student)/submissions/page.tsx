@@ -45,6 +45,7 @@ export default function StudentSubmissionsPage() {
   const { data: session, isPending } = useSession();
   const [agreed, setAgreed] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
+  const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
   const [draftFileNames, setDraftFileNames] = useState<string[]>([]);
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
@@ -68,6 +69,7 @@ export default function StudentSubmissionsPage() {
     {
       id: string;
       status: "DRAFT" | "SUBMITTED";
+      title: string | null;
       notes: string | null;
       createdAt: string;
       updatedAt: string;
@@ -120,12 +122,14 @@ export default function StudentSubmissionsPage() {
       if (!raw) return;
       const parsed = JSON.parse(raw) as {
         agreed?: boolean;
+        title?: string;
         notes?: string;
         fileNames?: string[];
         savedAt?: string;
         submissionId?: string;
       };
       setAgreed(Boolean(parsed.agreed));
+      setTitle(parsed.title ?? "");
       setNotes(parsed.notes ?? "");
       setDraftFileNames(Array.isArray(parsed.fileNames) ? parsed.fileNames : []);
       setDraftSavedAt(parsed.savedAt ?? null);
@@ -184,6 +188,7 @@ export default function StudentSubmissionsPage() {
   function resetSubmissionForm() {
     setAgreed(false);
     setFiles([]);
+    setTitle("");
     setNotes("");
     setDraftFileNames([]);
     setDraftSavedAt(null);
@@ -199,6 +204,7 @@ export default function StudentSubmissionsPage() {
   function startEditSubmission(submission: {
     id: string;
     status: "DRAFT" | "SUBMITTED";
+    title: string | null;
     notes: string | null;
     files: { id: string; url: string; pathname: string; createdAt: string }[];
     updatedAt: string;
@@ -206,6 +212,7 @@ export default function StudentSubmissionsPage() {
     setEditingSubmissionId(submission.id);
     setEditingStatus(submission.status);
     setDraftSubmissionId(submission.id);
+    setTitle(submission.title ?? "");
     setNotes(submission.notes ?? "");
     setAgreed(true);
     setFiles([]);
@@ -259,6 +266,7 @@ export default function StudentSubmissionsPage() {
         submissions: {
           id: string;
           status: "DRAFT" | "SUBMITTED";
+          title: string | null;
           notes: string | null;
           createdAt: string;
           updatedAt: string;
@@ -295,6 +303,7 @@ export default function StudentSubmissionsPage() {
       body: JSON.stringify({
         id: shouldCreate ? undefined : targetId ?? undefined,
         agreed,
+        title: title || null,
         notes,
         status: nextStatus,
       }),
@@ -342,6 +351,7 @@ export default function StudentSubmissionsPage() {
         DRAFT_STORAGE_KEY,
         JSON.stringify({
           agreed,
+          title,
           notes,
           fileNames,
           savedAt,
@@ -771,6 +781,17 @@ export default function StudentSubmissionsPage() {
                       </div>
                     ) : null}
 
+                  <div className="space-y-1">
+                    <Label htmlFor="submission-title">Title</Label>
+                    <Input
+                      id="submission-title"
+                      placeholder="Give your submission a title (optional)"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      disabled={isClosed || isBusy}
+                    />
+                  </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="submission-notes">Draft notes</Label>
                     <textarea
@@ -906,6 +927,7 @@ export default function StudentSubmissionsPage() {
                   <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                     <tr>
                       <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3">Title</th>
                       <th className="px-4 py-3">Notes</th>
                       <th className="px-4 py-3">Files</th>
                       <th className="px-4 py-3">Submitted At</th>
@@ -923,6 +945,11 @@ export default function StudentSubmissionsPage() {
                           >
                             {submission.status}
                           </Badge>
+                        </td>
+                        <td className="px-4 py-3 text-slate-700">
+                          <span className="block max-w-[16rem] truncate">
+                            {submission.title ? submission.title : <span className="text-slate-400">Untitled</span>}
+                          </span>
                         </td>
                         <td className="px-4 py-3 text-slate-700">
                           <span className="block max-w-[20rem] truncate">
@@ -1023,10 +1050,15 @@ export default function StudentSubmissionsPage() {
                         {submission.files.length === 1 ? "" : "s"}
                       </span>
                     </div>
-                    {submission.notes ? (
-                      <p className="mt-3 text-sm text-slate-600">{submission.notes}</p>
+                    {submission.title ? (
+                      <p className="mt-3 text-sm font-medium text-slate-800">{submission.title}</p>
                     ) : (
-                      <p className="mt-3 text-sm text-slate-500">No notes yet.</p>
+                      <p className="mt-3 text-sm text-slate-400">Untitled</p>
+                    )}
+                    {submission.notes ? (
+                      <p className="mt-1 text-sm text-slate-600">{submission.notes}</p>
+                    ) : (
+                      <p className="mt-1 text-sm text-slate-500">No notes yet.</p>
                     )}
                     {submission.files.length > 0 ? (
                       <div className="mt-3 space-y-1 text-sm text-slate-600">
