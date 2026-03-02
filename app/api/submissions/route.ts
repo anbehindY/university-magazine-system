@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from "next/server";
 type SubmissionPayload = {
   id?: string;
   agreed?: boolean;
+  title?: string | null;
   notes?: string | null;
   status?: "DRAFT" | "SUBMITTED";
 };
@@ -88,6 +89,7 @@ export async function POST(req: NextRequest) {
       data: {
         userId: session.user.id,
         agreed: Boolean(body.agreed),
+        title: body.title ?? null,
         notes: body.notes ?? null,
         status: body.status ?? "DRAFT",
         submittedAt: body.status === "SUBMITTED" ? new Date() : null,
@@ -159,6 +161,7 @@ export async function PUT(req: NextRequest) {
 
     const updateData: {
       agreed?: boolean;
+      title?: string | null;
       notes?: string | null;
       status?: "DRAFT" | "SUBMITTED";
       submittedAt?: Date | null;
@@ -172,6 +175,10 @@ export async function PUT(req: NextRequest) {
 
     if (typeof body.agreed === "boolean") {
       updateData.agreed = body.agreed;
+    }
+
+    if (body.title !== undefined) {
+      updateData.title = body.title ?? null;
     }
 
     if (body.notes !== undefined) {
