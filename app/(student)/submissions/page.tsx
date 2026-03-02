@@ -2,6 +2,8 @@
 
 import { upload } from "@vercel/blob/client";
 import { useEffect, useMemo, useState } from "react";
+import useSWR from "swr";
+import { format } from "date-fns";
 import { Info } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +27,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { useSession } from "@/lib/auth-client";
 import { toast } from "sonner";
 
@@ -41,6 +49,38 @@ function isAcceptedFile(file: File) {
   const lowerName = file.name.toLowerCase();
   return lowerName.endsWith(".doc") || lowerName.endsWith(".docx");
 }
+
+// ---------------------------------------------------------------------------
+// Comment thread helpers
+// ---------------------------------------------------------------------------
+
+const fetcher = (url: string) => fetch(url).then((r) => r.json());
+
+function formatRole(role: string | null) {
+  if (!role) return "";
+  switch (role) {
+    case "MARKETING_COORDINATOR": return "Coordinator";
+    case "STUDENT": return "Student";
+    default: return role;
+  }
+}
+
+function formatCommentTime(value: string) {
+  try {
+    return format(new Date(value), "dd MMM yyyy, HH:mm");
+  } catch {
+    return value;
+  }
+}
+
+type Comment = {
+  id: string;
+  body: string;
+  authorRole: string;
+  parentId: string | null;
+  createdAt: string;
+  author: { name: string | null; role: string | null };
+};
 
 export default function StudentSubmissionsPage() {
   const { data: session, isPending } = useSession();
@@ -97,6 +137,10 @@ export default function StudentSubmissionsPage() {
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [selectedCommentSubmissionId, setSelectedCommentSubmissionId] = useState<string | null>(null);
+  const [commentBody, setCommentBody] = useState("");
+  const [replyToId, setReplyToId] = useState<string | null>(null);
+  const [replyToAuthor, setReplyToAuthor] = useState("");
+  const [commentPosting, setCommentPosting] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [editingFiles, setEditingFiles] = useState<
     { id: string; url: string; pathname: string }[]
@@ -119,6 +163,65 @@ export default function StudentSubmissionsPage() {
     () => files.filter((file) => !isAcceptedFile(file)),
     [files]
   );
+
+  // ---------------------------------------------------------------------------
+  // SWR comment thread (polls every 15 s)
+  // ---------------------------------------------------------------------------
+
+  const { data: commentsData, mutate: mutateComments } = useSWR(
+    selectedCommentSubmissionId
+      ? `/api/comments?submissionId=${selectedCommentSubmissionId}`
+      : null,
+    fetcher,
+    { refreshInterval: 15000 }
+  );
+
+  const comments: Comment[] = commentsData?.comments ?? [];
+  const isLocked: boolean = commentsData?.isLocked ?? false;
+
+  // Derived: selected submission details for panel header
+  const selectedSubmission = selectedCommentSubmissionId
+    ? submissions.find((s) => s.id === selectedCommentSubmissionId) ?? null
+    : null;
+
+  function handleCommentPanelClose(open: boolean) {
+    if (!open) {
+      setSelectedCommentSubmissionId(null);
+      setCommentBody("");
+      setReplyToId(null);
+      setReplyToAuthor("");
+    }
+  }
+
+  async function handlePostReply() {
+    if (!commentBody.trim() || !selectedCommentSubmissionId || !replyToId) return;
+    setCommentPosting(true);
+    try {
+      const res = await fetch("/api/comments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          submissionId: selectedCommentSubmissionId,
+          content: commentBody.trim(),
+          parentId: replyToId,
+        }),
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { error?: string } | null;
+        toast.error(data?.error ?? "Failed to post reply.");
+        return;
+      }
+      setCommentBody("");
+      setReplyToId(null);
+      setReplyToAuthor("");
+      await mutateComments();
+      toast.success("Reply posted.");
+    } catch {
+      toast.error("Failed to post reply.");
+    } finally {
+      setCommentPosting(false);
+    }
+  }
 
   useEffect(() => {
     try {
@@ -1074,6 +1177,144 @@ export default function StudentSubmissionsPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Comment thread slide-over panel */}
+      <Sheet open={!!selectedCommentSubmissionId} onOpenChange={handleCommentPanelClose}>
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+          <SheetHeader className="sticky top-0 bg-white z-10 pb-3 border-b border-slate-200">
+            <SheetTitle>Comments</SheetTitle>
+            {selectedSubmission && (
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-slate-900">{selectedSubmission.title || "Untitled"}</p>
+                <div className="flex items-center gap-2">
+                  <Badge className={getStatusBadgeClass(selectedSubmission.status)} variant="secondary">
+                    {selectedSubmission.status}
+                  </Badge>
+                  {selectedSubmission.submittedAt && (
+                    <span className="text-xs text-slate-500">
+                      Submitted {new Date(selectedSubmission.submittedAt).toLocaleDateString()}
+                    </span>
+                  )}
+                </div>
+                {selectedSubmission.files.length > 0 && (
+                  <div className="text-xs text-slate-500">
+                    {selectedSubmission.files.length} file{selectedSubmission.files.length === 1 ? "" : "s"}
+                  </div>
+                )}
+              </div>
+            )}
+          </SheetHeader>
+
+          <div className="mt-4 space-y-4">
+            {/* Comments thread */}
+            {!commentsData ? (
+              /* Loading skeleton */
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="animate-pulse space-y-2">
+                    <div className="h-3 w-24 rounded bg-slate-200" />
+                    <div className="h-4 w-full rounded bg-slate-100" />
+                  </div>
+                ))}
+              </div>
+            ) : comments.length === 0 ? (
+              /* Empty state */
+              <p className="text-sm text-slate-500 py-8 text-center">
+                Your coordinator hasn&apos;t commented yet. Comments will appear here when they do.
+              </p>
+            ) : (
+              /* Comment list */
+              <div className="space-y-4">
+                {comments.map((comment) => (
+                  <div
+                    key={comment.id}
+                    className={comment.parentId ? "ml-6 border-l-2 border-slate-200 pl-3" : ""}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-slate-900">
+                        {comment.author.name ?? "Unknown"}
+                      </span>
+                      <span className="rounded-sm bg-slate-100 px-1.5 py-0.5 text-xs text-slate-500">
+                        {formatRole(comment.author.role)}
+                      </span>
+                      <span className="text-xs text-slate-400">
+                        {formatCommentTime(comment.createdAt)}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-sm text-slate-700">{comment.body}</p>
+                    {/* Reply button — hidden when isLocked */}
+                    {!isLocked && (
+                      <button
+                        type="button"
+                        className="mt-1 text-xs text-slate-400 hover:text-slate-600 underline"
+                        onClick={() => {
+                          setReplyToId(comment.id);
+                          setReplyToAuthor(comment.author.name ?? "this comment");
+                        }}
+                      >
+                        Reply
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Amber closure banner — shown when isLocked */}
+            {isLocked && (
+              <Alert className="border-amber-200 bg-amber-50 text-amber-900">
+                <AlertDescription className="text-amber-800">
+                  Comments are locked — the final closure date has passed.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Reply input — hidden entirely when isLocked */}
+            {!isLocked && (
+              <div className="space-y-2 border-t border-slate-200 pt-4">
+                {replyToId ? (
+                  <div className="flex items-center justify-between text-xs text-slate-500">
+                    <span>Replying to <strong>{replyToAuthor}</strong></span>
+                    <button
+                      type="button"
+                      className="text-xs text-slate-400 hover:text-slate-600 underline"
+                      onClick={() => { setReplyToId(null); setReplyToAuthor(""); }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-400">Click Reply on a comment to respond.</p>
+                )}
+                <textarea
+                  className="min-h-20 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                  placeholder={replyToId ? "Write your reply..." : "Select a comment to reply to"}
+                  value={commentBody}
+                  onChange={(e) => setCommentBody(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                      e.preventDefault();
+                      void handlePostReply();
+                    }
+                  }}
+                  disabled={!replyToId || commentPosting}
+                />
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-slate-400">Ctrl+Enter to send</span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => void handlePostReply()}
+                    disabled={!replyToId || !commentBody.trim() || commentPosting}
+                  >
+                    {commentPosting ? "Posting..." : "Reply"}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </main>
   );
 }
