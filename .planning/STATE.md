@@ -5,15 +5,15 @@
 See: .planning/PROJECT.md (updated 2026-03-02)
 
 **Core value:** Students can submit and manage contributions, coordinators can review and select work, all within enforced academic year closure windows.
-**Current focus:** v1.0 MVP shipped — planning next milestone
+**Current focus:** v1.0 gap closure — fixing audit-identified issues
 
 ## Current Position
 
-Milestone: v1.0 MVP — SHIPPED
-Status: Complete
-Last activity: 2026-03-02 — Milestone archived, tagged v1.0
+Milestone: v1.0 MVP — GAP CLOSURE
+Status: In Progress (Phases 6-7 pending)
+Last activity: 2026-03-02 — Milestone audit found 4 gaps, created 2 gap closure phases
 
-Progress: [████████████████████] 100%
+Progress: [████████████████░░░░] 83% (5/7 phases complete)
 
 ## Performance Metrics
 
@@ -42,14 +42,16 @@ All decisions logged in PROJECT.md Key Decisions table.
 
 ### Pending Todos
 
-None.
+- Phase 6: Critical Fixes (MGR-02 closure gate + COORD-02 title field)
+- Phase 7: Student Comment Thread (COMM-02 + COMM-03)
 
 ### Blockers/Concerns
 
-None.
+- MGR-02: ZIP download route has NO closure gate — security/business rule gap
+- Phase 4 VERIFICATION.md incorrectly claims closure gate is verified — SUMMARY diverges from code
 
 ## Session Continuity
 
 Last session: 2026-03-02
-Stopped at: v1.0 milestone completion
+Stopped at: Gap closure phases created, ready for /gsd:plan-phase 6
 Resume file: None
