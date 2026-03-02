@@ -11,7 +11,7 @@ See: .planning/PROJECT.md (updated 2026-03-02)
 
 Milestone: v1.0 MVP — GAP CLOSURE
 Status: In Progress (Phases 6-9 pending)
-Last activity: 2026-03-03 — Phase 07-01 complete (isLocked flag in comments API, commentCount in submissions API, student card layout)
+Last activity: 2026-03-03 — Phase 07-02 complete (Sheet comment panel with SWR polling, parentId-required reply, isLocked closure UI)
 
 Progress: [█████████████░░░░░░░] 65% (6/9 phases complete, 06 done)
 
@@ -39,6 +39,7 @@ Progress: [█████████████░░░░░░░] 65% (6/
 | Phase 06-critical-fixes P04 | 2 | 2 tasks | 1 file |
 | Phase 06-critical-fixes P05 | 2 | 2 tasks | 2 files |
 | Phase 07-student-comment-thread P01 | 4 | 2 tasks | 3 files |
+| Phase 07-student-comment-thread P02 | 2 | 1 task | 1 file |
 
 ## Accumulated Context
 
@@ -59,6 +60,8 @@ All decisions logged in PROJECT.md Key Decisions table.
 - [Phase 06-critical-fixes]: Email already correct (findMany returns all faculty coordinators, array passed to sendMail); clarifying comment added
 - [Phase 07-student-comment-thread]: Promise.all runs findMany and isPastFinalClosure in parallel in comments GET — no extra DB round-trip
 - [Phase 07-student-comment-thread]: Destructure _count from submission mapping before returning to keep response shape clean
+- [Phase 07-student-comment-thread]: Students must click Reply on a comment to set replyToId before textarea is enabled — enforces parentId requirement, prevents API 400
+- [Phase 07-student-comment-thread]: isLocked derived from commentsData?.isLocked ?? false — API is single source of truth, not client-side date comparison
 
 ### Pending Todos
 
@@ -75,5 +78,5 @@ All decisions logged in PROJECT.md Key Decisions table.
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Completed 07-student-comment-thread 07-01-PLAN.md (isLocked flag, commentCount, student card layout)
+Stopped at: Completed 07-student-comment-thread 07-02-PLAN.md (Sheet comment panel) — Task 2 checkpoint awaiting human verification
 Resume file: None

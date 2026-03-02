@@ -46,7 +46,7 @@ Plans:
 **Goal:** Add comment thread display and reply input to the student submissions page so students can read coordinator comments and post replies (COMM-02, COMM-03)
 **Depends on:** Phase 3 (comment API), Phase 6
 **Requirements:** COMM-02, COMM-03
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 **Gap Closure:** Closes gaps from v1.0 milestone audit
 **Success Criteria** (what must be TRUE):
 
@@ -93,6 +93,6 @@ Plans:
 | 4. Manager and Reports API     | v1.0      | 3/3            | Complete | 2026-02-26 |
 | 5. UI Layer                    | v1.0      | 5/5            | Complete | 2026-03-02 |
 | 6. Critical Fixes              | v1.0      | 5/5            | Complete | 2026-03-03 |
-| 7. Student Comment Thread      | 1/2 | In Progress|  | —          |
+| 7. Student Comment Thread      | 2/2 | Complete   | 2026-03-02 | —          |
 | 8. Upload Rules Enforcement    | v1.0      | 0/?            | Pending  | —          |
 | 9. Pagination                  | v1.0      | 0/?            | Pending  | —          |
