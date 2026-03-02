@@ -46,6 +46,7 @@ Plans:
 **Goal:** Add comment thread display and reply input to the student submissions page so students can read coordinator comments and post replies (COMM-02, COMM-03)
 **Depends on:** Phase 3 (comment API), Phase 6
 **Requirements:** COMM-02, COMM-03
+**Plans:** 2 plans
 **Gap Closure:** Closes gaps from v1.0 milestone audit
 **Success Criteria** (what must be TRUE):
 
@@ -53,6 +54,10 @@ Plans:
 2. A student can post a reply to a coordinator comment using a text input — the reply appears in the thread after submission
 3. The comment thread updates via SWR polling without full page reload (matching the coordinator page pattern)
 4. After `finalClosureDate`, the reply input is hidden or disabled (matching COMM-04 enforcement)
+
+Plans:
+- [ ] 07-01-PLAN.md — API changes (isLocked + comment count) and card layout rewrite
+- [ ] 07-02-PLAN.md — Sheet comment panel with SWR polling, reply interaction, closure state
 
 ### Phase 8: Upload Rules Enforcement
 
@@ -87,7 +92,7 @@ Plans:
 | 3. Coordinator and Comment API | v1.0      | 3/3            | Complete | 2026-02-26 |
 | 4. Manager and Reports API     | v1.0      | 3/3            | Complete | 2026-02-26 |
 | 5. UI Layer                    | v1.0      | 5/5            | Complete | 2026-03-02 |
-| 6. Critical Fixes              | v1.0      | Complete    | 2026-03-02 | 2026-03-03 |
-| 7. Student Comment Thread      | v1.0      | 0/?            | Pending  | —          |
+| 6. Critical Fixes              | v1.0      | 5/5            | Complete | 2026-03-03 |
+| 7. Student Comment Thread      | v1.0      | 0/2            | Planned  | —          |
 | 8. Upload Rules Enforcement    | v1.0      | 0/?            | Pending  | —          |
 | 9. Pagination                  | v1.0      | 0/?            | Pending  | —          |
