@@ -15,6 +15,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type SubmissionRow = {
   id: string;
@@ -45,7 +51,12 @@ export default function ManagerSubmissionsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [downloadingYearId, setDownloadingYearId] = useState<string | null>(null);
+  const [finalClosureDate, setFinalClosureDate] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+
+  const isPastFinalClosure = finalClosureDate
+    ? Date.now() > new Date(finalClosureDate).getTime()
+    : false;
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -103,10 +114,12 @@ export default function ManagerSubmissionsPage() {
         const data = (await res.json()) as {
           submissions: SubmissionRow[];
           academicYears?: AcademicYear[];
+          finalClosureDate?: string | null;
         };
         if (!cancelled) {
           setSubmissions(data.submissions ?? []);
           if (data.academicYears?.length) setAcademicYears(data.academicYears);
+          if (data.finalClosureDate !== undefined) setFinalClosureDate(data.finalClosureDate);
         }
       } catch {
         if (!cancelled) {
@@ -300,24 +313,40 @@ export default function ManagerSubmissionsPage() {
                     {yearSubs.length} {yearSubs.length === 1 ? "submission" : "submissions"}
                   </Badge>
                 </div>
-                <Button
-                  size="sm"
-                  onClick={() => handleDownloadZip(yearId, label)}
-                  disabled={downloadingYearId !== null}
-                  className="gap-2 bg-slate-900 text-white hover:bg-slate-800"
-                >
-                  {downloadingYearId === yearId ? (
-                    <>
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      Downloading...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="h-3.5 w-3.5" />
-                      Download ZIP
-                    </>
-                  )}
-                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span tabIndex={0}>
+                        <Button
+                          size="sm"
+                          onClick={() => handleDownloadZip(yearId, label)}
+                          disabled={!isPastFinalClosure || downloadingYearId !== null}
+                          className="gap-2 bg-slate-900 text-white hover:bg-slate-800"
+                        >
+                          {downloadingYearId === yearId ? (
+                            <>
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              Downloading...
+                            </>
+                          ) : (
+                            <>
+                              <Download className="h-3.5 w-3.5" />
+                              Download ZIP
+                            </>
+                          )}
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    {!isPastFinalClosure && (
+                      <TooltipContent>
+                        Available after{" "}
+                        {finalClosureDate
+                          ? format(new Date(finalClosureDate), "dd MMM yyyy")
+                          : "the final closure date"}
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </TooltipProvider>
               </div>
 
               {/* Year table */}
