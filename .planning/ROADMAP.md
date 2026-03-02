@@ -2,7 +2,7 @@
 
 ## Milestones
 
-- **v1.0 MVP** — Phases 1-7 (gap closure in progress)
+- **v1.0 MVP** — Phases 1-9 (gap closure in progress)
 
 ## Phases
 
@@ -43,6 +43,30 @@
 3. The comment thread updates via SWR polling without full page reload (matching the coordinator page pattern)
 4. After `finalClosureDate`, the reply input is hidden or disabled (matching COMM-04 enforcement)
 
+### Phase 8: Upload Rules Enforcement
+
+**Goal:** Wire admin-configured upload rules (stored in ConfigSetting) to the student upload flow so file type restrictions, size limits, and upload toggles are actually enforced — not just displayed in the admin UI
+**Depends on:** Phase 1 (ConfigSetting model), Phase 5 (student upload UI)
+**Requirements:** UPLOAD-01, UPLOAD-02, UPLOAD-03
+**Gap Closure:** Closes user-reported gap — admin upload rules exist but are never checked during uploads
+**Success Criteria** (what must be TRUE):
+
+1. When `enable_uploads` is set to `false` in ConfigSetting, students cannot upload files — the API returns a 403 and the UI shows uploads are disabled
+2. Student uploads are rejected (API 400) if the file type is not in the admin-configured `allowed_file_types` list — the client-side filter also reflects the configured types
+3. Student uploads are rejected (API 400) if the file exceeds the admin-configured `max_upload_size_mb` — the client shows the configured limit
+4. Student uploads are rejected (API 400) if adding files would exceed `max_files_per_upload` for that submission
+
+### Phase 9: Pagination
+
+**Goal:** Add server-side pagination to the user management table and any other table views with potentially large datasets, so the UI remains performant and usable at scale
+**Depends on:** Phase 5 (UI layer)
+**Requirements:** UX-01, UX-02
+**Gap Closure:** Closes user-reported gap — tables render all rows without pagination
+**Success Criteria** (what must be TRUE):
+
+1. The admin user management table paginates with configurable page size — users see page controls and the API accepts `page` and `pageSize` query parameters
+2. Any other table view identified during planning as having unbounded row count also uses paginated fetching with page controls
+
 ## Progress
 
 | Phase                          | Milestone | Plans Complete | Status   | Completed  |
@@ -54,3 +78,5 @@
 | 5. UI Layer                    | v1.0      | 5/5            | Complete | 2026-03-02 |
 | 6. Critical Fixes              | v1.0      | 0/?            | Pending  | —          |
 | 7. Student Comment Thread      | v1.0      | 0/?            | Pending  | —          |
+| 8. Upload Rules Enforcement    | v1.0      | 0/?            | Pending  | —          |
+| 9. Pagination                  | v1.0      | 0/?            | Pending  | —          |
