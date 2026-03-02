@@ -225,12 +225,7 @@ export default function StudentSubmissionsPage() {
         pathname: file.pathname,
       }))
     );
-    setUploadedBlobs(
-      submission.files.map((file) => ({
-        url: file.url,
-        pathname: file.pathname,
-      }))
-    );
+    setUploadedBlobs([]);
     setIsDialogOpen(true);
   }
 
@@ -427,7 +422,7 @@ export default function StudentSubmissionsPage() {
       return;
     }
 
-    const hasExistingFiles = draftFileNames.length > 0 || uploadedBlobs.length > 0;
+    const hasExistingFiles = draftFileNames.length > 0 || uploadedBlobs.length > 0 || editingFiles.length > 0;
     if (files.length === 0 && !hasExistingFiles) {
       toast.error("Please upload at least one Word document or image.");
       return;
@@ -722,11 +717,51 @@ export default function StudentSubmissionsPage() {
                     </p>
                   </div>
 
-                    {files.length > 0 ? (
+                    {/* Existing files — always visible in edit mode */}
+                    {editingFiles.length > 0 && (
+                      <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                        <p className="text-sm font-medium text-slate-700">
+                          Previously uploaded files
+                        </p>
+                        <ul className="space-y-1 text-sm text-slate-600">
+                          {editingFiles.map((file) => (
+                            <li
+                              key={file.id}
+                              className="flex flex-wrap items-center justify-between gap-2"
+                            >
+                              <span className="text-slate-700">
+                                {getFileName(file.pathname)}
+                              </span>
+                              <span className="flex items-center gap-2 text-xs">
+                                <a
+                                  href={file.url}
+                                  className="underline decoration-slate-300 underline-offset-4"
+                                  target="_blank"
+                                  rel="noreferrer"
+                                >
+                                  Download
+                                </a>
+                                <button
+                                  type="button"
+                                  className="text-rose-600 hover:text-rose-700"
+                                  onClick={() => onDeleteFile(file.id)}
+                                  disabled={isBusy}
+                                >
+                                  Delete
+                                </button>
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Newly selected files to upload */}
+                    {files.length > 0 && (
                       <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
                         <div className="flex items-center justify-between">
                           <p className="text-sm font-medium text-slate-700">
-                            Selected files
+                            New files to upload
                           </p>
                           <span className="text-xs text-slate-500">
                             {files.length} file{files.length === 1 ? "" : "s"}
@@ -759,47 +794,21 @@ export default function StudentSubmissionsPage() {
                           ))}
                         </ul>
                       </div>
-                    ) : draftFileNames.length > 0 || editingFiles.length > 0 ? (
+                    )}
+
+                    {/* Draft file names fallback (non-edit mode, draft restored from localStorage) */}
+                    {!editingSubmissionId && files.length === 0 && draftFileNames.length > 0 && (
                       <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-4">
                         <p className="text-sm font-medium text-slate-700">
-                          Existing files
+                          Draft files
                         </p>
                         <ul className="space-y-1 text-sm text-slate-600">
-                          {editingFiles.length > 0
-                            ? editingFiles.map((file) => (
-                                <li
-                                  key={file.id}
-                                  className="flex flex-wrap items-center justify-between gap-2"
-                                >
-                                  <span className="text-slate-700">
-                                    {getFileName(file.pathname)}
-                                  </span>
-                                  <span className="flex items-center gap-2 text-xs">
-                                    <a
-                                      href={file.url}
-                                      className="underline decoration-slate-300 underline-offset-4"
-                                      target="_blank"
-                                      rel="noreferrer"
-                                    >
-                                      Download
-                                    </a>
-                                    <button
-                                      type="button"
-                                      className="text-rose-600 hover:text-rose-700"
-                                      onClick={() => onDeleteFile(file.id)}
-                                      disabled={isBusy}
-                                    >
-                                      Delete
-                                    </button>
-                                  </span>
-                                </li>
-                              ))
-                            : draftFileNames.map((fileName) => (
-                                <li key={fileName}>{getFileName(fileName)}</li>
-                              ))}
+                          {draftFileNames.map((fileName) => (
+                            <li key={fileName}>{getFileName(fileName)}</li>
+                          ))}
                         </ul>
                       </div>
-                    ) : null}
+                    )}
 
                   <div className="space-y-2">
                     <Label htmlFor="submission-notes">Draft notes</Label>
@@ -896,7 +905,8 @@ export default function StudentSubmissionsPage() {
                         !agreed ||
                         (files.length === 0 &&
                           draftFileNames.length === 0 &&
-                          uploadedBlobs.length === 0) ||
+                          uploadedBlobs.length === 0 &&
+                          editingFiles.length === 0) ||
                         isClosed ||
                         isBusy
                       }
