@@ -40,10 +40,16 @@ export async function GET() {
             createdAt: "desc",
           },
         },
+        _count: { select: { comments: true } },
       },
     });
 
-    return NextResponse.json({ submissions }, { status: 200 });
+    const mapped = submissions.map((s) => {
+      const { _count, ...rest } = s;
+      return { ...rest, commentCount: _count?.comments ?? 0 };
+    });
+
+    return NextResponse.json({ submissions: mapped }, { status: 200 });
   } catch (error) {
     console.error("Error fetching submissions:", error);
     return NextResponse.json(

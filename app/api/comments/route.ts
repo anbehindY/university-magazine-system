@@ -184,13 +184,16 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const comments = await prisma.submissionComment.findMany({
-      where: { submissionId },
-      orderBy: { createdAt: "asc" },
-      include: { author: { select: { name: true, role: true } } },
-    });
+    const [comments, locked] = await Promise.all([
+      prisma.submissionComment.findMany({
+        where: { submissionId },
+        orderBy: { createdAt: "asc" },
+        include: { author: { select: { name: true, role: true } } },
+      }),
+      isPastFinalClosure(),
+    ]);
 
-    return NextResponse.json({ comments });
+    return NextResponse.json({ comments, isLocked: locked });
   } catch (error) {
     console.error("Error in comments GET route:", error);
     return NextResponse.json(
