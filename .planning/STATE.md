@@ -11,7 +11,7 @@ See: .planning/PROJECT.md (updated 2026-03-02)
 
 Milestone: v1.0 MVP — GAP CLOSURE
 Status: In Progress (Phases 6-9 pending)
-Last activity: 2026-03-03 — Phase 06-05 complete (edit form file sections fix, API title validation, coordinator email confirmation)
+Last activity: 2026-03-03 — Phase 07-01 complete (isLocked flag in comments API, commentCount in submissions API, student card layout)
 
 Progress: [█████████████░░░░░░░] 65% (6/9 phases complete, 06 done)
 
@@ -38,6 +38,7 @@ Progress: [█████████████░░░░░░░] 65% (6/
 | Phase 06-critical-fixes P03 | 5 | 2 tasks | 2 files |
 | Phase 06-critical-fixes P04 | 2 | 2 tasks | 1 file |
 | Phase 06-critical-fixes P05 | 2 | 2 tasks | 2 files |
+| Phase 07-student-comment-thread P01 | 4 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -56,6 +57,8 @@ All decisions logged in PROJECT.md Key Decisions table.
 - [Phase 06-critical-fixes]: Remove setUploadedBlobs seeding from startEditSubmission — uploadedBlobs only tracks current-session uploads; editingFiles holds pre-existing files
 - [Phase 06-critical-fixes]: API title validation on SUBMITTED status only — POST and PUT handlers return 400; drafts intentionally exempt
 - [Phase 06-critical-fixes]: Email already correct (findMany returns all faculty coordinators, array passed to sendMail); clarifying comment added
+- [Phase 07-student-comment-thread]: Promise.all runs findMany and isPastFinalClosure in parallel in comments GET — no extra DB round-trip
+- [Phase 07-student-comment-thread]: Destructure _count from submission mapping before returning to keep response shape clean
 
 ### Pending Todos
 
@@ -72,5 +75,5 @@ All decisions logged in PROJECT.md Key Decisions table.
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Completed 06-critical-fixes 06-05-PLAN.md (edit form file sections fix, API title validation)
+Stopped at: Completed 07-student-comment-thread 07-01-PLAN.md (isLocked flag, commentCount, student card layout)
 Resume file: None
