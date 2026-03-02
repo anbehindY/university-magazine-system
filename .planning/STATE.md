@@ -11,9 +11,9 @@ See: .planning/PROJECT.md (updated 2026-03-02)
 
 Milestone: v1.0 MVP — GAP CLOSURE
 Status: In Progress (Phases 6-9 pending)
-Last activity: 2026-03-03 — Phase 06-03 complete (ZIP download closure gate removal)
+Last activity: 2026-03-03 — Phase 06-04 complete (student form UAT fixes: title first/required, localStorage removal, Info icon)
 
-Progress: [███████████░░░░░░░░░] 56% (5/9 phases complete, 06 in progress 3/5 plans done)
+Progress: [████████████░░░░░░░░] 60% (5/9 phases complete, 06 in progress 4/5 plans done)
 
 ## Performance Metrics
 
@@ -36,6 +36,7 @@ Progress: [███████████░░░░░░░░░] 56% (5/
 | Phase 06-critical-fixes P01 | 3 | 2 tasks | 3 files |
 | Phase 06-critical-fixes P02 | 3 | 2 tasks | 2 files |
 | Phase 06-critical-fixes P03 | 5 | 2 tasks | 2 files |
+| Phase 06-critical-fixes P04 | 2 | 2 tasks | 1 file |
 
 ## Accumulated Context
 
@@ -48,10 +49,13 @@ All decisions logged in PROJECT.md Key Decisions table.
 - [Phase 06-critical-fixes]: Use title || null normalization so empty string becomes null, preserving Untitled fallback in email template
 - [Phase 06-critical-fixes]: Removed Guard 3 inverted closure gate from download route; Download ZIP always available to Marketing Managers
 - [Phase 06-critical-fixes]: Removed finalClosureDate state and Tooltip gate from manager submissions UI; button disabled only during active download
+- [Phase 06-critical-fixes]: Title required validation added to onSubmit only — drafts intentionally allow empty titles
+- [Phase 06-critical-fixes]: Title removed from localStorage entirely — DB draft is sole persistence mechanism for title
+- [Phase 06-critical-fixes]: Blue styling only on non-closed closure Alert; destructive state retains default red styling
 
 ### Pending Todos
 
-- Phase 6: Critical Fixes (MGR-02 closure gate reversed DONE + COORD-02 title field + remaining gap plans 04-05)
+- Phase 6: Critical Fixes (MGR-02 closure gate reversed DONE + COORD-02 title field DONE + gap plan 05 remaining)
 - Phase 7: Student Comment Thread (COMM-02 + COMM-03)
 - Phase 8: Upload Rules Enforcement (UPLOAD-01 + UPLOAD-02 + UPLOAD-03)
 - Phase 9: Pagination (UX-01 + UX-02)
@@ -64,5 +68,5 @@ All decisions logged in PROJECT.md Key Decisions table.
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Completed 06-critical-fixes 06-03-PLAN.md (ZIP download closure gate removal)
+Stopped at: Completed 06-critical-fixes 06-04-PLAN.md (student form UAT fixes)
 Resume file: None

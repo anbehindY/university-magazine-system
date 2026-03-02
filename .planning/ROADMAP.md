@@ -22,7 +22,7 @@
 **Goal:** Fix ZIP download closure gate (MGR-02) and add submission title field (COORD-02) so managers can only download after final closure and coordinator emails show meaningful submission names
 **Depends on:** Phase 4, Phase 5
 **Requirements:** MGR-02, COORD-02
-**Plans:** 3/5 plans executed
+**Plans:** 4/5 plans executed
 **Gap Closure:** Closes gaps from v1.0 milestone audit + UAT session
 **Success Criteria** (what must be TRUE):
 
@@ -87,7 +87,7 @@ Plans:
 | 3. Coordinator and Comment API | v1.0      | 3/3            | Complete | 2026-02-26 |
 | 4. Manager and Reports API     | v1.0      | 3/3            | Complete | 2026-02-26 |
 | 5. UI Layer                    | v1.0      | 5/5            | Complete | 2026-03-02 |
-| 6. Critical Fixes              | 3/5 | In Progress|  | —          |
+| 6. Critical Fixes              | 4/5 | In Progress|  | —          |
 | 7. Student Comment Thread      | v1.0      | 0/?            | Pending  | —          |
 | 8. Upload Rules Enforcement    | v1.0      | 0/?            | Pending  | —          |
 | 9. Pagination                  | v1.0      | 0/?            | Pending  | —          |
