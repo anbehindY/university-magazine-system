@@ -2,6 +2,7 @@
 
 import { upload } from "@vercel/blob/client";
 import { useEffect, useMemo, useState } from "react";
+import { Info } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -652,11 +653,15 @@ export default function StudentSubmissionsPage() {
                   ) : null}
 
                   {!closureLoading && !closureError ? (
-                    <Alert variant={isClosed ? "destructive" : "default"}>
+                    <Alert
+                      variant={isClosed ? "destructive" : "default"}
+                      className={isClosed ? "" : "border-blue-200 bg-blue-50 text-blue-900"}
+                    >
+                      <Info className="h-4 w-4" />
                       <AlertTitle>
                         {isClosed ? "Editing closed" : "Final closure date"}
                       </AlertTitle>
-                      <AlertDescription>
+                      <AlertDescription className={isClosed ? "" : "text-blue-800"}>
                         {finalClosureDate
                           ? `Editing ${isClosed ? "closed" : "is available"} through ${new Date(
                               finalClosureDate
