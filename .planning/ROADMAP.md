@@ -81,7 +81,7 @@ Plans:
 | 3. Coordinator and Comment API | v1.0      | 3/3            | Complete | 2026-02-26 |
 | 4. Manager and Reports API     | v1.0      | 3/3            | Complete | 2026-02-26 |
 | 5. UI Layer                    | v1.0      | 5/5            | Complete | 2026-03-02 |
-| 6. Critical Fixes              | 2/2 | Complete   | 2026-03-02 | —          |
+| 6. Critical Fixes              | 2/2 | Complete    | 2026-03-02 | —          |
 | 7. Student Comment Thread      | v1.0      | 0/?            | Pending  | —          |
 | 8. Upload Rules Enforcement    | v1.0      | 0/?            | Pending  | —          |
 | 9. Pagination                  | v1.0      | 0/?            | Pending  | —          |
