@@ -80,6 +80,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (body.status === "SUBMITTED" && !body.title?.trim()) {
+      return NextResponse.json(
+        { error: "A title is required when submitting." },
+        { status: 400 }
+      );
+    }
+
     const dbUser = await prisma.user.findUnique({
       where: { id: session.user.id },
       select: { facultyId: true },
@@ -157,6 +164,13 @@ export async function PUT(req: NextRequest) {
           { status: 400 }
         );
       }
+
+      if (!body.title?.trim()) {
+        return NextResponse.json(
+          { error: "A title is required when submitting." },
+          { status: 400 }
+        );
+      }
     }
 
     const updateData: {
@@ -200,6 +214,7 @@ export async function PUT(req: NextRequest) {
       });
 
       if (updatedSubmission?.facultyId) {
+        // Notify ALL coordinators in the student's faculty (not just one)
         const coordinators = await prisma.user.findMany({
           where: {
             role: "MARKETING_COORDINATOR",
