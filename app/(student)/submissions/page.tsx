@@ -47,6 +47,7 @@ export default function StudentSubmissionsPage() {
   const [agreed, setAgreed] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [title, setTitle] = useState("");
+  const [titleError, setTitleError] = useState("");
   const [notes, setNotes] = useState("");
   const [draftFileNames, setDraftFileNames] = useState<string[]>([]);
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
@@ -413,7 +414,7 @@ export default function StudentSubmissionsPage() {
     }
 
     if (!title.trim()) {
-      toast.error("Please enter a title for your submission.");
+      setTitleError("Please enter a title for your submission.");
       return;
     }
 
@@ -630,7 +631,7 @@ export default function StudentSubmissionsPage() {
                   </Badge>
                 </div>
 
-                <form onSubmit={onSubmit} className="space-y-6">
+                <form onSubmit={onSubmit} className="space-y-6" noValidate>
                   {closureLoading ? (
                     <Alert>
                       <AlertTitle>Checking closure date</AlertTitle>
@@ -650,15 +651,15 @@ export default function StudentSubmissionsPage() {
                   {!closureLoading && !closureError ? (
                     <Alert
                       variant={isClosed ? "destructive" : "default"}
-                      className={isClosed ? "" : "border-blue-200 bg-blue-50 text-blue-900"}
+                      className={isClosed ? "" : "border-amber-200 bg-amber-50 text-amber-900"}
                     >
                       <Info className="h-4 w-4" />
                       <AlertTitle>
                         {isClosed ? "Editing closed" : "Final closure date"}
                       </AlertTitle>
-                      <AlertDescription className={isClosed ? "" : "text-blue-800"}>
+                      <AlertDescription className={isClosed ? "" : "text-amber-800"}>
                         {finalClosureDate
-                          ? `Editing ${isClosed ? "closed" : "is available"} through ${new Date(
+                          ? `Editing ${isClosed ? "closed since" : "is available before"} ${new Date(
                               finalClosureDate
                             ).toLocaleDateString()}${
                               closureYearLabel ? ` (${closureYearLabel})` : ""
@@ -674,10 +675,12 @@ export default function StudentSubmissionsPage() {
                       id="submission-title"
                       placeholder="Give your submission a title"
                       value={title}
-                      onChange={(e) => setTitle(e.target.value)}
+                      onChange={(e) => { setTitle(e.target.value); setTitleError(""); }}
                       disabled={isClosed || isBusy}
-                      required
                     />
+                    {titleError && (
+                      <p className="text-sm text-destructive">{titleError}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
