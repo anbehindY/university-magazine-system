@@ -76,6 +76,7 @@ export default function StudentSubmissionsPage() {
       createdAt: string;
       updatedAt: string;
       submittedAt: string | null;
+      commentCount: number;
       files: { id: string; url: string; pathname: string; createdAt: string }[];
     }[]
   >([]);
@@ -95,6 +96,7 @@ export default function StudentSubmissionsPage() {
     status: "DRAFT" | "SUBMITTED";
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [selectedCommentSubmissionId, setSelectedCommentSubmissionId] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [editingFiles, setEditingFiles] = useState<
     { id: string; url: string; pathname: string }[]
@@ -267,6 +269,7 @@ export default function StudentSubmissionsPage() {
           createdAt: string;
           updatedAt: string;
           submittedAt: string | null;
+          commentCount: number;
           files: { id: string; url: string; pathname: string; createdAt: string }[];
         }[];
       };
@@ -943,192 +946,88 @@ export default function StudentSubmissionsPage() {
           ) : null}
 
           {!submissionsLoading && !submissionsError && submissions.length > 0 ? (
-            <>
-              <div className="hidden overflow-x-auto rounded-lg border border-slate-200 lg:block">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                    <tr>
-                      <th className="px-4 py-3">Status</th>
-                      <th className="px-4 py-3">Title</th>
-                      <th className="px-4 py-3">Notes</th>
-                      <th className="px-4 py-3">Files</th>
-                      <th className="px-4 py-3">Submitted At</th>
-                      <th className="px-4 py-3">Updated At</th>
-                      <th className="px-4 py-3">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200">
-                    {submissions.map((submission) => (
-                      <tr key={submission.id} className="bg-white">
-                        <td className="px-4 py-3">
-                          <Badge
-                            className={getStatusBadgeClass(submission.status)}
-                            variant="secondary"
-                          >
-                            {submission.status}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-3 text-slate-700">
-                          <span className="block max-w-[16rem] truncate">
-                            {submission.title ? submission.title : <span className="text-slate-400">Untitled</span>}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-slate-700">
-                          <span className="block max-w-[20rem] truncate">
-                            {submission.notes ? submission.notes : "No notes yet."}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          {submission.files.length > 0 ? (
-                            <div className="space-y-1 text-slate-700">
-                              <p className="text-sm font-medium">
-                                {submission.files.length} file
-                                {submission.files.length === 1 ? "" : "s"}
-                              </p>
-                              <ul className="space-y-1 text-xs text-slate-500">
-                                {submission.files.map((file) => (
-                                  <li key={file.id}>{getFileName(file.pathname)}</li>
-                                ))}
-                              </ul>
-                            </div>
-                          ) : (
-                            <span className="text-slate-500">No files</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-slate-600">
-                          {submission.submittedAt
-                            ? new Date(submission.submittedAt).toLocaleString()
-                            : "—"}
-                        </td>
-                        <td className="px-4 py-3 text-slate-600">
-                          {new Date(submission.updatedAt).toLocaleString()}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex flex-wrap gap-2">
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="secondary"
-                              onClick={() => startEditSubmission(submission)}
-                              disabled={isClosed}
-                            >
-                              Edit
-                            </Button>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="ghost"
-                              onClick={() =>
-                                setDeleteTarget({
-                                  id: submission.id,
-                                  status: submission.status,
-                                })
-                              }
-                              disabled={submission.status === "SUBMITTED"}
-                            >
-                              Delete
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="space-y-3 lg:hidden">
-                {submissions.map((submission) => (
-                  <div
-                    key={submission.id}
-                    className="rounded-lg border border-slate-200 bg-slate-50 p-4"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium text-slate-800">
-                          {submission.status === "SUBMITTED" ? "Submitted" : "Draft"}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          Updated {new Date(submission.updatedAt).toLocaleString()}
-                        </p>
-                      </div>
-                      <Badge
-                        className={getStatusBadgeClass(submission.status)}
-                        variant="secondary"
-                      >
-                        {submission.status}
-                      </Badge>
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-600">
-                      <span className="rounded-full bg-slate-200/60 px-2 py-1">
-                        Created {new Date(submission.createdAt).toLocaleDateString()}
-                      </span>
-                      <span className="rounded-full bg-slate-200/60 px-2 py-1">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {submissions.map((submission) => (
+                <div
+                  key={submission.id}
+                  className="rounded-lg border border-slate-200 bg-white p-4 space-y-3"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-sm font-semibold text-slate-900 truncate">
+                        {submission.title ? submission.title : <span className="text-slate-400">Untitled</span>}
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-0.5">
                         {submission.submittedAt
                           ? `Submitted ${new Date(submission.submittedAt).toLocaleDateString()}`
                           : "Not submitted"}
-                      </span>
-                      <span className="rounded-full bg-slate-200/60 px-2 py-1">
-                        {submission.files.length} file
-                        {submission.files.length === 1 ? "" : "s"}
-                      </span>
+                      </p>
                     </div>
-                    {submission.title ? (
-                      <p className="mt-3 text-sm font-medium text-slate-800">{submission.title}</p>
-                    ) : (
-                      <p className="mt-3 text-sm text-slate-400">Untitled</p>
-                    )}
-                    {submission.notes ? (
-                      <p className="mt-1 text-sm text-slate-600">{submission.notes}</p>
-                    ) : (
-                      <p className="mt-1 text-sm text-slate-500">No notes yet.</p>
-                    )}
-                    {submission.files.length > 0 ? (
-                      <div className="mt-3 space-y-1 text-sm text-slate-600">
-                        <p className="font-medium text-slate-700">Files</p>
-                        <ul className="space-y-1">
-                          {submission.files.map((file) => (
-                            <li key={file.id}>{getFileName(file.pathname)}</li>
-                          ))}
-                        </ul>
-                        <p className="text-xs text-slate-500">
-                          {submission.files.length} file
-                          {submission.files.length === 1 ? "" : "s"}
-                        </p>
-                      </div>
-                    ) : (
-                      <p className="mt-3 text-sm text-slate-500">No files attached.</p>
-                    )}
-                    <div className="mt-4">
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => startEditSubmission(submission)}
-                          disabled={isClosed}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            setDeleteTarget({
-                              id: submission.id,
-                              status: submission.status,
-                            })
-                          }
-                          disabled={submission.status === "SUBMITTED"}
-                        >
-                          Delete
-                        </Button>
-                      </div>
-                    </div>
+                    <Badge
+                      className={getStatusBadgeClass(submission.status)}
+                      variant="secondary"
+                    >
+                      {submission.status}
+                    </Badge>
                   </div>
-                ))}
-              </div>
-            </>
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                    <span>
+                      {submission.files.length} file{submission.files.length === 1 ? "" : "s"}
+                    </span>
+                    {submission.files.length > 0 && (
+                      <>
+                        {submission.files.slice(0, 2).map((file) => (
+                          <span key={file.id} className="truncate max-w-[120px] text-slate-400">
+                            {getFileName(file.pathname)}
+                          </span>
+                        ))}
+                        {submission.files.length > 2 && (
+                          <span className="text-slate-400">+{submission.files.length - 2} more</span>
+                        )}
+                      </>
+                    )}
+                    {submission.commentCount > 0 && (
+                      <Badge variant="outline" className="border-slate-200 bg-slate-50 text-slate-600 text-xs">
+                        {submission.commentCount} {submission.commentCount === 1 ? "comment" : "comments"}
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => startEditSubmission(submission)}
+                      disabled={isClosed}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setSelectedCommentSubmissionId(submission.id)}
+                    >
+                      Comments
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() =>
+                        setDeleteTarget({
+                          id: submission.id,
+                          status: submission.status,
+                        })
+                      }
+                      disabled={submission.status === "SUBMITTED"}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : null}
         </CardContent>
       </Card>
