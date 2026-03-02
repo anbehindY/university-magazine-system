@@ -13,11 +13,17 @@ Add comment thread display and reply input to the student submissions page so st
 <decisions>
 ## Implementation Decisions
 
+### Submissions layout
+- Replace the existing table+mobile-cards with a card-based layout on ALL screen sizes
+- Each card shows: title (prominent), status badge, submission date, file count/names, comment count badge
+- Tapping a card opens the slide-over panel with full details + comment thread
+- Edit/delete actions: Claude's discretion on placement (card menu, panel, or both)
+
 ### Thread placement
-- Slide-over panel matching the coordinator page pattern (click submission row to open)
+- Slide-over panel matching the coordinator page pattern (tap card to open)
 - Panel shows: submission title, date, status badge, uploaded files list, then comment thread below
 - Status badge (draft/submitted/finalized) visible in the panel header
-- Works on both desktop table rows and mobile card views — panel goes full-width on mobile
+- Panel goes full-width on mobile
 
 ### Comment display
 - Match coordinator comment styling: author name, role badge ("Coordinator"/"Student"), timestamp, reply indentation with left border
@@ -40,6 +46,9 @@ Add comment thread display and reply input to the student submissions page so st
 - Closure status determined via `isLocked` flag included in GET /api/comments response (single source of truth)
 
 ### Claude's Discretion
+- Card grid layout (1-col mobile, 2-col desktop, etc.)
+- Card interaction model (tap-to-open vs dedicated comment button)
+- Edit/delete action placement on cards vs panel
 - Exact panel width and responsive breakpoints
 - Loading skeleton design while comments fetch
 - Error state handling (API failures, network issues)
@@ -51,7 +60,8 @@ Add comment thread display and reply input to the student submissions page so st
 <specifics>
 ## Specific Ideas
 
-- Match coordinator slide-over panel pattern exactly — consistency across roles is the priority
+- Student submissions page should use a card layout on all screen sizes — better UX than the current table
+- Match coordinator slide-over panel pattern exactly for the comment thread — consistency across roles is the priority
 - Comment count badge on submission rows gives students a reason to check without opening the panel
 - Contextual empty state explains WHY there are no comments (coordinator hasn't commented yet) rather than just "no comments"
 - Closure state should use the same amber alert component already used elsewhere in the app
