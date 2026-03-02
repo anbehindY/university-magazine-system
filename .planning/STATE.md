@@ -34,6 +34,7 @@ Progress: [███████████░░░░░░░░░] 56% (5/
 | 04-manager-and-reports-api | 3 | 2026-02-26 |
 | 05-ui-layer | 5 | 2026-03-02 |
 | Phase 06-critical-fixes P01 | 3 | 2 tasks | 3 files |
+| Phase 06-critical-fixes P02 | 3 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -43,6 +44,7 @@ All decisions logged in PROJECT.md Key Decisions table.
 - [Phase 06-critical-fixes]: Used new Response() not NextResponse.json() in download route to maintain existing response style consistency
 - [Phase 06-critical-fixes]: Added activeYear query to existing Promise.all in submissions route to avoid extra DB round-trip
 - [Phase 06-critical-fixes]: Client-side isPastFinalClosure derived from finalClosureDate state — no additional API call needed
+- [Phase 06-critical-fixes]: Use title || null normalization so empty string becomes null, preserving Untitled fallback in email template
 
 ### Pending Todos
 
