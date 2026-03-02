@@ -22,6 +22,7 @@
 **Goal:** Fix ZIP download closure gate (MGR-02) and add submission title field (COORD-02) so managers can only download after final closure and coordinator emails show meaningful submission names
 **Depends on:** Phase 4, Phase 5
 **Requirements:** MGR-02, COORD-02
+**Plans:** 2 plans
 **Gap Closure:** Closes gaps from v1.0 milestone audit
 **Success Criteria** (what must be TRUE):
 
@@ -29,6 +30,10 @@
 2. The manager UI Download ZIP button is disabled before `finalClosureDate` with a Tooltip explaining why
 3. A student can enter a title when creating or editing a submission, and the title is persisted to the database
 4. When a coordinator receives an email notification for a new submission, the subject line includes the student-provided title (not "Untitled")
+
+Plans:
+- [ ] 06-01-PLAN.md — ZIP download closure gate + manager UI Tooltip
+- [ ] 06-02-PLAN.md — Submission title field end-to-end wiring
 
 ### Phase 7: Student Comment Thread
 
@@ -76,7 +81,7 @@
 | 3. Coordinator and Comment API | v1.0      | 3/3            | Complete | 2026-02-26 |
 | 4. Manager and Reports API     | v1.0      | 3/3            | Complete | 2026-02-26 |
 | 5. UI Layer                    | v1.0      | 5/5            | Complete | 2026-03-02 |
-| 6. Critical Fixes              | v1.0      | 0/?            | Pending  | —          |
+| 6. Critical Fixes              | v1.0      | 0/2            | Planned  | —          |
 | 7. Student Comment Thread      | v1.0      | 0/?            | Pending  | —          |
 | 8. Upload Rules Enforcement    | v1.0      | 0/?            | Pending  | —          |
 | 9. Pagination                  | v1.0      | 0/?            | Pending  | —          |
