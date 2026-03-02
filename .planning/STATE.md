@@ -11,9 +11,9 @@ See: .planning/PROJECT.md (updated 2026-03-02)
 
 Milestone: v1.0 MVP — GAP CLOSURE
 Status: In Progress (Phases 6-9 pending)
-Last activity: 2026-03-02 — Milestone audit + user-reported gaps, created 4 gap closure phases
+Last activity: 2026-03-02 — Phase 06-01 complete (MGR-02 ZIP closure gate + UI Tooltip)
 
-Progress: [███████████░░░░░░░░░] 56% (5/9 phases complete)
+Progress: [███████████░░░░░░░░░] 56% (5/9 phases complete, 06 in progress 1/2 plans done)
 
 ## Performance Metrics
 
@@ -33,27 +33,31 @@ Progress: [███████████░░░░░░░░░] 56% (5/
 | 03-coordinator-and-comment-api | 3 | 2026-02-26 |
 | 04-manager-and-reports-api | 3 | 2026-02-26 |
 | 05-ui-layer | 5 | 2026-03-02 |
+| Phase 06-critical-fixes P01 | 3 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
 ### Decisions
 
 All decisions logged in PROJECT.md Key Decisions table.
+- [Phase 06-critical-fixes]: Used new Response() not NextResponse.json() in download route to maintain existing response style consistency
+- [Phase 06-critical-fixes]: Added activeYear query to existing Promise.all in submissions route to avoid extra DB round-trip
+- [Phase 06-critical-fixes]: Client-side isPastFinalClosure derived from finalClosureDate state — no additional API call needed
 
 ### Pending Todos
 
-- Phase 6: Critical Fixes (MGR-02 closure gate + COORD-02 title field)
+- Phase 6: Critical Fixes (MGR-02 closure gate DONE + COORD-02 title field pending)
 - Phase 7: Student Comment Thread (COMM-02 + COMM-03)
 - Phase 8: Upload Rules Enforcement (UPLOAD-01 + UPLOAD-02 + UPLOAD-03)
 - Phase 9: Pagination (UX-01 + UX-02)
 
 ### Blockers/Concerns
 
-- MGR-02: ZIP download route has NO closure gate — security/business rule gap
-- Phase 4 VERIFICATION.md incorrectly claims closure gate is verified — SUMMARY diverges from code
+- RESOLVED: MGR-02 ZIP closure gate now added (06-01-PLAN.md complete)
+- Phase 4 VERIFICATION.md incorrectly claims closure gate is verified — SUMMARY diverges from code (historical note, now resolved)
 
 ## Session Continuity
 
 Last session: 2026-03-02
-Stopped at: All gap closure phases (6-9) created, ready for /gsd:plan-phase 6
+Stopped at: Completed 06-critical-fixes 06-01-PLAN.md (MGR-02 ZIP closure gate + UI Tooltip)
 Resume file: None
