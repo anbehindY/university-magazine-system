@@ -783,6 +783,7 @@ export default function StudentSubmissionsPage() {
                       value={title}
                       onChange={(e) => { setTitle(e.target.value); setTitleError(""); }}
                       disabled={isClosed || isBusy}
+                      className="selection:bg-amber-200 selection:text-slate-900"
                     />
                     {titleError && (
                       <p className="text-sm text-destructive">{titleError}</p>
@@ -1205,7 +1206,7 @@ export default function StudentSubmissionsPage() {
             )}
           </SheetHeader>
 
-          <div className="mt-4 space-y-4">
+          <div className="mt-4 space-y-4 px-4 pb-4">
             {/* Comments thread */}
             {!commentsData ? (
               /* Loading skeleton */
@@ -1246,7 +1247,7 @@ export default function StudentSubmissionsPage() {
                     {!isLocked && (
                       <button
                         type="button"
-                        className="mt-1 text-xs text-slate-400 hover:text-slate-600 underline"
+                        className="mt-1 text-xs text-slate-400 hover:text-slate-600 underline cursor-pointer"
                         onClick={() => {
                           setReplyToId(comment.id);
                           setReplyToAuthor(comment.author.name ?? "this comment");
@@ -1277,7 +1278,7 @@ export default function StudentSubmissionsPage() {
                     <span>Replying to <strong>{replyToAuthor}</strong></span>
                     <button
                       type="button"
-                      className="text-xs text-slate-400 hover:text-slate-600 underline"
+                      className="text-xs text-slate-400 hover:text-slate-600 underline cursor-pointer"
                       onClick={() => { setReplyToId(null); setReplyToAuthor(""); }}
                     >
                       Cancel
