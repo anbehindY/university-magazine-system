@@ -824,6 +824,16 @@ export default function StudentSubmissionsPage() {
                     </Alert>
                   ) : null}
 
+                  {!uploadsEnabled && (
+                    <Alert className="border-amber-200 bg-amber-50 text-amber-900">
+                      <Info className="h-4 w-4" />
+                      <AlertTitle>Uploads disabled</AlertTitle>
+                      <AlertDescription className="text-amber-800">
+                        File uploads are currently disabled by the administrator.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
                   <div className="space-y-1">
                     <Label htmlFor="submission-title">Title</Label>
                     <Input
@@ -845,7 +855,7 @@ export default function StudentSubmissionsPage() {
                       htmlFor="submission-files"
                       onDragOver={(event) => {
                         event.preventDefault();
-                        if (!isClosed && !isBusy) setIsDragging(true);
+                        if (!isClosed && !isBusy && uploadsEnabled) setIsDragging(true);
                       }}
                       onDragLeave={() => setIsDragging(false)}
                       onDrop={onDropFiles}
@@ -853,7 +863,7 @@ export default function StudentSubmissionsPage() {
                         isDragging
                           ? "border-amber-400 bg-amber-50 text-slate-900"
                           : "border-slate-200 bg-slate-50 text-slate-600"
-                      } ${isClosed || isBusy ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
+                      } ${isClosed || isBusy || !uploadsEnabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
                     >
                       <span className="text-sm font-medium text-slate-800">
                         Drag & drop your files here
@@ -864,15 +874,15 @@ export default function StudentSubmissionsPage() {
                       <Input
                         id="submission-files"
                         type="file"
-                        accept=".doc,.docx,image/*"
+                        accept={acceptAttr}
                         multiple
                         onChange={onFilesChange}
-                        disabled={isClosed || isBusy}
+                        disabled={isClosed || isBusy || !uploadsEnabled}
                         className="hidden"
                       />
                     </label>
                     <p className="text-xs text-slate-500">
-                      Attach your article document and any supporting images.
+                      {uploadHintText}
                     </p>
                   </div>
 
@@ -1067,7 +1077,8 @@ export default function StudentSubmissionsPage() {
                           uploadedBlobs.length === 0 &&
                           editingFiles.length === 0) ||
                         isClosed ||
-                        isBusy
+                        isBusy ||
+                        !uploadsEnabled
                       }
                     >
                       {isUploading
