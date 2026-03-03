@@ -64,7 +64,7 @@ Plans:
 **Goal:** Wire admin-configured upload rules (stored in ConfigSetting) to the student upload flow so file type restrictions, size limits, and upload toggles are actually enforced — not just displayed in the admin UI
 **Depends on:** Phase 1 (ConfigSetting model), Phase 5 (student upload UI)
 **Requirements:** UPLOAD-01, UPLOAD-02, UPLOAD-03
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 **Gap Closure:** Closes user-reported gap — admin upload rules exist but are never checked during uploads
 **Success Criteria** (what must be TRUE):
 
@@ -99,5 +99,5 @@ Plans:
 | 5. UI Layer                    | v1.0      | 5/5            | Complete | 2026-03-02 |
 | 6. Critical Fixes              | v1.0      | 5/5            | Complete | 2026-03-03 |
 | 7. Student Comment Thread      | 2/2 | Complete    | 2026-03-03 | —          |
-| 8. Upload Rules Enforcement    | v1.0      | 0/2            | Pending  | —          |
+| 8. Upload Rules Enforcement    | 1/2 | In Progress|  | —          |
 | 9. Pagination                  | v1.0      | 0/?            | Pending  | —          |

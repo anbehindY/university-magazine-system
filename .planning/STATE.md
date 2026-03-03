@@ -11,9 +11,9 @@ See: .planning/PROJECT.md (updated 2026-03-02)
 
 Milestone: v1.0 MVP — GAP CLOSURE
 Status: In Progress (Phases 6-9 pending)
-Last activity: 2026-03-03 — Phase 07-02 complete (Sheet comment panel with SWR polling, parentId-required reply, isLocked closure UI)
+Last activity: 2026-03-03 — Phase 08-01 complete (config-aware upload enforcement: 403 gate, file count, dynamic MIME types and max size)
 
-Progress: [█████████████░░░░░░░] 65% (6/9 phases complete, 06 done)
+Progress: [█████████████░░░░░░░] 65% (6/9 phases complete, 08 in progress)
 
 ## Performance Metrics
 
@@ -40,6 +40,7 @@ Progress: [█████████████░░░░░░░] 65% (6/
 | Phase 06-critical-fixes P05 | 2 | 2 tasks | 2 files |
 | Phase 07-student-comment-thread P01 | 4 | 2 tasks | 3 files |
 | Phase 07-student-comment-thread P02 | 2 | 1 task | 1 file |
+| Phase 08-upload-rules-enforcement P01 | 2 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -62,12 +63,15 @@ All decisions logged in PROJECT.md Key Decisions table.
 - [Phase 07-student-comment-thread]: Destructure _count from submission mapping before returning to keep response shape clean
 - [Phase 07-student-comment-thread]: Students must click Reply on a comment to set replyToId before textarea is enabled — enforces parentId requirement, prevents API 400
 - [Phase 07-student-comment-thread]: isLocked derived from commentsData?.isLocked ?? false — API is single source of truth, not client-side date comparison
+- [Phase 08-upload-rules-enforcement]: 403 returned from outer POST handler for enable_uploads gate — handleUpload converts all throws inside onBeforeGenerateToken to 400
+- [Phase 08-upload-rules-enforcement]: Config loaded once before handleUpload and captured in closure — no second DB query inside token callback
+- [Phase 08-upload-rules-enforcement]: allowedFileTypes defaults to [DOC, DOCX] when ConfigSetting row absent or empty after filter
 
 ### Pending Todos
 
 - Phase 6: Critical Fixes COMPLETE (all 5 plans done)
 - Phase 7: Student Comment Thread (COMM-02 + COMM-03)
-- Phase 8: Upload Rules Enforcement (UPLOAD-01 + UPLOAD-02 + UPLOAD-03)
+- Phase 8: Upload Rules Enforcement — P01 COMPLETE (UPLOAD-01 + UPLOAD-02 done); remaining: UPLOAD-03 if any
 - Phase 9: Pagination (UX-01 + UX-02)
 
 ### Blockers/Concerns
@@ -78,5 +82,5 @@ All decisions logged in PROJECT.md Key Decisions table.
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Phase 07-student-comment-thread complete — checkpoint approved, running verification
+Stopped at: Completed Phase 08-upload-rules-enforcement/08-01-PLAN.md
 Resume file: None
