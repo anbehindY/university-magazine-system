@@ -11,7 +11,7 @@ See: .planning/PROJECT.md (updated 2026-03-02)
 
 Milestone: v1.0 MVP — GAP CLOSURE
 Status: In Progress (Phases 6-9 pending)
-Last activity: 2026-03-03 — Phase 08-01 complete (config-aware upload enforcement: 403 gate, file count, dynamic MIME types and max size)
+Last activity: 2026-03-03 — Phase 08-02 complete (config-driven student upload UI: SWR fetch, amber Alert, dynamic accept, validateFiles)
 
 Progress: [█████████████░░░░░░░] 65% (6/9 phases complete, 08 in progress)
 
@@ -41,6 +41,7 @@ Progress: [█████████████░░░░░░░] 65% (6/
 | Phase 07-student-comment-thread P01 | 4 | 2 tasks | 3 files |
 | Phase 07-student-comment-thread P02 | 2 | 1 task | 1 file |
 | Phase 08-upload-rules-enforcement P01 | 2 | 2 tasks | 2 files |
+| Phase 08-upload-rules-enforcement P02 | 3 | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -66,12 +67,13 @@ All decisions logged in PROJECT.md Key Decisions table.
 - [Phase 08-upload-rules-enforcement]: 403 returned from outer POST handler for enable_uploads gate — handleUpload converts all throws inside onBeforeGenerateToken to 400
 - [Phase 08-upload-rules-enforcement]: Config loaded once before handleUpload and captured in closure — no second DB query inside token callback
 - [Phase 08-upload-rules-enforcement]: allowedFileTypes defaults to [DOC, DOCX] when ConfigSetting row absent or empty after filter
+- [Phase 08-upload-rules-enforcement]: Safe defaults while loading are permissive (uploadsEnabled=true) — server is authoritative gate; client gives immediate feedback via validateFiles at selection time
 
 ### Pending Todos
 
 - Phase 6: Critical Fixes COMPLETE (all 5 plans done)
 - Phase 7: Student Comment Thread (COMM-02 + COMM-03)
-- Phase 8: Upload Rules Enforcement — P01 COMPLETE (UPLOAD-01 + UPLOAD-02 done); remaining: UPLOAD-03 if any
+- Phase 8: Upload Rules Enforcement COMPLETE (all plans done: UPLOAD-01, UPLOAD-02, UPLOAD-03 fulfilled)
 - Phase 9: Pagination (UX-01 + UX-02)
 
 ### Blockers/Concerns
@@ -82,5 +84,5 @@ All decisions logged in PROJECT.md Key Decisions table.
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Completed Phase 08-upload-rules-enforcement/08-01-PLAN.md
+Stopped at: Completed Phase 08-upload-rules-enforcement/08-02-PLAN.md
 Resume file: None
