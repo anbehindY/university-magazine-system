@@ -4,7 +4,7 @@ import { upload } from "@vercel/blob/client";
 import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 import { format } from "date-fns";
-import { Info } from "lucide-react";
+import { Info, MessageSquare } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -1090,11 +1090,6 @@ export default function StudentSubmissionsPage() {
                         )}
                       </>
                     )}
-                    {submission.commentCount > 0 && (
-                      <Badge variant="outline" className="border-slate-200 bg-slate-50 text-slate-600 text-xs">
-                        {submission.commentCount} {submission.commentCount === 1 ? "comment" : "comments"}
-                      </Badge>
-                    )}
                   </div>
                   <div className="flex flex-wrap gap-2 pt-1">
                     <Button
@@ -1112,7 +1107,13 @@ export default function StudentSubmissionsPage() {
                       variant="outline"
                       onClick={() => setSelectedCommentSubmissionId(submission.id)}
                     >
+                      <MessageSquare className="size-3.5" />
                       Comments
+                      {submission.commentCount > 0 && (
+                        <span className="inline-flex items-center justify-center rounded-full bg-amber-100 text-amber-700 text-[10px] font-semibold min-w-[18px] h-[18px] px-1.5">
+                          {submission.commentCount}
+                        </span>
+                      )}
                     </Button>
                     <Button
                       type="button"
