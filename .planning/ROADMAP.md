@@ -82,11 +82,18 @@ Plans:
 **Goal:** Add server-side pagination to the user management table and any other table views with potentially large datasets, so the UI remains performant and usable at scale
 **Depends on:** Phase 5 (UI layer)
 **Requirements:** UX-01, UX-02
+**Plans:** 4 plans
 **Gap Closure:** Closes user-reported gap — tables render all rows without pagination
 **Success Criteria** (what must be TRUE):
 
 1. The admin user management table paginates with configurable page size — users see page controls and the API accepts `page` and `pageSize` query parameters
 2. Any other table view identified during planning as having unbounded row count also uses paginated fetching with page controls
+
+Plans:
+- [ ] 09-01-PLAN.md — Shared PaginationControls component + admin users API pagination
+- [ ] 09-02-PLAN.md — Coordinator submissions API pagination
+- [ ] 09-03-PLAN.md — Admin users page UI: pagination state + PaginationControls rendering
+- [ ] 09-04-PLAN.md — Coordinator submissions page UI: pagination state + PaginationControls rendering
 
 ## Progress
 
@@ -100,4 +107,4 @@ Plans:
 | 6. Critical Fixes              | v1.0      | 5/5            | Complete | 2026-03-03 |
 | 7. Student Comment Thread      | 2/2 | Complete    | 2026-03-03 | —          |
 | 8. Upload Rules Enforcement    | 2/2 | Complete   | 2026-03-03 | —          |
-| 9. Pagination                  | v1.0      | 0/?            | Pending  | —          |
+| 9. Pagination                  | v1.0      | 0/4            | Pending  | —          |
