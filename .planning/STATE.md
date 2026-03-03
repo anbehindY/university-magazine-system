@@ -10,10 +10,10 @@ See: .planning/PROJECT.md (updated 2026-03-02)
 ## Current Position
 
 Milestone: v1.0 MVP — GAP CLOSURE
-Status: In Progress (Phases 6-9 pending)
-Last activity: 2026-03-03 — Phase 09-01 complete (PaginationControls component + admin users GET paginated API)
+Status: Complete (all phases done)
+Last activity: 2026-03-03 — Phase 09-04 complete (Coordinator submissions page wired to paginated API with PaginationControls)
 
-Progress: [███████████████░░░░░] 75% (7/9 phases complete, 09 in progress)
+Progress: [████████████████████] 100% (9/9 phases complete)
 
 ## Performance Metrics
 
@@ -43,6 +43,7 @@ Progress: [███████████████░░░░░] 75% (7/
 | Phase 08-upload-rules-enforcement P01 | 2 | 2 tasks | 2 files |
 | Phase 08-upload-rules-enforcement P02 | 3 | 2 tasks | 1 files |
 | Phase 09-pagination P01 | 3min | 2 tasks | 2 files |
+| Phase 09-pagination P04 | 1 | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -72,13 +73,15 @@ All decisions logged in PROJECT.md Key Decisions table.
 - [Phase 09-pagination]: PaginationControls returns null when total <= pageSize — no pagination chrome for single-page results
 - [Phase 09-pagination]: Admin users API uses [createdAt desc, id asc] orderBy — id tiebreaker ensures stable page cursors
 - [Phase 09-pagination]: Paginated API pattern: Promise.all([count(), findMany({ skip, take })]) — no sequential DB round-trips
+- [Phase 09-pagination]: PaginationControls placed below coordinator submissions table, guarded by !loading && !error — consistent with admin users page pattern
+- [Phase 09-pagination]: handlePageSizeChange resets page to 1 before updating pageSize — prevents out-of-bounds navigation on coordinator submissions page
 
 ### Pending Todos
 
 - Phase 6: Critical Fixes COMPLETE (all 5 plans done)
 - Phase 7: Student Comment Thread (COMM-02 + COMM-03)
 - Phase 8: Upload Rules Enforcement COMPLETE (all plans done: UPLOAD-01, UPLOAD-02, UPLOAD-03 fulfilled)
-- Phase 9: Pagination — 09-01 COMPLETE (PaginationControls + admin users paginated API)
+- Phase 9: Pagination — COMPLETE (all 4 plans done: UX-01 admin users, UX-02 coordinator submissions fully paginated)
 
 ### Blockers/Concerns
 
@@ -88,5 +91,5 @@ All decisions logged in PROJECT.md Key Decisions table.
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Completed Phase 09-pagination/09-01-PLAN.md
+Stopped at: Completed Phase 09-pagination/09-04-PLAN.md
 Resume file: None
