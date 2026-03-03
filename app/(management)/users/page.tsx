@@ -14,6 +14,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LoadingScreen } from "@/components/ui/loading-screen";
+import { PaginationControls } from "@/components/ui/pagination-controls";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -95,6 +97,9 @@ export default function UsersPage() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [total, setTotal] = useState(0);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
@@ -134,7 +139,7 @@ export default function UsersPage() {
       setError(null);
 
       try {
-        const res = await fetch("/api/admin/users");
+        const res = await fetch(`/api/admin/users?page=${page}&pageSize=${pageSize}`);
         const data = await res.json();
 
         if (cancelled) return;
@@ -146,6 +151,7 @@ export default function UsersPage() {
         }
 
         setUsers(data.users || []);
+        setTotal(data.total || 0);
       } catch {
         if (!cancelled) {
           setError("Failed to load users.");
@@ -163,7 +169,7 @@ export default function UsersPage() {
     return () => {
       cancelled = true;
     };
-  }, [isPending, session?.user, session?.user?.role]);
+  }, [isPending, session?.user, session?.user?.role, page, pageSize]);
 
   useEffect(() => {
     if (!dialogOpen && !editDialogOpen) return;
@@ -188,7 +194,7 @@ export default function UsersPage() {
 
   async function refreshUsers() {
     try {
-      const res = await fetch("/api/admin/users");
+      const res = await fetch(`/api/admin/users?page=${page}&pageSize=${pageSize}`);
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "Failed to load users.");
@@ -196,10 +202,16 @@ export default function UsersPage() {
         return;
       }
       setUsers(data.users || []);
+      setTotal(data.total || 0);
     } catch {
       setError("Failed to load users.");
       setUsers([]);
     }
+  }
+
+  function handlePageSizeChange(newSize: number) {
+    setPageSize(newSize);
+    setPage(1);
   }
 
   const requiresFaculty =
@@ -734,7 +746,11 @@ export default function UsersPage() {
         )}
 
         {loading && !error && (
-          <LoadingScreen className="min-h-[16vh]" spinnerClassName="h-6 w-6" />
+          <div className="space-y-2">
+            {[...Array(pageSize > 4 ? 4 : pageSize)].map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full rounded-md" />
+            ))}
+          </div>
         )}
 
         {!loading && !error && users.length === 0 && (
@@ -742,9 +758,10 @@ export default function UsersPage() {
         )}
 
         {!loading && !error && users.length > 0 && (
-          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-            <table className="w-full text-left">
-              <thead className="border-b border-slate-200 bg-slate-50 text-slate-700">
+          <>
+            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+              <table className="w-full text-left">
+                <thead className="border-b border-slate-200 bg-slate-50 text-slate-700">
                 <tr>
                   <th className="px-4 py-3 text-sm font-medium">Name</th>
                   <th className="px-4 py-3 text-sm font-medium">Email</th>
@@ -820,6 +837,14 @@ export default function UsersPage() {
               </tbody>
             </table>
           </div>
+          <PaginationControls
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            onPageChange={setPage}
+            onPageSizeChange={handlePageSizeChange}
+          />
+          </>
         )}
       </section>
     </main>
