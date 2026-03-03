@@ -64,6 +64,7 @@ Plans:
 **Goal:** Wire admin-configured upload rules (stored in ConfigSetting) to the student upload flow so file type restrictions, size limits, and upload toggles are actually enforced — not just displayed in the admin UI
 **Depends on:** Phase 1 (ConfigSetting model), Phase 5 (student upload UI)
 **Requirements:** UPLOAD-01, UPLOAD-02, UPLOAD-03
+**Plans:** 2 plans
 **Gap Closure:** Closes user-reported gap — admin upload rules exist but are never checked during uploads
 **Success Criteria** (what must be TRUE):
 
@@ -71,6 +72,10 @@ Plans:
 2. Student uploads are rejected (API 400) if the file type is not in the admin-configured `allowed_file_types` list — the client-side filter also reflects the configured types
 3. Student uploads are rejected (API 400) if the file exceeds the admin-configured `max_upload_size_mb` — the client shows the configured limit
 4. Student uploads are rejected (API 400) if adding files would exceed `max_files_per_upload` for that submission
+
+Plans:
+- [ ] 08-01-PLAN.md — Public upload-rules endpoint + server-side enforcement in upload route
+- [ ] 08-02-PLAN.md — Student page SWR config fetch, disabled Alert, dynamic accept attr, hint text, client pre-validation
 
 ### Phase 9: Pagination
 
@@ -94,5 +99,5 @@ Plans:
 | 5. UI Layer                    | v1.0      | 5/5            | Complete | 2026-03-02 |
 | 6. Critical Fixes              | v1.0      | 5/5            | Complete | 2026-03-03 |
 | 7. Student Comment Thread      | 2/2 | Complete    | 2026-03-03 | —          |
-| 8. Upload Rules Enforcement    | v1.0      | 0/?            | Pending  | —          |
+| 8. Upload Rules Enforcement    | v1.0      | 0/2            | Pending  | —          |
 | 9. Pagination                  | v1.0      | 0/?            | Pending  | —          |
