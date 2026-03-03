@@ -26,7 +26,7 @@ function parseRole(value: unknown): ValidRole | null {
   return VALID_ROLES.includes(value as ValidRole) ? (value as ValidRole) : null;
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const session = await auth.api.getSession({
       headers: await headers(),
@@ -39,33 +39,46 @@ export async function GET() {
       );
     }
 
-    const users = await prisma.user.findMany({
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        emailVerified: true,
-        banned: true,
-        createdAt: true,
-        sessions: {
-          select: {
-            updatedAt: true,
+    const { searchParams } = new URL(req.url);
+    const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1);
+    const pageSize = (() => {
+      const raw = parseInt(searchParams.get("pageSize") ?? "10", 10);
+      return [10, 25, 50].includes(raw) ? raw : 10;
+    })();
+    const skip = (page - 1) * pageSize;
+
+    const [total, users] = await Promise.all([
+      prisma.user.count(),
+      prisma.user.findMany({
+        skip,
+        take: pageSize,
+        orderBy: [{ createdAt: "desc" }, { id: "asc" }],
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          emailVerified: true,
+          banned: true,
+          createdAt: true,
+          sessions: {
+            select: {
+              updatedAt: true,
+            },
+            orderBy: {
+              updatedAt: "desc",
+            },
+            take: 1,
           },
-          orderBy: {
-            updatedAt: "desc",
+          faculty: {
+            select: {
+              id: true,
+              name: true,
+            },
           },
-          take: 1,
         },
-        faculty: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-    });
+      }),
+    ]);
 
     const usersWithLastActive = users.map((user) => ({
       ...user,
@@ -73,7 +86,10 @@ export async function GET() {
       sessions: undefined,
     }));
 
-    return NextResponse.json({ users: usersWithLastActive }, { status: 200 });
+    return NextResponse.json(
+      { users: usersWithLastActive, total, page, pageSize },
+      { status: 200 }
+    );
   } catch (error) {
     console.error("Error fetching users:", error);
     return NextResponse.json(
