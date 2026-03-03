@@ -33,6 +33,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { PaginationControls } from "@/components/ui/pagination-controls";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -138,6 +139,11 @@ export default function CoordinatorSubmissionsPage() {
   const [filterStatus, setFilterStatus] = useState<"all" | "selected" | "not-selected">("all");
   const [sortBy, setSortBy] = useState<"date-desc" | "date-asc" | "selected">("date-desc");
 
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [total, setTotal] = useState(0);
+
   // Comment compose state
   const [commentBody, setCommentBody] = useState("");
   const [replyToId, setReplyToId] = useState<string | null>(null);
@@ -163,9 +169,10 @@ export default function CoordinatorSubmissionsPage() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch("/api/coordinator/submissions");
+        const res = await fetch(`/api/coordinator/submissions?page=${page}&pageSize=${pageSize}`);
         const data = (await res.json()) as {
           submissions?: SubmissionRow[];
+          total?: number;
           error?: string;
         };
         if (cancelled) return;
@@ -175,6 +182,7 @@ export default function CoordinatorSubmissionsPage() {
           return;
         }
         setSubmissions(data.submissions ?? []);
+        setTotal(data.total ?? 0);
       } catch {
         if (!cancelled) {
           setError("Failed to load submissions.");
@@ -189,7 +197,7 @@ export default function CoordinatorSubmissionsPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [page, pageSize]);
 
   // ---------------------------------------------------------------------------
   // SWR comment thread (polls every 15 s)
@@ -335,6 +343,15 @@ export default function CoordinatorSubmissionsPage() {
       setReplyToId(null);
       setReplyToAuthor("");
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Page size change handler (resets to page 1)
+  // ---------------------------------------------------------------------------
+
+  function handlePageSizeChange(newSize: number) {
+    setPageSize(newSize);
+    setPage(1);
   }
 
   // ---------------------------------------------------------------------------
@@ -506,6 +523,17 @@ export default function CoordinatorSubmissionsPage() {
           </table>
           )}
         </div>
+      )}
+
+      {/* Pagination controls */}
+      {!loading && !error && (
+        <PaginationControls
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          onPageChange={setPage}
+          onPageSizeChange={handlePageSizeChange}
+        />
       )}
 
       {/* Slide-over panel */}
