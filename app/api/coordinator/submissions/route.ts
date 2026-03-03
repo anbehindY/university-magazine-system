@@ -1,9 +1,9 @@
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { headers } from "next/headers";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const session = await auth.api.getSession({
       headers: await headers(),
@@ -40,28 +40,43 @@ export async function GET() {
       select: { id: true },
     });
 
-    const submissions = await prisma.submission.findMany({
-      where: {
-        status: "SUBMITTED",
-        facultyId: coordinatorFacultyId,
-        ...(activeYear ? { academicYearId: activeYear.id } : {}),
-      },
-      orderBy: { submittedAt: "desc" },
-      select: {
-        id: true,
-        title: true,
-        status: true,
-        submittedAt: true,
-        isSelected: true,
-        notes: true,
-        user: { select: { name: true } },
-        files: {
-          select: { id: true, url: true, pathname: true, contentType: true, size: true },
-          orderBy: { createdAt: "asc" as const },
+    const { searchParams } = new URL(req.url);
+    const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1);
+    const pageSize = (() => {
+      const raw = parseInt(searchParams.get("pageSize") ?? "10", 10);
+      return [10, 25, 50].includes(raw) ? raw : 10;
+    })();
+    const skip = (page - 1) * pageSize;
+
+    const where = {
+      status: "SUBMITTED" as const,
+      facultyId: coordinatorFacultyId,
+      ...(activeYear ? { academicYearId: activeYear.id } : {}),
+    };
+
+    const [total, submissions] = await Promise.all([
+      prisma.submission.count({ where }),
+      prisma.submission.findMany({
+        where,
+        skip,
+        take: pageSize,
+        orderBy: { submittedAt: "desc" },
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          submittedAt: true,
+          isSelected: true,
+          notes: true,
+          user: { select: { name: true } },
+          files: {
+            select: { id: true, url: true, pathname: true, contentType: true, size: true },
+            orderBy: { createdAt: "asc" as const },
+          },
+          _count: { select: { files: true } },
         },
-        _count: { select: { files: true } },
-      },
-    });
+      }),
+    ]);
 
     const result = submissions.map((s) => ({
       id: s.id,
@@ -81,7 +96,7 @@ export async function GET() {
       fileCount: s._count.files,
     }));
 
-    return NextResponse.json({ submissions: result });
+    return NextResponse.json({ submissions: result, total, page, pageSize });
   } catch (error) {
     console.error("Error fetching coordinator submissions:", error);
     return NextResponse.json(
