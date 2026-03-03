@@ -90,7 +90,7 @@ Plans:
 2. Any other table view identified during planning as having unbounded row count also uses paginated fetching with page controls
 
 Plans:
-- [ ] 09-01-PLAN.md — Shared PaginationControls component + admin users API pagination
+- [x] 09-01-PLAN.md — Shared PaginationControls component + admin users API pagination
 - [ ] 09-02-PLAN.md — Coordinator submissions API pagination
 - [ ] 09-03-PLAN.md — Admin users page UI: pagination state + PaginationControls rendering
 - [ ] 09-04-PLAN.md — Coordinator submissions page UI: pagination state + PaginationControls rendering
