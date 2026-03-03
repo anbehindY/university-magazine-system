@@ -74,8 +74,11 @@ completed: 2026-03-03
 Each task was committed atomically:
 
 1. **Task 1: Add Sheet panel with SWR comment thread and reply interaction** - `50a9c8c` (feat)
+2. **Task 2: Human-verify checkpoint** - APPROVED
+   - Fix commit: `f53cc82` — title input selection color, panel padding, cursor pointers
+   - Fix commit: `58581bb` — comment count on button with icon, default dev port 5000
 
-**Plan metadata:** (pending — checkpoint Task 2 awaiting human verification)
+**Plan metadata:** completed — checkpoint Task 2 approved by user
 
 ## Files Created/Modified
 - `app/(student)/submissions/page.tsx` - Added useSWR import, date-fns format, Sheet component imports; fetcher/formatRole/formatCommentTime helpers; Comment type; commentBody/replyToId/replyToAuthor/commentPosting state; SWR hook + isLocked/comments derived vars; handleCommentPanelClose/handlePostReply handlers; Sheet JSX with full comment thread UI
