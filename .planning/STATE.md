@@ -43,6 +43,7 @@ Progress: [████████████████████] 100% (9
 | Phase 08-upload-rules-enforcement P01 | 2 | 2 tasks | 2 files |
 | Phase 08-upload-rules-enforcement P02 | 3 | 2 tasks | 1 files |
 | Phase 09-pagination P01 | 3min | 2 tasks | 2 files |
+| Phase 09-pagination P03 | 2min | 2 tasks | 1 file |
 | Phase 09-pagination P04 | 1 | 2 tasks | 1 files |
 
 ## Accumulated Context
@@ -73,6 +74,7 @@ All decisions logged in PROJECT.md Key Decisions table.
 - [Phase 09-pagination]: PaginationControls returns null when total <= pageSize — no pagination chrome for single-page results
 - [Phase 09-pagination]: Admin users API uses [createdAt desc, id asc] orderBy — id tiebreaker ensures stable page cursors
 - [Phase 09-pagination]: Paginated API pattern: Promise.all([count(), findMany({ skip, take })]) — no sequential DB round-trips
+- [Phase 09-pagination]: Skeleton rows (4 max) replace LoadingScreen for table data loading; LoadingScreen retained only for auth guard in admin users page
 - [Phase 09-pagination]: PaginationControls placed below coordinator submissions table, guarded by !loading && !error — consistent with admin users page pattern
 - [Phase 09-pagination]: handlePageSizeChange resets page to 1 before updating pageSize — prevents out-of-bounds navigation on coordinator submissions page
 
@@ -91,5 +93,5 @@ All decisions logged in PROJECT.md Key Decisions table.
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Completed Phase 09-pagination/09-04-PLAN.md
+Stopped at: Completed Phase 09-pagination/09-03-PLAN.md and 09-04-PLAN.md
 Resume file: None
