@@ -1,7 +1,7 @@
 "use client";
 
 import { upload } from "@vercel/blob/client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { format } from "date-fns";
 import { Info, MessageSquare } from "lucide-react";
@@ -38,18 +38,6 @@ import { toast } from "sonner";
 
 const DRAFT_STORAGE_KEY = "studentSubmissionDraft";
 
-const ACCEPTED_MIME_TYPES = new Set([
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-]);
-
-function isAcceptedFile(file: File) {
-  if (file.type.startsWith("image/")) return true;
-  if (ACCEPTED_MIME_TYPES.has(file.type)) return true;
-  const lowerName = file.name.toLowerCase();
-  return lowerName.endsWith(".doc") || lowerName.endsWith(".docx");
-}
-
 // ---------------------------------------------------------------------------
 // Comment thread helpers
 // ---------------------------------------------------------------------------
@@ -81,6 +69,35 @@ type Comment = {
   createdAt: string;
   author: { name: string | null; role: string | null };
 };
+
+type UploadConfig = {
+  enableUploads: boolean;
+  maxUploadSizeMb: number;
+  maxFilesPerUpload: number;
+  allowedFileTypes: string[]; // uppercase: ["DOC", "DOCX", "PNG"]
+};
+
+function validateFiles(
+  newFiles: File[],
+  existingCount: number,
+  config: { maxFilesPerUpload: number; maxUploadSizeMb: number; allowedFileTypes: string[] }
+): string | null {
+  const totalCount = existingCount + newFiles.length;
+  if (totalCount > config.maxFilesPerUpload) {
+    return `Maximum ${config.maxFilesPerUpload} files per submission.`;
+  }
+  for (const file of newFiles) {
+    if (file.size > config.maxUploadSizeMb * 1024 * 1024) {
+      return `"${file.name}" exceeds the ${config.maxUploadSizeMb}MB limit.`;
+    }
+    const ext = file.name.split(".").pop()?.toUpperCase() ?? "";
+    if (config.allowedFileTypes.length > 0 && !config.allowedFileTypes.includes(ext)) {
+      const extList = config.allowedFileTypes.map((e) => `.${e.toLowerCase()}`).join(", ");
+      return `Only ${extList} files are allowed.`;
+    }
+  }
+  return null;
+}
 
 export default function StudentSubmissionsPage() {
   const { data: session, isPending } = useSession();
@@ -159,10 +176,28 @@ export default function StudentSubmissionsPage() {
     return parts[parts.length - 1] || trimmed;
   }
 
-  const invalidFiles = useMemo(
-    () => files.filter((file) => !isAcceptedFile(file)),
-    [files]
+  // ---------------------------------------------------------------------------
+  // SWR upload config
+  // ---------------------------------------------------------------------------
+
+  const { data: uploadConfig } = useSWR<UploadConfig>(
+    "/api/config/upload-rules",
+    fetcher
   );
+
+  // Derived from config — safe defaults while loading (permissive, server is authoritative gate)
+  const uploadsEnabled = uploadConfig?.enableUploads ?? true;
+  const maxSizeMb = uploadConfig?.maxUploadSizeMb ?? 25;
+  const maxFiles = uploadConfig?.maxFilesPerUpload ?? 10;
+  const allowedExts = uploadConfig?.allowedFileTypes ?? ["DOC", "DOCX"];
+
+  // accept attribute: ".doc,.docx" (lowercase, dot-prefixed)
+  const acceptAttr = allowedExts.map((ext) => `.${ext.toLowerCase()}`).join(",");
+
+  // hint text: "Accepted: .doc, .docx · Max 10MB · Up to 5 files"
+  const uploadHintText = uploadConfig
+    ? `Accepted: ${allowedExts.map((e) => `.${e.toLowerCase()}`).join(", ")} · Max ${maxSizeMb}MB · Up to ${maxFiles} files`
+    : "Loading upload rules...";
 
   // ---------------------------------------------------------------------------
   // SWR comment thread (polls every 15 s)
@@ -337,15 +372,34 @@ export default function StudentSubmissionsPage() {
 
   function onFilesChange(event: React.ChangeEvent<HTMLInputElement>) {
     const selected = Array.from(event.target.files ?? []);
+    const error = validateFiles(
+      selected,
+      editingFiles.length + uploadedBlobs.length,
+      { maxFilesPerUpload: maxFiles, maxUploadSizeMb: maxSizeMb, allowedFileTypes: allowedExts }
+    );
+    if (error) {
+      toast.error(error);
+      return;
+    }
     setFiles(selected);
     setUploadedBlobs([]);
   }
 
   function onDropFiles(event: React.DragEvent<HTMLLabelElement>) {
     event.preventDefault();
-    if (isClosed || isBusy) return;
+    if (isClosed || isBusy || !uploadsEnabled) return;
     const dropped = Array.from(event.dataTransfer.files ?? []);
     if (dropped.length === 0) return;
+    const error = validateFiles(
+      dropped,
+      editingFiles.length + uploadedBlobs.length,
+      { maxFilesPerUpload: maxFiles, maxUploadSizeMb: maxSizeMb, allowedFileTypes: allowedExts }
+    );
+    if (error) {
+      toast.error(error);
+      setIsDragging(false);
+      return;
+    }
     setFiles(dropped);
     setUploadedBlobs([]);
     setIsDragging(false);
@@ -532,11 +586,6 @@ export default function StudentSubmissionsPage() {
     const hasExistingFiles = draftFileNames.length > 0 || uploadedBlobs.length > 0 || editingFiles.length > 0;
     if (files.length === 0 && !hasExistingFiles) {
       toast.error("Please upload at least one Word document or image.");
-      return;
-    }
-
-    if (invalidFiles.length > 0) {
-      toast.error("Only Word documents (.doc, .docx) and image files are allowed.");
       return;
     }
 
