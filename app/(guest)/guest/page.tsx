@@ -226,7 +226,7 @@ export default function GuestMagazinePage() {
           <div className="flex flex-wrap items-center gap-3">
             {availableYears.length > 1 ? (
               <Select value={selectedYearId} onValueChange={setSelectedYearId}>
-                <SelectTrigger className="w-40 bg-white/10 border-white/20 text-white hover:bg-white/20">
+                <SelectTrigger className="w-40 bg-white/10 border-white/20 text-white hover:bg-white/20 animate-silver-glow cursor-pointer">
                   <SelectValue placeholder="Select year" />
                 </SelectTrigger>
                 <SelectContent>
@@ -299,6 +299,7 @@ export default function GuestMagazinePage() {
 
       {/* Articles grid */}
       <div className="px-4 sm:px-6 lg:px-8 pt-8 pb-8">
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-3">Selected Publications</h2>
         {submissions.length === 0 && !isRefetching ? (
           /* Empty state */
           <div className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center">
@@ -320,30 +321,30 @@ export default function GuestMagazinePage() {
             {submissions.map((submission) => (
               <Card
                 key={submission.id}
-                className="cursor-pointer border-slate-200 bg-white hover:shadow-lg hover:-translate-y-1 transition-all duration-200"
+                className="cursor-pointer border-slate-200 bg-white hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
                 onClick={() => setSelectedSubmission(submission)}
               >
-                <CardHeader>
-                  <h3 className="font-semibold text-lg line-clamp-2">
+                <CardHeader className="pb-2">
+                  <h3 className="font-semibold text-sm line-clamp-2">
                     {submission.title ?? (
                       <span className="italic text-slate-400">Untitled</span>
                     )}
                   </h3>
                 </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm text-slate-600">
-                    <User className="h-4 w-4 shrink-0" />
+                <CardContent className="space-y-1 pb-2">
+                  <div className="flex items-center gap-2 text-xs text-slate-600">
+                    <User className="h-3.5 w-3.5 shrink-0" />
                     <span>{submission.studentName}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-slate-500">
-                    <CalendarDays className="h-4 w-4 shrink-0" />
+                  <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <CalendarDays className="h-3.5 w-3.5 shrink-0" />
                     <span>{formatDate(submission.submittedAt)}</span>
                   </div>
                 </CardContent>
-                <CardFooter>
+                <CardFooter className="pt-0">
                   <Badge
                     variant="secondary"
-                    className="bg-slate-100 text-slate-600 border-slate-200"
+                    className="bg-slate-100 text-slate-600 border-slate-200 text-xs"
                   >
                     {submission.fileCount}{" "}
                     {submission.fileCount === 1 ? "file" : "files"}
