@@ -128,7 +128,7 @@ export default function ReportsPage() {
   // Role detection: coordinators/guests only see the active year (no year picker)
   const { data: session } = useSession();
   const role = session?.user?.role ?? null;
-  const canSwitchYear = role === "MARKETING_MANAGER" || role === "ADMINISTRATOR" || role === "MARKETING_COORDINATOR";
+  const canSwitchYear = role === "MARKETING_MANAGER" || role === "ADMINISTRATOR";
 
   // Academic year selector
   const [allYears, setAllYears] = useState<AcademicYear[]>([]);
