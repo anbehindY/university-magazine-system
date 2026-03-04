@@ -104,6 +104,16 @@ None - no external service configuration required.
 - `commentCount` available on each submission card for Plan 02 to refresh after posting
 - `selectedCommentSubmissionId` state and setter wired — Plan 02 can attach Sheet panel directly
 
+## Self-Check: PASSED
+
+- FOUND: app/api/comments/route.ts
+- FOUND: app/api/submissions/route.ts
+- FOUND: app/(student)/submissions/page.tsx
+- FOUND: .planning/phases/07-student-comment-thread/07-01-SUMMARY.md
+- FOUND: commit 6d52a7a (Task 1)
+- FOUND: commit e9ae984 (Task 2)
+- Build: compiled successfully, no TypeScript errors
+
 ---
 *Phase: 07-student-comment-thread*
 *Completed: 2026-03-03*
