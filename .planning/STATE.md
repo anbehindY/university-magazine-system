@@ -104,6 +104,9 @@ All decisions logged in PROJECT.md Key Decisions table.
 - [Quick-16]: hasDownloaded derived at top of render using selectedSubmissionId; downloadVersion read implicitly to ensure freshness
 - [Quick-17]: Server-side redirect("/guest") in portal layout fires before any HTML sent — eliminates sidebar flash for GUEST role
 - [Quick-17]: Stat cards built inline in guest page using Card primitives — StatCard not exported from portal page.tsx
+- [Quick-18]: availableYears queried via academicYear.findMany with submissions.some filter — single DB query finds all years with selected submissions for guest's faculty
+- [Quick-18]: useRef initialLoadDone prevents double-fetch when selectedYearId is set from initial API response on mount
+- [Quick-18]: isRefetching derived as loading && availableYears.length > 0 — distinguishes initial skeleton from year-switch opacity overlay
 
 ### Pending Todos
 
@@ -138,9 +141,10 @@ All decisions logged in PROJECT.md Key Decisions table.
 | 15 | Marketing manager submission detail slide-over (read-only Sheet panel on row click) | 2026-03-05 | 0a64bc0 | [15-marketing-manager-submission-detail-slid](./quick/15-marketing-manager-submission-detail-slid/) |
 | 16 | Coordinator must download at least one file before commenting | 2026-03-05 | fa530e3 | [16-coordinator-must-download-at-least-one-f](./quick/16-coordinator-must-download-at-least-one-f/) |
 | 17 | Fix guest portal layout flicker on login and add guest mini-dashboard | 2026-03-05 | 692b67e | [17-fix-guest-portal-layout-flicker-on-login](./quick/17-fix-guest-portal-layout-flicker-on-login/) |
+| 18 | Guest can view selected submissions for each academic year (year selector) | 2026-03-05 | fbfa228 | [18-guest-can-view-selected-submissions-for-](./quick/18-guest-can-view-selected-submissions-for-/) |
 
 ## Session Continuity
 
 Last session: 2026-03-05
-Stopped at: Quick task 17 complete
+Stopped at: Quick task 18 complete
 Resume file: None
