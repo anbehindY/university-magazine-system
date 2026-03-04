@@ -91,6 +91,8 @@ All decisions logged in PROJECT.md Key Decisions table.
 - [Quick-5]: Email only fires on false-to-true isSelected transition -- prevents duplicate emails on re-select and no email on deselect
 - [Quick-5]: API response shape preserved (id, isSelected, notes) -- title and user stripped before return to maintain existing contract
 - [Quick-5]: .env not committed (contains secrets) -- NEXT_PUBLIC_APP_URL added locally only
+- [Phase quick-6]: Client-side filtering/sorting for no-comments, consistent with existing filter/sort pattern
+- [Phase quick-6]: Amber highlight on zero-comment count for visual coordinator attention
 
 ### Pending Todos
 
