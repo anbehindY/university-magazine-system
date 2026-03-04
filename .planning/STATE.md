@@ -11,7 +11,7 @@ See: .planning/PROJECT.md (updated 2026-03-02)
 
 Milestone: v1.0 MVP — GAP CLOSURE
 Status: Complete (all phases done)
-Last activity: 2026-03-03 — Phase 09-04 complete (Coordinator submissions page wired to paginated API with PaginationControls)
+Last activity: 2026-03-04 — Quick task 1 complete (Remove Status column from Previous Years table and add auto-deactivation)
 
 Progress: [████████████████████] 100% (9/9 phases complete)
 
@@ -77,6 +77,8 @@ All decisions logged in PROJECT.md Key Decisions table.
 - [Phase 09-pagination]: Skeleton rows (4 max) replace LoadingScreen for table data loading; LoadingScreen retained only for auth guard in admin users page
 - [Phase 09-pagination]: PaginationControls placed below coordinator submissions table, guarded by !loading && !error — consistent with admin users page pattern
 - [Phase 09-pagination]: handlePageSizeChange resets page to 1 before updating pageSize — prevents out-of-bounds navigation on coordinator submissions page
+- [Quick-1]: useRef hasAutoDeactivated guard prevents re-triggering after first deactivation call; separate useEffect resets guard on activeYear.id change
+- [Quick-1]: Silent failure on auto-deactivation (console.error only) — avoids confusing UI errors on page load; admin can still manage manually
 
 ### Pending Todos
 
@@ -92,6 +94,6 @@ All decisions logged in PROJECT.md Key Decisions table.
 
 ## Session Continuity
 
-Last session: 2026-03-03
-Stopped at: Completed Phase 09-pagination/09-03-PLAN.md and 09-04-PLAN.md
+Last session: 2026-03-04
+Stopped at: Completed quick/1-remove-status-from-previous-years-and-au/1-PLAN.md
 Resume file: None
