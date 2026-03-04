@@ -92,8 +92,14 @@ All decisions logged in PROJECT.md Key Decisions table.
 - RESOLVED: MGR-02 ZIP closure gate now added (06-01-PLAN.md complete)
 - Phase 4 VERIFICATION.md incorrectly claims closure gate is verified — SUMMARY diverges from code (historical note, now resolved)
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 1 | Remove status from Previous Years and auto-deactivate years past final closure | 2026-03-04 | 029146d | [1-remove-status-from-previous-years-and-au](./quick/1-remove-status-from-previous-years-and-au/) |
+
 ## Session Continuity
 
 Last session: 2026-03-04
-Stopped at: Completed quick/1-remove-status-from-previous-years-and-au/1-PLAN.md
+Stopped at: Quick task 1 complete
 Resume file: None
