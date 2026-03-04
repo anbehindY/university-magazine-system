@@ -154,6 +154,7 @@ export default function StudentSubmissionsPage() {
       updatedAt: string;
       submittedAt: string | null;
       commentCount: number;
+      reviewStatus: string;
       academicYearId: string | null;
       academicYear: { id: string; yearLabel: string; isActive: boolean } | null;
       files: { id: string; url: string; pathname: string; createdAt: string }[];
@@ -208,6 +209,17 @@ export default function StudentSubmissionsPage() {
 
   const archivedYearLabels = Object.keys(archivedByYear).sort().reverse();
   const hasArchived = archivedYearLabels.length > 0;
+
+  function getReviewBadge(reviewStatus: string) {
+    switch (reviewStatus) {
+      case "COMMENTED":
+        return { label: "Commented", className: "bg-emerald-100 text-emerald-800 border-emerald-200" };
+      case "REVIEWING":
+        return { label: "Reviewing", className: "bg-blue-100 text-blue-800 border-blue-200" };
+      default:
+        return { label: "Pending", className: "bg-slate-100 text-slate-600 border-slate-200" };
+    }
+  }
 
   function getStatusBadgeClass(status: "DRAFT" | "SUBMITTED") {
     if (status === "SUBMITTED") {
@@ -467,6 +479,7 @@ export default function StudentSubmissionsPage() {
           updatedAt: string;
           submittedAt: string | null;
           commentCount: number;
+          reviewStatus: string;
           academicYearId: string | null;
           academicYear: { id: string; yearLabel: string; isActive: boolean } | null;
           files: { id: string; url: string; pathname: string; createdAt: string }[];
@@ -1199,12 +1212,18 @@ export default function StudentSubmissionsPage() {
                           : "Not submitted"}
                       </p>
                     </div>
-                    <Badge
-                      className={getStatusBadgeClass(submission.status)}
-                      variant="secondary"
-                    >
-                      {submission.status}
-                    </Badge>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Badge
+                        className={getStatusBadgeClass(submission.status)}
+                        variant="secondary"
+                      >
+                        {submission.status}
+                      </Badge>
+                      {submission.status === "SUBMITTED" && (() => {
+                        const rb = getReviewBadge(submission.reviewStatus);
+                        return <Badge className={rb.className} variant="secondary">{rb.label}</Badge>;
+                      })()}
+                    </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
                     <span>
@@ -1299,9 +1318,15 @@ export default function StudentSubmissionsPage() {
                               : "Not submitted"}
                           </p>
                         </div>
-                        <Badge className={getStatusBadgeClass(submission.status)} variant="secondary">
-                          {submission.status}
-                        </Badge>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <Badge className={getStatusBadgeClass(submission.status)} variant="secondary">
+                            {submission.status}
+                          </Badge>
+                          {submission.status === "SUBMITTED" && (() => {
+                            const rb = getReviewBadge(submission.reviewStatus);
+                            return <Badge className={rb.className} variant="secondary">{rb.label}</Badge>;
+                          })()}
+                        </div>
                       </div>
                       <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
                         <span>{submission.files.length} file{submission.files.length === 1 ? "" : "s"}</span>
@@ -1386,6 +1411,10 @@ export default function StudentSubmissionsPage() {
                   <Badge className={getStatusBadgeClass(selectedSubmission.status)} variant="secondary">
                     {selectedSubmission.status}
                   </Badge>
+                  {selectedSubmission.status === "SUBMITTED" && (() => {
+                    const rb = getReviewBadge(selectedSubmission.reviewStatus);
+                    return <Badge className={rb.className} variant="secondary">{rb.label}</Badge>;
+                  })()}
                   {selectedSubmission.submittedAt && (
                     <span className="text-xs text-slate-500">
                       Submitted {new Date(selectedSubmission.submittedAt).toLocaleDateString()}
