@@ -198,8 +198,52 @@ export default function GuestMagazinePage() {
         </div>
       </div>
 
+      {/* Summary stat cards */}
+      <div className="px-4 sm:px-6 lg:px-8 pt-8">
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card className="border-slate-200 bg-white text-slate-900">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-600">Published Articles</p>
+                <p className="text-xs text-slate-500">Selected for publication</p>
+              </div>
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+                <FileText className="h-5 w-5" />
+              </span>
+            </CardHeader>
+            <CardContent className="text-3xl font-semibold">{submissions.length}</CardContent>
+          </Card>
+
+          <Card className="border-slate-200 bg-white text-slate-900">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-600">Faculty</p>
+                <p className="text-xs text-slate-500">Your assigned faculty</p>
+              </div>
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
+                <BookOpen className="h-5 w-5" />
+              </span>
+            </CardHeader>
+            <CardContent className="text-3xl font-semibold truncate">{facultyName}</CardContent>
+          </Card>
+
+          <Card className="border-slate-200 bg-white text-slate-900">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-600">Academic Year</p>
+                <p className="text-xs text-slate-500">Current active year</p>
+              </div>
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
+                <CalendarDays className="h-5 w-5" />
+              </span>
+            </CardHeader>
+            <CardContent className="text-3xl font-semibold">{academicYearLabel ?? "—"}</CardContent>
+          </Card>
+        </div>
+      </div>
+
       {/* Articles grid */}
-      <div className="px-4 sm:px-6 lg:px-8 py-8">
+      <div className="px-4 sm:px-6 lg:px-8 pb-8">
         {submissions.length === 0 ? (
           /* Empty state */
           <div className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center">
