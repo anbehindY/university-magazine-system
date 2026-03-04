@@ -84,6 +84,10 @@ All decisions logged in PROJECT.md Key Decisions table.
 - [Quick-3]: archivedYearLabels sorted descending so most recent past year appears first
 - [Quick-3]: New Submission button hidden (not just disabled) when closureYearLabel=null — avoids misleading UI state
 - [Quick-3]: selectedSubmission lookup remains on full submissions array — comment sheet works for archived cards
+- [Quick-4]: SubmissionCardSkeleton as standalone function outside component — keeps main component cleaner
+- [Quick-4]: submissionsLoading initialized to true to prevent empty-state flash before useEffect fires
+- [Quick-4]: isArchivedYear guards on selectedSubmission !== null to prevent false positive on null check
+- [Quick-4]: Locked banner uses ternary to distinguish closure-locked vs archived-year-locked messages
 
 ### Pending Todos
 
@@ -104,9 +108,10 @@ All decisions logged in PROJECT.md Key Decisions table.
 | 1 | Remove status from Previous Years and auto-deactivate years past final closure | 2026-03-04 | 029146d | [1-remove-status-from-previous-years-and-au](./quick/1-remove-status-from-previous-years-and-au/) |
 | 2 | Add success toast notifications to all 8 admin actions (closure-dates, upload-rules, users) | 2026-03-04 | a20c584 | [2-add-success-toasters-to-all-admin-action](./quick/2-add-success-toasters-to-all-admin-action/) |
 | 3 | Separate student submissions by academic year — current editable, archived read-only | 2026-03-04 | 4b6254b | [3-separate-student-submissions-by-academic](./quick/3-separate-student-submissions-by-academic/) |
+| 4 | Skeleton loading cards, auth guard, and archived-year comment reply locking | 2026-03-04 | cfdb0cb | [4-improve-student-submissions-loading-ux-a](./quick/4-improve-student-submissions-loading-ux-a/) |
 
 ## Session Continuity
 
 Last session: 2026-03-04
-Stopped at: Quick task 3 complete
+Stopped at: Quick task 4 complete
 Resume file: None
