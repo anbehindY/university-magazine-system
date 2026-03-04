@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -64,7 +65,7 @@ export default function AdminPanelPage() {
   const [draftLabel, setDraftLabel] = useState("");
   const [draftFirst, setDraftFirst] = useState<Date | undefined>();
   const [draftFinal, setDraftFinal] = useState<Date | undefined>();
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "success" | "error">("idle");
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "error">("idle");
   const [saveError, setSaveError] = useState("");
 
   // ── setup form (no active year) ───────────────────────────────────────────
@@ -174,7 +175,8 @@ export default function AdminPanelPage() {
         throw new Error(payload?.error ?? "Failed to save.");
       }
       await loadHistory();
-      setSaveStatus("success");
+      toast.success("Closure dates saved successfully.");
+      setSaveStatus("idle");
     } catch (error) {
       setSaveStatus("error");
       setSaveError(error instanceof Error ? error.message : "Failed to save.");
@@ -203,6 +205,7 @@ export default function AdminPanelPage() {
       }
       const { academicYear } = (await createRes.json()) as { academicYear: AcademicYearItem };
       await activate(academicYear.id);
+      toast.success("Academic year set up and activated.");
       setSetupLabel("");
       setSetupFirst(undefined);
       setSetupFinal(undefined);
@@ -244,6 +247,7 @@ export default function AdminPanelPage() {
       }
       const { academicYear } = (await createRes.json()) as { academicYear: AcademicYearItem };
       await activate(academicYear.id);
+      toast.success(`Rolled over to ${rolloverLabel}.`);
       setIsRolloverOpen(false);
     } catch (error) {
       setRolloverStatus("error");
@@ -330,9 +334,6 @@ export default function AdminPanelPage() {
                   >
                     {saveStatus === "saving" ? "Saving..." : "Save Changes"}
                   </Button>
-                  {saveStatus === "success" && (
-                    <p className="text-sm text-emerald-600">Saved successfully.</p>
-                  )}
                   {saveStatus === "error" && (
                     <p className="text-sm text-rose-600">{saveError}</p>
                   )}
