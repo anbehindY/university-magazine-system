@@ -6,6 +6,7 @@ import {
   ChevronDown,
   ChevronsUpDown,
   FileText,
+  FileSpreadsheet,
   Users,
   Building2,
   AlertTriangle,
@@ -16,7 +17,15 @@ import {
   FileIcon,
 } from "lucide-react";
 import { useSession } from "@/lib/auth-client";
+import { exportToExcel, exportToPdf } from "@/lib/export-report";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import {
   Card,
   CardContent,
@@ -289,6 +298,9 @@ export default function ReportsPage() {
   const totalContributors = statsData.reduce((s, r) => s + r.distinctContributors, 0);
   const totalFaculties = statsData.length;
 
+  // Year label for exported filenames
+  const yearLabel = allYears.find((y) => y.id === selectedYearId)?.yearLabel ?? "report";
+
   // ── Exception counts & helpers ──────────────────────────────────────────────
   const overdueCount = exceptionsData.filter((e) => (e.daysSinceSubmission ?? 0) >= 14).length;
   const pendingCount = exceptionsData.filter((e) => (e.daysSinceSubmission ?? 0) < 14).length;
@@ -388,9 +400,39 @@ export default function ReportsPage() {
               const faculty = statsData[0];
               return (
                 <div className="space-y-6">
-                  <div className="flex items-center gap-2">
-                    <Building2 className="h-5 w-5 text-slate-400" />
-                    <h2 className="text-lg font-semibold">{faculty.facultyName ?? "Your Faculty"}</h2>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-5 w-5 text-slate-400" />
+                      <h2 className="text-lg font-semibold">{faculty.facultyName ?? "Your Faculty"}</h2>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <Download className="h-4 w-4" />
+                          Export
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => exportToExcel(
+                          "Statistics",
+                          ["Faculty Name", "Submissions", "% of Total", "Contributors"],
+                          [[faculty.facultyName ?? "Unknown", faculty.submissionCount, faculty.percentageOfTotal.toFixed(1) + "%", faculty.distinctContributors]],
+                          `Statistics_${yearLabel}.xlsx`
+                        )}>
+                          <FileSpreadsheet className="h-4 w-4" />
+                          Export as Excel
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => exportToPdf(
+                          `Faculty Statistics — ${yearLabel}`,
+                          ["Faculty Name", "Submissions", "% of Total", "Contributors"],
+                          [[faculty.facultyName ?? "Unknown", faculty.submissionCount, faculty.percentageOfTotal.toFixed(1) + "%", faculty.distinctContributors]],
+                          `Statistics_${yearLabel}.pdf`
+                        )}>
+                          <FileText className="h-4 w-4" />
+                          Export as PDF
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
 
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -457,6 +499,38 @@ export default function ReportsPage() {
           ) : (
             /* ── Multi-faculty view (Manager / Admin) ── */
             <>
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-slate-900">Faculty Statistics</h2>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Download className="h-4 w-4" />
+                      Export
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => exportToExcel(
+                      "Statistics",
+                      ["Faculty Name", "Submissions", "% of Total", "Contributors"],
+                      sortedStats.map(r => [r.facultyName ?? "Unknown", r.submissionCount, r.percentageOfTotal.toFixed(1) + "%", r.distinctContributors]),
+                      `Statistics_${yearLabel}.xlsx`
+                    )}>
+                      <FileSpreadsheet className="h-4 w-4" />
+                      Export as Excel
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => exportToPdf(
+                      `Faculty Statistics — ${yearLabel}`,
+                      ["Faculty Name", "Submissions", "% of Total", "Contributors"],
+                      sortedStats.map(r => [r.facultyName ?? "Unknown", r.submissionCount, r.percentageOfTotal.toFixed(1) + "%", r.distinctContributors]),
+                      `Statistics_${yearLabel}.pdf`
+                    )}>
+                      <FileText className="h-4 w-4" />
+                      Export as PDF
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+
               {/* Summary cards */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <Card className="border-slate-200 bg-white">
@@ -667,6 +741,40 @@ export default function ReportsPage() {
               <span className="ml-2 text-xs text-slate-500">
                 {overdueCount} overdue, {pendingCount} awaiting comment
               </span>
+            )}
+            {!exceptionsLoading && !exceptionsError && exceptionsData.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="ml-auto">
+                    <Download className="h-4 w-4" />
+                    Export
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => exportToExcel(
+                    "Exceptions",
+                    ["Student Name", "Title", "Faculty", "Submitted Date", "Waiting Days"],
+                    [...exceptionsData]
+                      .sort((a, b) => (b.daysSinceSubmission ?? 0) - (a.daysSinceSubmission ?? 0))
+                      .map(r => [r.studentName ?? "Unknown", r.title ?? "Untitled", r.facultyName ?? "Unknown", r.submittedAt ? formatDate(r.submittedAt) : "-", r.daysSinceSubmission ?? 0]),
+                    `Exceptions_${yearLabel}.xlsx`
+                  )}>
+                    <FileSpreadsheet className="h-4 w-4" />
+                    Export as Excel
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => exportToPdf(
+                    `Exceptions Report — ${yearLabel}`,
+                    ["Student Name", "Title", "Faculty", "Submitted Date", "Waiting Days"],
+                    [...exceptionsData]
+                      .sort((a, b) => (b.daysSinceSubmission ?? 0) - (a.daysSinceSubmission ?? 0))
+                      .map(r => [r.studentName ?? "Unknown", r.title ?? "Untitled", r.facultyName ?? "Unknown", r.submittedAt ? formatDate(r.submittedAt) : "-", r.daysSinceSubmission ?? 0]),
+                    `Exceptions_${yearLabel}.pdf`
+                  )}>
+                    <FileText className="h-4 w-4" />
+                    Export as PDF
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
 
