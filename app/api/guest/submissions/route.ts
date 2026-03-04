@@ -34,20 +34,40 @@ export async function GET() {
 
     const guestFacultyId = dbUser.facultyId;
 
-    const submissions = await prisma.submission.findMany({
-      where: {
-        isSelected: true,
-        facultyId: guestFacultyId,
-      },
-      orderBy: { submittedAt: "desc" },
-      select: {
-        id: true,
-        title: true,
-        submittedAt: true,
-        user: { select: { name: true } },
-        _count: { select: { files: true } },
-      },
-    });
+    const [faculty, activeYear, submissions] = await Promise.all([
+      prisma.faculty.findUnique({
+        where: { id: guestFacultyId },
+        select: { name: true },
+      }),
+      prisma.academicYear.findFirst({
+        where: { isActive: true },
+        select: { yearLabel: true },
+      }),
+      prisma.submission.findMany({
+        where: {
+          isSelected: true,
+          facultyId: guestFacultyId,
+        },
+        orderBy: { submittedAt: "desc" },
+        select: {
+          id: true,
+          title: true,
+          submittedAt: true,
+          notes: true,
+          user: { select: { name: true } },
+          files: {
+            select: {
+              id: true,
+              url: true,
+              pathname: true,
+              contentType: true,
+              size: true,
+            },
+          },
+          _count: { select: { files: true } },
+        },
+      }),
+    ]);
 
     const result = submissions.map((s) => ({
       id: s.id,
@@ -55,9 +75,15 @@ export async function GET() {
       studentName: s.user.name,
       submittedAt: s.submittedAt,
       fileCount: s._count.files,
+      description: s.notes,
+      files: s.files,
     }));
 
-    return NextResponse.json({ submissions: result });
+    return NextResponse.json({
+      submissions: result,
+      facultyName: faculty?.name ?? "Unknown Faculty",
+      academicYearLabel: activeYear?.yearLabel ?? null,
+    });
   } catch (error) {
     console.error("Error fetching guest submissions:", error);
     return NextResponse.json(
