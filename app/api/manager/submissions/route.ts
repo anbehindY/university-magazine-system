@@ -36,7 +36,14 @@ export async function GET(req: NextRequest) {
         submittedAt: true,
         facultyId: true,
         academicYearId: true,
+        notes: true,
+        isSelected: true,
+        reviewStatus: true,
         user: { select: { name: true } },
+        files: {
+          select: { id: true, url: true, pathname: true, contentType: true, size: true },
+          orderBy: { createdAt: "asc" as const },
+        },
         _count: { select: { files: true } },
       },
     });
@@ -69,6 +76,16 @@ export async function GET(req: NextRequest) {
         submittedAt: s.submittedAt,
         fileCount: s._count.files,
         academicYearId: s.academicYearId,
+        notes: s.notes,
+        isSelected: s.isSelected,
+        reviewStatus: s.reviewStatus,
+        files: s.files.map((f) => ({
+          id: f.id,
+          url: f.url,
+          filename: f.pathname.split("/").pop() ?? f.id,
+          contentType: f.contentType,
+          size: f.size,
+        })),
       }))
       .sort((a, b) => {
         const facultyCompare = a.facultyName.localeCompare(b.facultyName);
