@@ -41,6 +41,7 @@ export async function GET() {
           },
         },
         _count: { select: { comments: true } },
+        academicYear: { select: { id: true, yearLabel: true, isActive: true } },
       },
     });
 
