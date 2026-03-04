@@ -120,6 +120,14 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // Auto-transition reviewStatus to COMMENTED when coordinator comments
+    if (role === "MARKETING_COORDINATOR") {
+      await prisma.submission.update({
+        where: { id: submissionId },
+        data: { reviewStatus: "COMMENTED" },
+      });
+    }
+
     return NextResponse.json({ comment }, { status: 201 });
   } catch (error) {
     console.error("Error in comments POST route:", error);

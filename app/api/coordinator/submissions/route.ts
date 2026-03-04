@@ -67,6 +67,7 @@ export async function GET(req: NextRequest) {
           status: true,
           submittedAt: true,
           isSelected: true,
+          reviewStatus: true,
           notes: true,
           user: { select: { name: true } },
           files: {
@@ -85,6 +86,7 @@ export async function GET(req: NextRequest) {
       studentName: s.user.name,
       submittedAt: s.submittedAt,
       isSelected: s.isSelected,
+      reviewStatus: s.reviewStatus,
       notes: s.notes,
       files: s.files.map((f) => ({
         id: f.id,

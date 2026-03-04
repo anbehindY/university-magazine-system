@@ -49,7 +49,7 @@ export async function PATCH(
 
     const submission = await prisma.submission.findUnique({
       where: { id },
-      select: { facultyId: true, isSelected: true },
+      select: { facultyId: true, isSelected: true, reviewStatus: true },
     });
 
     if (!submission) {
@@ -71,9 +71,10 @@ export async function PATCH(
     const body = (await req.json()) as {
       isSelected?: boolean;
       notes?: string | null;
+      reviewStatus?: string;
     };
 
-    const updateData: { isSelected?: boolean; notes?: string | null } = {};
+    const updateData: { isSelected?: boolean; notes?: string | null; reviewStatus?: "PENDING" | "REVIEWING" | "COMMENTED" } = {};
 
     if (typeof body.isSelected === "boolean") {
       updateData.isSelected = body.isSelected;
@@ -81,6 +82,19 @@ export async function PATCH(
 
     if (body.notes !== undefined) {
       updateData.notes = body.notes ?? null;
+    }
+
+    if (body.reviewStatus) {
+      const order = { PENDING: 0, REVIEWING: 1, COMMENTED: 2 } as const;
+      const currentStatus = submission.reviewStatus as keyof typeof order;
+      const requestedStatus = body.reviewStatus as keyof typeof order;
+      if (
+        requestedStatus in order &&
+        order[requestedStatus] > order[currentStatus]
+      ) {
+        updateData.reviewStatus = requestedStatus;
+      }
+      // Silently ignore invalid or backward transitions
     }
 
     if (Object.keys(updateData).length === 0) {
@@ -96,6 +110,7 @@ export async function PATCH(
       select: {
         id: true,
         isSelected: true,
+        reviewStatus: true,
         notes: true,
         title: true,
         user: { select: { email: true, name: true } },
@@ -120,6 +135,7 @@ export async function PATCH(
       submission: {
         id: updated.id,
         isSelected: updated.isSelected,
+        reviewStatus: updated.reviewStatus,
         notes: updated.notes,
       },
     });
