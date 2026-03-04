@@ -11,7 +11,7 @@ See: .planning/PROJECT.md (updated 2026-03-02)
 
 Milestone: v1.0 MVP — GAP CLOSURE
 Status: Complete (all phases done)
-Last activity: 2026-03-05 — Completed quick task 16: Coordinator download-before-comment gate
+Last activity: 2026-03-05 — Completed quick task 17: Guest portal layout flicker fix + mini-dashboard
 
 Progress: [████████████████████] 100% (9/9 phases complete)
 
@@ -102,6 +102,8 @@ All decisions logged in PROJECT.md Key Decisions table.
 - [Quick-15]: Canonical Tailwind classes used: w-120 and sm:max-w-140 instead of arbitrary bracket values
 - [Quick-16]: useRef<Set<string>> + useState counter pattern for download tracking — useRef holds Set (no re-render cost on mutation), counter triggers re-render
 - [Quick-16]: hasDownloaded derived at top of render using selectedSubmissionId; downloadVersion read implicitly to ensure freshness
+- [Quick-17]: Server-side redirect("/guest") in portal layout fires before any HTML sent — eliminates sidebar flash for GUEST role
+- [Quick-17]: Stat cards built inline in guest page using Card primitives — StatCard not exported from portal page.tsx
 
 ### Pending Todos
 
@@ -135,9 +137,10 @@ All decisions logged in PROJECT.md Key Decisions table.
 | 14 | Realistic seed data: remove 2023-2024 year, clean 2025-2026 (no submissions) | 2026-03-05 | 47e5c0d | [14-realistic-seed-data-closure-dates-and-su](./quick/14-realistic-seed-data-closure-dates-and-su/) |
 | 15 | Marketing manager submission detail slide-over (read-only Sheet panel on row click) | 2026-03-05 | 0a64bc0 | [15-marketing-manager-submission-detail-slid](./quick/15-marketing-manager-submission-detail-slid/) |
 | 16 | Coordinator must download at least one file before commenting | 2026-03-05 | fa530e3 | [16-coordinator-must-download-at-least-one-f](./quick/16-coordinator-must-download-at-least-one-f/) |
+| 17 | Fix guest portal layout flicker on login and add guest mini-dashboard | 2026-03-05 | 692b67e | [17-fix-guest-portal-layout-flicker-on-login](./quick/17-fix-guest-portal-layout-flicker-on-login/) |
 
 ## Session Continuity
 
 Last session: 2026-03-05
-Stopped at: Quick task 16 complete
+Stopped at: Quick task 17 complete
 Resume file: None
