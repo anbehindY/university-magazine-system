@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
 import {
   Card,
@@ -19,6 +19,13 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   BookOpen,
   FileText,
@@ -45,6 +52,12 @@ type SubmissionRow = {
   fileCount: number;
   description: string | null;
   files: FileItem[];
+};
+
+type AvailableYear = {
+  id: string;
+  yearLabel: string;
+  isActive: boolean;
 };
 
 function formatFileSize(bytes: number): string {
@@ -77,12 +90,20 @@ export default function GuestMagazinePage() {
   const [academicYearLabel, setAcademicYearLabel] = useState<string | null>(
     null
   );
+  const [availableYears, setAvailableYears] = useState<AvailableYear[]>([]);
+  const [selectedYearId, setSelectedYearId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedSubmission, setSelectedSubmission] =
     useState<SubmissionRow | null>(null);
 
+  // Track whether the initial load has completed to avoid double-fetch
+  const initialLoadDone = useRef(false);
+
   useEffect(() => {
+    // Skip re-fetch when selectedYearId is being set from the initial load response
+    if (initialLoadDone.current && !selectedYearId) return;
+
     let cancelled = false;
 
     async function fetchData() {
@@ -90,7 +111,10 @@ export default function GuestMagazinePage() {
       setError(null);
 
       try {
-        const res = await fetch("/api/guest/submissions");
+        const url = selectedYearId
+          ? `/api/guest/submissions?yearId=${selectedYearId}`
+          : "/api/guest/submissions";
+        const res = await fetch(url);
         if (cancelled) return;
 
         if (!res.ok) {
@@ -108,12 +132,24 @@ export default function GuestMagazinePage() {
           submissions: SubmissionRow[];
           facultyName: string;
           academicYearLabel: string | null;
+          availableYears: AvailableYear[];
+          selectedYearId: string | null;
         };
 
         if (!cancelled) {
           setSubmissions(data.submissions ?? []);
           setFacultyName(data.facultyName);
           setAcademicYearLabel(data.academicYearLabel);
+          setAvailableYears(data.availableYears ?? []);
+
+          // On initial load, set the selectedYearId from the API response.
+          // This won't trigger a re-fetch because initialLoadDone marks it as complete.
+          if (!initialLoadDone.current && data.selectedYearId) {
+            initialLoadDone.current = true;
+            setSelectedYearId(data.selectedYearId);
+          } else if (!initialLoadDone.current) {
+            initialLoadDone.current = true;
+          }
         }
       } catch {
         if (!cancelled) {
@@ -129,10 +165,13 @@ export default function GuestMagazinePage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [selectedYearId]);
 
-  // ---- Loading state ----
-  if (loading) {
+  // Derived state: are we refetching after initial load (year switch)?
+  const isRefetching = loading && availableYears.length > 0;
+
+  // ---- Loading state (initial load only) ----
+  if (loading && !isRefetching) {
     return (
       <main>
         {/* Hero skeleton */}
@@ -185,11 +224,24 @@ export default function GuestMagazinePage() {
             {facultyName}
           </h1>
           <div className="flex flex-wrap items-center gap-3">
-            {academicYearLabel && (
+            {availableYears.length > 1 ? (
+              <Select value={selectedYearId} onValueChange={setSelectedYearId}>
+                <SelectTrigger className="w-40 bg-white/10 border-white/20 text-white hover:bg-white/20">
+                  <SelectValue placeholder="Select year" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableYears.map((year) => (
+                    <SelectItem key={year.id} value={year.id}>
+                      {year.yearLabel}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : academicYearLabel ? (
               <Badge className="bg-amber-400/20 text-amber-300 border-amber-400/30 hover:bg-amber-400/30">
                 {academicYearLabel}
               </Badge>
-            )}
+            ) : null}
             <span className="text-lg text-slate-300">
               {submissions.length} Selected{" "}
               {submissions.length === 1 ? "Article" : "Articles"}
@@ -231,7 +283,7 @@ export default function GuestMagazinePage() {
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-600">Academic Year</p>
-                <p className="text-xs text-slate-500">Current active year</p>
+                <p className="text-xs text-slate-500">Selected year</p>
               </div>
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
                 <CalendarDays className="h-5 w-5" />
@@ -244,7 +296,7 @@ export default function GuestMagazinePage() {
 
       {/* Articles grid */}
       <div className="px-4 sm:px-6 lg:px-8 pb-8">
-        {submissions.length === 0 ? (
+        {submissions.length === 0 && !isRefetching ? (
           /* Empty state */
           <div className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center">
             <BookOpen className="h-16 w-16 text-slate-300 mb-4" />
@@ -257,7 +309,11 @@ export default function GuestMagazinePage() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div
+            className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 transition-opacity duration-200 ${
+              isRefetching ? "opacity-50 pointer-events-none" : ""
+            }`}
+          >
             {submissions.map((submission) => (
               <Card
                 key={submission.id}
