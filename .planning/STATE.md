@@ -11,7 +11,7 @@ See: .planning/PROJECT.md (updated 2026-03-02)
 
 Milestone: v1.0 MVP — GAP CLOSURE
 Status: Complete (all phases done)
-Last activity: 2026-03-05 — Completed quick task 19: Fix guest page padding/spacing issues
+Last activity: 2026-03-05 — Completed quick task 20: Guest year selector glow + publications header
 
 Progress: [████████████████████] 100% (9/9 phases complete)
 
@@ -145,9 +145,10 @@ All decisions logged in PROJECT.md Key Decisions table.
 | 17 | Fix guest portal layout flicker on login and add guest mini-dashboard | 2026-03-05 | 692b67e | [17-fix-guest-portal-layout-flicker-on-login](./quick/17-fix-guest-portal-layout-flicker-on-login/) |
 | 18 | Guest can view selected submissions for each academic year (year selector) | 2026-03-05 | fbfa228 | [18-guest-can-view-selected-submissions-for-](./quick/18-guest-can-view-selected-submissions-for-/) |
 | 19 | Fix guest page padding/spacing issues and add Overview dashboard section | 2026-03-05 | f7c48d2 | [19-fix-guest-page-padding-spacing-issues-an](./quick/19-fix-guest-page-padding-spacing-issues-an/) |
+| 20 | Guest year selector silver glow, publications header, smaller article cards | 2026-03-05 | 9ae0793 | — |
 
 ## Session Continuity
 
 Last session: 2026-03-05
-Stopped at: Quick task 19 complete
+Stopped at: Quick task 20 complete
 Resume file: None
