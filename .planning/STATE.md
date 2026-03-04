@@ -100,6 +100,8 @@ All decisions logged in PROJECT.md Key Decisions table.
 - [Quick-10]: Kept GuestDashboard component as dead code in portal page -- removing requires DashboardData type refactor
 - [Quick-15]: formatRole helper omitted from manager slide-over -- no comment thread in read-only view so function is unused
 - [Quick-15]: Canonical Tailwind classes used: w-120 and sm:max-w-140 instead of arbitrary bracket values
+- [Quick-16]: useRef<Set<string>> + useState counter pattern for download tracking — useRef holds Set (no re-render cost on mutation), counter triggers re-render
+- [Quick-16]: hasDownloaded derived at top of render using selectedSubmissionId; downloadVersion read implicitly to ensure freshness
 
 ### Pending Todos
 
@@ -132,9 +134,10 @@ All decisions logged in PROJECT.md Key Decisions table.
 | 13 | Seed data with pending + overdue exception submissions for 2025-2026 | 2026-03-05 | b2bb666 | [13-seed-data-should-have-submissions-that-i](./quick/13-seed-data-should-have-submissions-that-i/) |
 | 14 | Realistic seed data: remove 2023-2024 year, clean 2025-2026 (no submissions) | 2026-03-05 | 47e5c0d | [14-realistic-seed-data-closure-dates-and-su](./quick/14-realistic-seed-data-closure-dates-and-su/) |
 | 15 | Marketing manager submission detail slide-over (read-only Sheet panel on row click) | 2026-03-05 | 0a64bc0 | [15-marketing-manager-submission-detail-slid](./quick/15-marketing-manager-submission-detail-slid/) |
+| 16 | Coordinator must download at least one file before commenting | 2026-03-05 | fa530e3 | [16-coordinator-must-download-at-least-one-f](./quick/16-coordinator-must-download-at-least-one-f/) |
 
 ## Session Continuity
 
 Last session: 2026-03-05
-Stopped at: Quick task 15 complete
+Stopped at: Quick task 16 complete
 Resume file: None
