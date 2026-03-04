@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
             select: { id: true, url: true, pathname: true, contentType: true, size: true },
             orderBy: { createdAt: "asc" as const },
           },
-          _count: { select: { files: true } },
+          _count: { select: { files: true, comments: true } },
         },
       }),
     ]);
@@ -94,6 +94,7 @@ export async function GET(req: NextRequest) {
         size: f.size,
       })),
       fileCount: s._count.files,
+      commentCount: s._count.comments,
     }));
 
     return NextResponse.json({ submissions: result, total, page, pageSize });
