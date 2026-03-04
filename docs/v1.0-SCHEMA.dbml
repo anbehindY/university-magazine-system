@@ -1,0 +1,180 @@
+// University Magazine Contribution System — Database Schema (DBML)
+// Generated from prisma/schema.prisma
+
+// ─── Enums ───────────────────────────────────────────────────────────
+
+Enum Role {
+  ADMINISTRATOR
+  MARKETING_MANAGER
+  MARKETING_COORDINATOR
+  STUDENT
+  GUEST
+}
+
+Enum SubmissionStatus {
+  DRAFT
+  SUBMITTED
+}
+
+Enum ReviewStatus {
+  PENDING
+  REVIEWING
+  COMMENTED
+}
+
+// ─── Tables ──────────────────────────────────────────────────────────
+
+Table user {
+  id varchar [pk]
+  name varchar [not null]
+  email varchar [not null, unique]
+  emailVerified boolean [not null, default: false]
+  image varchar
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+  role Role [default: 'STUDENT']
+  facultyId varchar [ref: > faculty.id]
+  banned boolean [default: false]
+  banReason varchar
+  banExpires timestamp
+}
+
+Table session {
+  id varchar [pk]
+  expiresAt timestamp [not null]
+  token varchar [not null, unique]
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+  ipAddress varchar
+  userAgent varchar
+  userId varchar [not null, ref: > user.id]
+  impersonatedBy varchar
+
+  indexes {
+    userId
+  }
+}
+
+Table account {
+  id varchar [pk]
+  accountId varchar [not null]
+  providerId varchar [not null]
+  userId varchar [not null, ref: > user.id]
+  accessToken varchar
+  refreshToken varchar
+  idToken varchar
+  accessTokenExpiresAt timestamp
+  refreshTokenExpiresAt timestamp
+  scope varchar
+  password varchar
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    userId
+  }
+}
+
+Table verification {
+  id varchar [pk]
+  identifier varchar [not null]
+  value varchar [not null]
+  expiresAt timestamp [not null]
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    identifier
+  }
+}
+
+Table faculty {
+  id varchar [pk, default: `cuid()`]
+  name varchar [not null, unique]
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+}
+
+Table config_setting {
+  id uuid [pk, default: `uuid()`]
+  key varchar(255) [not null]
+  value varchar(255) [not null]
+  type varchar(255) [not null]
+  description varchar(255)
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null]
+  updated_by varchar [ref: > user.id]
+}
+
+Table academic_year {
+  id uuid [pk, default: `uuid()`]
+  year_label varchar(35) [not null]
+  start_date date
+  end_date date
+  start_time time
+  end_time time
+  noti_message varchar(255)
+  first_closure_date timestamp
+  final_closure_date timestamp
+  is_active boolean [not null, default: false]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null]
+  updated_by varchar [ref: > user.id]
+}
+
+Table submission {
+  id uuid [pk, default: `uuid()`]
+  user_id varchar [not null, ref: > user.id]
+  status SubmissionStatus [not null, default: 'DRAFT']
+  review_status ReviewStatus [not null, default: 'PENDING']
+  agreed boolean [not null, default: false]
+  title text
+  notes text
+  submitted_at timestamp
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null]
+  is_selected boolean [not null, default: false]
+  selected_at timestamp
+  selected_by_id varchar [ref: > user.id]
+  faculty_id varchar
+  academic_year_id varchar [ref: > academic_year.id]
+}
+
+Table submission_file {
+  id uuid [pk, default: `uuid()`]
+  submission_id varchar [not null, ref: > submission.id]
+  url varchar [not null]
+  pathname varchar [not null]
+  content_type varchar
+  size integer
+  created_at timestamp [not null, default: `now()`]
+}
+
+Table submission_comment {
+  id uuid [pk, default: `uuid()`]
+  submission_id varchar [not null, ref: > submission.id]
+  author_id varchar [not null, ref: > user.id]
+  author_role varchar [not null]
+  body text [not null]
+  created_at timestamp [not null, default: `now()`]
+  parent_id varchar [ref: > submission_comment.id]
+
+  indexes {
+    submission_id
+  }
+}
+
+// ─── Relationships ───────────────────────────────────────────────────
+//
+// user.facultyId        → faculty.id          (many-to-one)
+// session.userId        → user.id             (many-to-one, cascade delete)
+// account.userId        → user.id             (many-to-one, cascade delete)
+// config_setting.updated_by → user.id         (many-to-one)
+// academic_year.updated_by  → user.id         (many-to-one)
+// submission.user_id    → user.id             (many-to-one, cascade delete)
+// submission.selected_by_id → user.id         (many-to-one, "SubmissionSelector")
+// submission.academic_year_id → academic_year.id (many-to-one)
+// submission_file.submission_id → submission.id (many-to-one, cascade delete)
+// submission_comment.submission_id → submission.id (many-to-one, cascade delete)
+// submission_comment.author_id → user.id      (many-to-one)
+// submission_comment.parent_id → submission_comment.id (self-ref, set null on delete)
