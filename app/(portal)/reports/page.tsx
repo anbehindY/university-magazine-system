@@ -371,7 +371,7 @@ export default function ReportsPage() {
       {/* Tabs */}
       <Tabs defaultValue="statistics" onValueChange={handleTabChange}>
         <TabsList className="mb-4">
-          <TabsTrigger value="statistics">Statistics</TabsTrigger>
+          <TabsTrigger value="statistics">Summary</TabsTrigger>
           <TabsTrigger value="exceptions">Exceptions</TabsTrigger>
         </TabsList>
 
@@ -394,7 +394,7 @@ export default function ReportsPage() {
             <div className="rounded-xl border border-slate-200 bg-white px-6 py-12 text-center">
               <p className="text-slate-500">No submission data available for this academic year.</p>
             </div>
-          ) : statsData.length === 1 ? (
+          ) : statsData.length === 1 && !canSwitchYear ? (
             /* ── Single-faculty view (Coordinator / Guest) ── */
             (() => {
               const faculty = statsData[0];
