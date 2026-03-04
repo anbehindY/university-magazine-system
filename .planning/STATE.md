@@ -98,6 +98,8 @@ All decisions logged in PROJECT.md Key Decisions table.
 - [Quick-9]: pnpm used instead of npm matching project lock file; jspdf ships own types so @types/jspdf not needed
 - [Quick-10]: Separate (guest) route group with own layout isolates guest experience from portal sidebar
 - [Quick-10]: Kept GuestDashboard component as dead code in portal page -- removing requires DashboardData type refactor
+- [Quick-15]: formatRole helper omitted from manager slide-over -- no comment thread in read-only view so function is unused
+- [Quick-15]: Canonical Tailwind classes used: w-120 and sm:max-w-140 instead of arbitrary bracket values
 
 ### Pending Todos
 
@@ -129,9 +131,10 @@ All decisions logged in PROJECT.md Key Decisions table.
 | 12 | Show coordinator review status badges on student submissions page | 2026-03-05 | 25760ce | [12-show-coordinator-review-status-to-studen](./quick/12-show-coordinator-review-status-to-studen/) |
 | 13 | Seed data with pending + overdue exception submissions for 2025-2026 | 2026-03-05 | b2bb666 | [13-seed-data-should-have-submissions-that-i](./quick/13-seed-data-should-have-submissions-that-i/) |
 | 14 | Realistic seed data: remove 2023-2024 year, clean 2025-2026 (no submissions) | 2026-03-05 | 47e5c0d | [14-realistic-seed-data-closure-dates-and-su](./quick/14-realistic-seed-data-closure-dates-and-su/) |
+| 15 | Marketing manager submission detail slide-over (read-only Sheet panel on row click) | 2026-03-05 | 0a64bc0 | [15-marketing-manager-submission-detail-slid](./quick/15-marketing-manager-submission-detail-slid/) |
 
 ## Session Continuity
 
 Last session: 2026-03-05
-Stopped at: Quick task 14 complete
+Stopped at: Quick task 15 complete
 Resume file: None
