@@ -94,6 +94,8 @@ All decisions logged in PROJECT.md Key Decisions table.
 - [Phase quick-6]: Client-side filtering/sorting for no-comments, consistent with existing filter/sort pattern
 - [Phase quick-6]: Amber highlight on zero-comment count for visual coordinator attention
 - [Quick-7]: Reverted MARKETING_COORDINATOR from canSwitchYear — coordinators only see active year reports
+- [Quick-9]: Used standalone autoTable(doc, options) function import — cleaner TypeScript types than prototype augmentation pattern
+- [Quick-9]: pnpm used instead of npm matching project lock file; jspdf ships own types so @types/jspdf not needed
 
 ### Pending Todos
 
@@ -119,9 +121,10 @@ All decisions logged in PROJECT.md Key Decisions table.
 | 6 | Coordinator submissions no-comments filter/sort/column + reports year selector | 2026-03-04 | cfcb475 | [6-coordinator-submissions-filter-no-commen](./quick/6-coordinator-submissions-filter-no-commen/) |
 | 7 | Coordinator should only see report for the active year | 2026-03-04 | 892f6cd | [7-coordinator-should-only-see-report-for-t](./quick/7-coordinator-should-only-see-report-for-t/) |
 | 8 | Add coordinator review status to submissions (Pending, Reviewing, Commented) | 2026-03-05 | 8edbd43 | [8-add-coordinator-review-status-to-submiss](./quick/8-add-coordinator-review-status-to-submiss/) |
+| 9 | Export reports as PDF or Excel for Marketing Managers and Coordinators | 2026-03-05 | c12de89 | [9-export-reports-as-pdf-or-excel-for-marke](./quick/9-export-reports-as-pdf-or-excel-for-marke/) |
 
 ## Session Continuity
 
 Last session: 2026-03-05
-Stopped at: Quick task 8 complete
+Stopped at: Quick task 9 complete
 Resume file: None
