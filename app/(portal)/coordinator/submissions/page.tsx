@@ -58,6 +58,7 @@ type SubmissionRow = {
   files: SubmissionFile[];
   fileCount: number;
   commentCount: number;
+  reviewStatus: string;
 };
 
 type Comment = {
@@ -326,6 +327,16 @@ export default function CoordinatorSubmissionsPage() {
       setReplyToAuthor("");
       // Immediate revalidation — don't wait for 15s poll
       await mutateComments();
+      // Optimistically update reviewStatus to COMMENTED
+      if (selectedSubmissionId) {
+        setSubmissions((prev) =>
+          prev.map((s) =>
+            s.id === selectedSubmissionId
+              ? { ...s, reviewStatus: "COMMENTED", commentCount: s.commentCount + 1 }
+              : s
+          )
+        );
+      }
     } catch {
       toast.error("Failed to post comment.");
     } finally {
@@ -353,6 +364,33 @@ export default function CoordinatorSubmissionsPage() {
   function handlePageSizeChange(newSize: number) {
     setPageSize(newSize);
     setPage(1);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Open panel + auto-transition PENDING -> REVIEWING
+  // ---------------------------------------------------------------------------
+
+  function handleOpenPanel(submission: SubmissionRow) {
+    setSelectedSubmissionId(submission.id);
+    if (submission.reviewStatus === "PENDING") {
+      fetch(`/api/coordinator/submissions/${submission.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reviewStatus: "REVIEWING" }),
+      })
+        .then((res) => {
+          if (res.ok) {
+            setSubmissions((prev) =>
+              prev.map((s) =>
+                s.id === submission.id
+                  ? { ...s, reviewStatus: "REVIEWING" }
+                  : s
+              )
+            );
+          }
+        })
+        .catch(console.error);
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -459,6 +497,7 @@ export default function CoordinatorSubmissionsPage() {
                 <th className="px-4 py-3 text-sm font-medium">Submitted Date</th>
                 <th className="px-4 py-3 text-sm font-medium text-center">Files</th>
                 <th className="px-4 py-3 text-sm font-medium text-center">Comments</th>
+                <th className="px-4 py-3 text-sm font-medium text-center">Review</th>
                 <th className="px-4 py-3 text-sm font-medium text-center">Selected</th>
               </tr>
             </thead>
@@ -470,6 +509,7 @@ export default function CoordinatorSubmissionsPage() {
                   <td className="px-4 py-3"><Skeleton className="h-4 w-24 rounded" /></td>
                   <td className="px-4 py-3 text-center"><Skeleton className="h-4 w-5 rounded mx-auto" /></td>
                   <td className="px-4 py-3 text-center"><Skeleton className="h-4 w-5 rounded mx-auto" /></td>
+                  <td className="px-4 py-3 text-center"><Skeleton className="h-5 w-16 rounded-sm mx-auto" /></td>
                   <td className="px-4 py-3 text-center"><Skeleton className="h-5 w-16 rounded-sm mx-auto" /></td>
                 </tr>
               ))}
@@ -517,6 +557,9 @@ export default function CoordinatorSubmissionsPage() {
                   Comments
                 </th>
                 <th className="px-4 py-3 text-sm font-medium text-center">
+                  Review
+                </th>
+                <th className="px-4 py-3 text-sm font-medium text-center">
                   Selected
                 </th>
               </tr>
@@ -526,7 +569,7 @@ export default function CoordinatorSubmissionsPage() {
                 <tr
                   key={submission.id}
                   className="cursor-pointer border-t border-slate-200 text-slate-900 hover:bg-slate-50"
-                  onClick={() => setSelectedSubmissionId(submission.id)}
+                  onClick={() => handleOpenPanel(submission)}
                 >
                   <td className="px-4 py-3 text-sm font-medium">
                     {submission.studentName ?? "—"}
@@ -547,6 +590,15 @@ export default function CoordinatorSubmissionsPage() {
                       <span className="text-amber-600 font-medium">0</span>
                     ) : (
                       submission.commentCount
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    {submission.reviewStatus === "COMMENTED" ? (
+                      <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">Commented</Badge>
+                    ) : submission.reviewStatus === "REVIEWING" ? (
+                      <Badge className="bg-blue-100 text-blue-800 border-blue-200">Reviewing</Badge>
+                    ) : (
+                      <Badge className="bg-slate-100 text-slate-600 border-slate-200">Pending</Badge>
                     )}
                   </td>
                   <td className="px-4 py-3 text-center">
