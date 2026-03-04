@@ -11,7 +11,7 @@ See: .planning/PROJECT.md (updated 2026-03-02)
 
 Milestone: v1.0 MVP — GAP CLOSURE
 Status: Complete (all phases done)
-Last activity: 2026-03-04 — Completed quick task 4: Improve student submissions loading UX and lock replies on archived year comments
+Last activity: 2026-03-04 — Completed quick task 5: Add NEXT_PUBLIC_APP_URL and send selection email to student
 
 Progress: [████████████████████] 100% (9/9 phases complete)
 
@@ -88,6 +88,9 @@ All decisions logged in PROJECT.md Key Decisions table.
 - [Quick-4]: submissionsLoading initialized to true to prevent empty-state flash before useEffect fires
 - [Quick-4]: isArchivedYear guards on selectedSubmission !== null to prevent false positive on null check
 - [Quick-4]: Locked banner uses ternary to distinguish closure-locked vs archived-year-locked messages
+- [Quick-5]: Email only fires on false-to-true isSelected transition -- prevents duplicate emails on re-select and no email on deselect
+- [Quick-5]: API response shape preserved (id, isSelected, notes) -- title and user stripped before return to maintain existing contract
+- [Quick-5]: .env not committed (contains secrets) -- NEXT_PUBLIC_APP_URL added locally only
 
 ### Pending Todos
 
@@ -109,9 +112,10 @@ All decisions logged in PROJECT.md Key Decisions table.
 | 2 | Add success toast notifications to all 8 admin actions (closure-dates, upload-rules, users) | 2026-03-04 | a20c584 | [2-add-success-toasters-to-all-admin-action](./quick/2-add-success-toasters-to-all-admin-action/) |
 | 3 | Separate student submissions by academic year — current editable, archived read-only | 2026-03-04 | 4b6254b | [3-separate-student-submissions-by-academic](./quick/3-separate-student-submissions-by-academic/) |
 | 4 | Skeleton loading cards, auth guard, and archived-year comment reply locking | 2026-03-04 | cfdb0cb | [4-improve-student-submissions-loading-ux-a](./quick/4-improve-student-submissions-loading-ux-a/) |
+| 5 | Add NEXT_PUBLIC_APP_URL and send selection email to student | 2026-03-04 | 8a365c2 | [5-update-env-with-app-url-and-send-email-t](./quick/5-update-env-with-app-url-and-send-email-t/) |
 
 ## Session Continuity
 
 Last session: 2026-03-04
-Stopped at: Quick task 4 complete
+Stopped at: Quick task 5 complete
 Resume file: None
