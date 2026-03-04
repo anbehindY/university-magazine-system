@@ -11,7 +11,7 @@ See: .planning/PROJECT.md (updated 2026-03-02)
 
 Milestone: v1.0 MVP — GAP CLOSURE
 Status: Complete (all phases done)
-Last activity: 2026-03-05 — Completed quick task 12: Show coordinator review status to students
+Last activity: 2026-03-05 — Completed quick task 13: Seed data with pending + overdue exception submissions
 
 Progress: [████████████████████] 100% (9/9 phases complete)
 
@@ -127,9 +127,10 @@ All decisions logged in PROJECT.md Key Decisions table.
 | 10 | Guest single-page magazine view with standalone layout | 2026-03-05 | 0fb900e | [10-guest-single-page-magazine-view-with-sta](./quick/10-guest-single-page-magazine-view-with-sta/) |
 | 11 | Rename Statistics tab to Summary, always show multi-faculty view for managers | 2026-03-05 | 7ca7fe2 | [11-rename-statistics-tab-to-summary-and-alw](./quick/11-rename-statistics-tab-to-summary-and-alw/) |
 | 12 | Show coordinator review status badges on student submissions page | 2026-03-05 | 25760ce | [12-show-coordinator-review-status-to-studen](./quick/12-show-coordinator-review-status-to-studen/) |
+| 13 | Seed data with pending + overdue exception submissions for 2025-2026 | 2026-03-05 | b2bb666 | [13-seed-data-should-have-submissions-that-i](./quick/13-seed-data-should-have-submissions-that-i/) |
 
 ## Session Continuity
 
 Last session: 2026-03-05
-Stopped at: Quick task 12 complete
+Stopped at: Quick task 13 complete
 Resume file: None
