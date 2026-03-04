@@ -234,7 +234,7 @@ export async function PUT(req: NextRequest) {
           const emails = coordinators.map((c) => c.email);
           const submissionTitle = updatedSubmission.title ?? "Untitled";
           const studentName = session.user.name;
-          const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+          const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:5000";
 
           // Fire-and-forget — do NOT await; errors logged, not thrown
           sendMail({

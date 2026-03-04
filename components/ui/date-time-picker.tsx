@@ -56,6 +56,7 @@ export function DateTimePicker({
   const [hour, setHour] = React.useState(parts.hour)
   const [minute, setMinute] = React.useState(parts.minute)
   const [period, setPeriod] = React.useState<"AM" | "PM">(parts.period)
+  const [displayMonth, setDisplayMonth] = React.useState<Date>(value ?? new Date())
 
   React.useEffect(() => {
     const p = parseParts(value)
@@ -63,6 +64,11 @@ export function DateTimePicker({
     setMinute(p.minute)
     setPeriod(p.period)
   }, [value])
+
+  // Reset displayed month to selected value's month when popover opens
+  React.useEffect(() => {
+    if (open) setDisplayMonth(value ?? new Date())
+  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleDateSelect(date: Date | undefined) {
     if (!date) { onChange(undefined); return }
@@ -110,6 +116,10 @@ export function DateTimePicker({
           mode="single"
           selected={value}
           onSelect={handleDateSelect}
+          month={displayMonth}
+          onMonthChange={setDisplayMonth}
+          startMonth={new Date(new Date().getFullYear() - 10, 0)}
+          endMonth={new Date(new Date().getFullYear() + 20, 11)}
           initialFocus
         />
         <Separator className="bg-slate-100" />

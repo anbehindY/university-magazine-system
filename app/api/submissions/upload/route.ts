@@ -141,21 +141,8 @@ export async function POST(request: Request) {
           submissionId?: string;
         } : {};
 
-        if (!parsedToken.submissionId) return;
-
-        const blobSize =
-          "size" in blob && typeof (blob as { size?: unknown }).size === "number"
-            ? (blob as { size: number }).size
-            : null;
-        await prisma.submissionFile.create({
-          data: {
-            submissionId: parsedToken.submissionId,
-            url: blob.url,
-            pathname: blob.pathname,
-            contentType: blob.contentType ?? null,
-            size: blobSize,
-          },
-        });
+        // SubmissionFile rows are created by the client via POST /api/submissions/files
+        // after the upload resolves. No server-side insert here to avoid duplicates.
       },
     });
 
