@@ -11,7 +11,7 @@ See: .planning/PROJECT.md (updated 2026-03-02)
 
 Milestone: v1.0 MVP — GAP CLOSURE
 Status: Complete (all phases done)
-Last activity: 2026-03-04 — Completed quick task 7: Coordinator should only see report for the active year
+Last activity: 2026-03-05 — Completed quick task 8: Add coordinator review status to submissions
 
 Progress: [████████████████████] 100% (9/9 phases complete)
 
@@ -118,9 +118,10 @@ All decisions logged in PROJECT.md Key Decisions table.
 | 5 | Add NEXT_PUBLIC_APP_URL and send selection email to student | 2026-03-04 | 8a365c2 | [5-update-env-with-app-url-and-send-email-t](./quick/5-update-env-with-app-url-and-send-email-t/) |
 | 6 | Coordinator submissions no-comments filter/sort/column + reports year selector | 2026-03-04 | cfcb475 | [6-coordinator-submissions-filter-no-commen](./quick/6-coordinator-submissions-filter-no-commen/) |
 | 7 | Coordinator should only see report for the active year | 2026-03-04 | 892f6cd | [7-coordinator-should-only-see-report-for-t](./quick/7-coordinator-should-only-see-report-for-t/) |
+| 8 | Add coordinator review status to submissions (Pending, Reviewing, Commented) | 2026-03-05 | 8edbd43 | [8-add-coordinator-review-status-to-submiss](./quick/8-add-coordinator-review-status-to-submiss/) |
 
 ## Session Continuity
 
-Last session: 2026-03-04
-Stopped at: Quick task 7 complete
+Last session: 2026-03-05
+Stopped at: Quick task 8 complete
 Resume file: None
