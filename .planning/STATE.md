@@ -128,9 +128,10 @@ All decisions logged in PROJECT.md Key Decisions table.
 | 11 | Rename Statistics tab to Summary, always show multi-faculty view for managers | 2026-03-05 | 7ca7fe2 | [11-rename-statistics-tab-to-summary-and-alw](./quick/11-rename-statistics-tab-to-summary-and-alw/) |
 | 12 | Show coordinator review status badges on student submissions page | 2026-03-05 | 25760ce | [12-show-coordinator-review-status-to-studen](./quick/12-show-coordinator-review-status-to-studen/) |
 | 13 | Seed data with pending + overdue exception submissions for 2025-2026 | 2026-03-05 | b2bb666 | [13-seed-data-should-have-submissions-that-i](./quick/13-seed-data-should-have-submissions-that-i/) |
+| 14 | Realistic seed data: remove 2023-2024 year, clean 2025-2026 (no submissions) | 2026-03-05 | 47e5c0d | [14-realistic-seed-data-closure-dates-and-su](./quick/14-realistic-seed-data-closure-dates-and-su/) |
 
 ## Session Continuity
 
 Last session: 2026-03-05
-Stopped at: Quick task 13 complete
+Stopped at: Quick task 14 complete
 Resume file: None
