@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { isPastFinalClosure } from "@/lib/closure-guard";
+import { sendMail } from "@/lib/mailer";
 import prisma from "@/lib/prisma";
 import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
@@ -48,7 +49,7 @@ export async function PATCH(
 
     const submission = await prisma.submission.findUnique({
       where: { id },
-      select: { facultyId: true },
+      select: { facultyId: true, isSelected: true },
     });
 
     if (!submission) {
@@ -64,6 +65,8 @@ export async function PATCH(
         { status: 403 }
       );
     }
+
+    const wasSelected = submission.isSelected;
 
     const body = (await req.json()) as {
       isSelected?: boolean;
@@ -90,10 +93,36 @@ export async function PATCH(
     const updated = await prisma.submission.update({
       where: { id },
       data: updateData,
-      select: { id: true, isSelected: true, notes: true },
+      select: {
+        id: true,
+        isSelected: true,
+        notes: true,
+        title: true,
+        user: { select: { email: true, name: true } },
+      },
     });
 
-    return NextResponse.json({ submission: updated });
+    // Send notification email when submission is newly selected
+    if (!wasSelected && updated.isSelected) {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:5000";
+      const submissionTitle = updated.title ?? "Untitled";
+
+      sendMail({
+        to: updated.user.email,
+        subject: `Your submission "${submissionTitle}" has been selected!`,
+        html: `<p>Congratulations! Your submission <em>${submissionTitle}</em> has been selected for the university magazine.</p>
+               <p><a href="${appUrl}/submissions">View your submissions</a></p>`,
+        text: `Congratulations! Your submission "${submissionTitle}" has been selected for the university magazine. Visit ${appUrl}/submissions to view your submissions.`,
+      }).catch(console.error);
+    }
+
+    return NextResponse.json({
+      submission: {
+        id: updated.id,
+        isSelected: updated.isSelected,
+        notes: updated.notes,
+      },
+    });
   } catch (error) {
     console.error("Error updating coordinator submission:", error);
     return NextResponse.json(
