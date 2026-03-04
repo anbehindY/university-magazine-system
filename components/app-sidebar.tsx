@@ -91,26 +91,18 @@ function buildPages(role?: string | null) {
         { title: "Reports", url: "/reports", icon: ChartColumn },
       ];
     case "GUEST":
-      return [
-        { title: "Dashboard", url: "/", icon: LayoutDashboard },
-        {
-          title: "Selected Articles",
-          url: "/guest/submissions",
-          icon: CircleCheckBig,
-        },
-        { title: "Reports", url: "/reports", icon: ChartColumn },
-      ];
+      return [];
     case "STUDENT":
       return [
         { title: "Dashboard", url: "/", icon: LayoutDashboard },
-        { title: "My Submissions", url: "/submissions", icon: Upload },
+        { title: "My Submissions", url: "/student/submissions", icon: Upload },
       ];
     case "ADMINISTRATOR":
       return [
         { title: "Dashboard", url: "/", icon: LayoutDashboard },
-        { title: "Closure Dates", url: "/admin", icon: Calendar },
+        { title: "Closure Dates", url: "/admin/closure-dates", icon: Calendar },
         { title: "Upload Rules", url: "/admin/upload-rules", icon: Upload },
-        { title: "User Management", url: "/users", icon: Users },
+        { title: "User Management", url: "/admin/users", icon: Users },
       ];
     default:
       return [];
