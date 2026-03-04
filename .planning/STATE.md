@@ -11,7 +11,7 @@ See: .planning/PROJECT.md (updated 2026-03-02)
 
 Milestone: v1.0 MVP — GAP CLOSURE
 Status: Complete (all phases done)
-Last activity: 2026-03-05 — Completed quick task 15: Marketing manager submission detail slide-over
+Last activity: 2026-03-05 — Completed quick task 16: Coordinator download-before-comment gate
 
 Progress: [████████████████████] 100% (9/9 phases complete)
 
