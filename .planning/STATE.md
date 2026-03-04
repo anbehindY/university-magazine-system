@@ -11,7 +11,7 @@ See: .planning/PROJECT.md (updated 2026-03-02)
 
 Milestone: v1.0 MVP — GAP CLOSURE
 Status: Complete (all phases done)
-Last activity: 2026-03-05 — Completed quick task 18: Guest multi-year selected submissions
+Last activity: 2026-03-05 — Completed quick task 19: Fix guest page padding/spacing issues
 
 Progress: [████████████████████] 100% (9/9 phases complete)
 
@@ -107,6 +107,8 @@ All decisions logged in PROJECT.md Key Decisions table.
 - [Quick-18]: availableYears queried via academicYear.findMany with submissions.some filter — single DB query finds all years with selected submissions for guest's faculty
 - [Quick-18]: useRef initialLoadDone prevents double-fetch when selectedYearId is set from initial API response on mount
 - [Quick-18]: isRefetching derived as loading && availableYears.length > 0 — distinguishes initial skeleton from year-switch opacity overlay
+- [Quick-19]: Stat cards wrapped in bg-slate-50 rounded-xl container with Overview label — creates visual grouping distinct from white article cards without changing Card component structure
+- [Quick-19]: border-slate-200/60 opacity tweak reduces visual noise of card borders against the slate-50 wrapper background
 
 ### Pending Todos
 
@@ -142,9 +144,10 @@ All decisions logged in PROJECT.md Key Decisions table.
 | 16 | Coordinator must download at least one file before commenting | 2026-03-05 | fa530e3 | [16-coordinator-must-download-at-least-one-f](./quick/16-coordinator-must-download-at-least-one-f/) |
 | 17 | Fix guest portal layout flicker on login and add guest mini-dashboard | 2026-03-05 | 692b67e | [17-fix-guest-portal-layout-flicker-on-login](./quick/17-fix-guest-portal-layout-flicker-on-login/) |
 | 18 | Guest can view selected submissions for each academic year (year selector) | 2026-03-05 | fbfa228 | [18-guest-can-view-selected-submissions-for-](./quick/18-guest-can-view-selected-submissions-for-/) |
+| 19 | Fix guest page padding/spacing issues and add Overview dashboard section | 2026-03-05 | f7c48d2 | [19-fix-guest-page-padding-spacing-issues-an](./quick/19-fix-guest-page-padding-spacing-issues-an/) |
 
 ## Session Continuity
 
 Last session: 2026-03-05
-Stopped at: Quick task 18 complete
+Stopped at: Quick task 19 complete
 Resume file: None
