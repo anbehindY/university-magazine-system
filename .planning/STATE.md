@@ -79,6 +79,11 @@ All decisions logged in PROJECT.md Key Decisions table.
 - [Phase 09-pagination]: handlePageSizeChange resets page to 1 before updating pageSize — prevents out-of-bounds navigation on coordinator submissions page
 - [Quick-1]: useRef hasAutoDeactivated guard prevents re-triggering after first deactivation call; separate useEffect resets guard on activeYear.id change
 - [Quick-1]: Silent failure on auto-deactivation (console.error only) — avoids confusing UI errors on page load; admin can still manage manually
+- [Quick-3]: academicYear included via Prisma include select — no extra DB call, passes through ...rest spread in mapped
+- [Quick-3]: currentSubmissions and archivedByYear derived inline (no useMemo) — submissions array is small per-user
+- [Quick-3]: archivedYearLabels sorted descending so most recent past year appears first
+- [Quick-3]: New Submission button hidden (not just disabled) when closureYearLabel=null — avoids misleading UI state
+- [Quick-3]: selectedSubmission lookup remains on full submissions array — comment sheet works for archived cards
 
 ### Pending Todos
 
@@ -98,9 +103,10 @@ All decisions logged in PROJECT.md Key Decisions table.
 |---|-------------|------|--------|-----------|
 | 1 | Remove status from Previous Years and auto-deactivate years past final closure | 2026-03-04 | 029146d | [1-remove-status-from-previous-years-and-au](./quick/1-remove-status-from-previous-years-and-au/) |
 | 2 | Add success toast notifications to all 8 admin actions (closure-dates, upload-rules, users) | 2026-03-04 | a20c584 | [2-add-success-toasters-to-all-admin-action](./quick/2-add-success-toasters-to-all-admin-action/) |
+| 3 | Separate student submissions by academic year — current editable, archived read-only | 2026-03-04 | 4b6254b | [3-separate-student-submissions-by-academic](./quick/3-separate-student-submissions-by-academic/) |
 
 ## Session Continuity
 
 Last session: 2026-03-04
-Stopped at: Quick task 2 complete
+Stopped at: Quick task 3 complete
 Resume file: None
