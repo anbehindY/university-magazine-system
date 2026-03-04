@@ -11,7 +11,7 @@ See: .planning/PROJECT.md (updated 2026-03-02)
 
 Milestone: v1.0 MVP — GAP CLOSURE
 Status: Complete (all phases done)
-Last activity: 2026-03-04 — Completed quick task 6: Coordinator submissions no-comments filter + reports year selector
+Last activity: 2026-03-04 — Completed quick task 7: Coordinator should only see report for the active year
 
 Progress: [████████████████████] 100% (9/9 phases complete)
 
@@ -93,6 +93,7 @@ All decisions logged in PROJECT.md Key Decisions table.
 - [Quick-5]: .env not committed (contains secrets) -- NEXT_PUBLIC_APP_URL added locally only
 - [Phase quick-6]: Client-side filtering/sorting for no-comments, consistent with existing filter/sort pattern
 - [Phase quick-6]: Amber highlight on zero-comment count for visual coordinator attention
+- [Quick-7]: Reverted MARKETING_COORDINATOR from canSwitchYear — coordinators only see active year reports
 
 ### Pending Todos
 
@@ -116,9 +117,10 @@ All decisions logged in PROJECT.md Key Decisions table.
 | 4 | Skeleton loading cards, auth guard, and archived-year comment reply locking | 2026-03-04 | cfdb0cb | [4-improve-student-submissions-loading-ux-a](./quick/4-improve-student-submissions-loading-ux-a/) |
 | 5 | Add NEXT_PUBLIC_APP_URL and send selection email to student | 2026-03-04 | 8a365c2 | [5-update-env-with-app-url-and-send-email-t](./quick/5-update-env-with-app-url-and-send-email-t/) |
 | 6 | Coordinator submissions no-comments filter/sort/column + reports year selector | 2026-03-04 | cfcb475 | [6-coordinator-submissions-filter-no-commen](./quick/6-coordinator-submissions-filter-no-commen/) |
+| 7 | Coordinator should only see report for the active year | 2026-03-04 | 892f6cd | [7-coordinator-should-only-see-report-for-t](./quick/7-coordinator-should-only-see-report-for-t/) |
 
 ## Session Continuity
 
 Last session: 2026-03-04
-Stopped at: Quick task 6 complete
+Stopped at: Quick task 7 complete
 Resume file: None
