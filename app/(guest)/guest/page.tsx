@@ -178,7 +178,7 @@ export default function GuestMagazinePage() {
         <div className="mx-4 sm:mx-6 lg:mx-8 mt-6 rounded-2xl animate-pulse bg-slate-200 h-48 sm:h-56" />
 
         {/* Grid skeleton */}
-        <div className="px-4 sm:px-6 lg:px-8 py-8">
+        <div className="px-4 sm:px-6 lg:px-8 pt-8 pb-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {Array.from({ length: 6 }).map((_, i) => (
               <Card key={i} className="border-slate-200 bg-white">
@@ -219,7 +219,7 @@ export default function GuestMagazinePage() {
         {/* Decorative icon */}
         <BookOpen className="absolute right-6 sm:right-10 top-1/2 -translate-y-1/2 h-32 w-32 sm:h-40 sm:w-40 text-white/5" />
 
-        <div className="relative z-10 space-y-3">
+        <div className="relative z-10 space-y-5">
           <h1 className="text-4xl sm:text-5xl font-bold text-white">
             {facultyName}
           </h1>
@@ -252,50 +252,53 @@ export default function GuestMagazinePage() {
 
       {/* Summary stat cards */}
       <div className="px-4 sm:px-6 lg:px-8 pt-8">
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card className="border-slate-200 bg-white text-slate-900">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600">Published Articles</p>
-                <p className="text-xs text-slate-500">Selected for publication</p>
-              </div>
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
-                <FileText className="h-5 w-5" />
-              </span>
-            </CardHeader>
-            <CardContent className="text-3xl font-semibold">{submissions.length}</CardContent>
-          </Card>
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-3">Overview</h2>
+        <div className="rounded-xl bg-slate-50 border border-slate-100 p-4">
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card className="border-slate-200/60 bg-white shadow-sm text-slate-900">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600">Published Articles</p>
+                  <p className="text-xs text-slate-500">Selected for publication</p>
+                </div>
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+                  <FileText className="h-5 w-5" />
+                </span>
+              </CardHeader>
+              <CardContent className="text-3xl font-semibold">{submissions.length}</CardContent>
+            </Card>
 
-          <Card className="border-slate-200 bg-white text-slate-900">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600">Faculty</p>
-                <p className="text-xs text-slate-500">Your assigned faculty</p>
-              </div>
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
-                <BookOpen className="h-5 w-5" />
-              </span>
-            </CardHeader>
-            <CardContent className="text-3xl font-semibold truncate">{facultyName}</CardContent>
-          </Card>
+            <Card className="border-slate-200/60 bg-white shadow-sm text-slate-900">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600">Faculty</p>
+                  <p className="text-xs text-slate-500">Your assigned faculty</p>
+                </div>
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
+                  <BookOpen className="h-5 w-5" />
+                </span>
+              </CardHeader>
+              <CardContent className="text-3xl font-semibold truncate">{facultyName}</CardContent>
+            </Card>
 
-          <Card className="border-slate-200 bg-white text-slate-900">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600">Academic Year</p>
-                <p className="text-xs text-slate-500">Selected year</p>
-              </div>
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
-                <CalendarDays className="h-5 w-5" />
-              </span>
-            </CardHeader>
-            <CardContent className="text-3xl font-semibold">{academicYearLabel ?? "—"}</CardContent>
-          </Card>
+            <Card className="border-slate-200/60 bg-white shadow-sm text-slate-900">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600">Academic Year</p>
+                  <p className="text-xs text-slate-500">Selected year</p>
+                </div>
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
+                  <CalendarDays className="h-5 w-5" />
+                </span>
+              </CardHeader>
+              <CardContent className="text-3xl font-semibold">{academicYearLabel ?? "—"}</CardContent>
+            </Card>
+          </div>
         </div>
       </div>
 
       {/* Articles grid */}
-      <div className="px-4 sm:px-6 lg:px-8 pb-8">
+      <div className="px-4 sm:px-6 lg:px-8 pt-8 pb-8">
         {submissions.length === 0 && !isRefetching ? (
           /* Empty state */
           <div className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center">
