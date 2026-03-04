@@ -258,12 +258,14 @@ export default function StudentSubmissionsPage() {
   );
 
   const comments: Comment[] = commentsData?.comments ?? [];
-  const isLocked: boolean = commentsData?.isLocked ?? false;
 
   // Derived: selected submission details for panel header
   const selectedSubmission = selectedCommentSubmissionId
     ? submissions.find((s) => s.id === selectedCommentSubmissionId) ?? null
     : null;
+
+  const isArchivedYear = selectedSubmission !== null && selectedSubmission?.academicYear?.isActive !== true;
+  const isLocked: boolean = (commentsData?.isLocked ?? false) || isArchivedYear;
 
   function handleCommentPanelClose(open: boolean) {
     if (!open) {
@@ -1458,7 +1460,9 @@ export default function StudentSubmissionsPage() {
             {isLocked && (
               <Alert className="border-amber-200 bg-amber-50 text-amber-900">
                 <AlertDescription className="text-amber-800">
-                  Comments are locked — the final closure date has passed.
+                  {isArchivedYear
+                    ? "Comments are locked — this submission belongs to a past academic year."
+                    : "Comments are locked — the final closure date has passed."}
                 </AlertDescription>
               </Alert>
             )}
