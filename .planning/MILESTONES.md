@@ -1,19 +1,25 @@
 # Milestones
 
-## v1.0 MVP (Shipped: 2026-03-02)
+## v1.0 MVP (Shipped: 2026-03-05)
 
-**Phases completed:** 5 phases, 18 plans, ~102 steps
-**Commits:** 109 | **Files modified:** 132 | **LOC:** 32,675 TypeScript
-**Timeline:** 11 days (2026-02-19 → 2026-03-02)
-**Requirements:** 26/26 v1 requirements complete
+**Phases completed:** 9 phases, 31 plans + 21 quick tasks
+**Commits:** 197 files changed | **LOC:** 34,896 TypeScript (100 files)
+**Timeline:** 8 days (2026-02-26 → 2026-03-05)
+**Requirements:** 31/31 v1 requirements satisfied (100%)
+**Tech Debt:** 2 integration warnings (coordinator filter on page slice, hardcoded file type badges)
 
 **Key accomplishments:**
-1. Database schema with dual closure dates, submission selection, and comment threading
-2. Closure enforcement gates on all mutation routes (submissions, files, comments)
-3. Coordinator API — faculty-scoped submissions, selection toggle, comment threads, email notifications
-4. Manager API — cross-faculty submissions, statistical/exception reports, streaming ZIP download
-5. Full UI layer — coordinator, manager, guest, and reports pages with 20/20 UAT tests passed
-6. Role-based access control throughout — API and UI scoped per role and faculty
+1. Full role-based web application — 5-role system (Admin, Coordinator, Manager, Student, Guest) with faculty-scoped access control
+2. Student submission workflow — Draft/submit with title, file uploads to Vercel Blob, T&C agreement, academic year closure enforcement
+3. Coordinator review system — Comment threading, selection toggle, review status tracking, download-before-comment gate
+4. Manager oversight — Cross-faculty views, ZIP download, statistical/exception reports with PDF/Excel export
+5. Guest magazine portal — Faculty-scoped read-only selected articles with year selector and summary dashboard
+6. Upload rules enforcement — Admin-configurable file types, size limits, and upload toggle enforced at client and server
+7. Server-side pagination for admin users and coordinator submissions tables
+
+**Archives:**
+- [v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
+- [v1.0-REQUIREMENTS.md](milestones/v1.0-REQUIREMENTS.md)
+- [v1.0-MILESTONE-AUDIT.md](milestones/v1.0-MILESTONE-AUDIT.md)
 
 ---
-

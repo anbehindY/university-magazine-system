@@ -39,6 +39,18 @@ Students can submit and manage their contributions, and coordinators can review,
 - ✓ Reports role-scoped (coordinator/guest see faculty, manager/admin see all) — v1.0
 - ✓ Full UI layer for all roles with UAT verification — v1.0
 - ✓ Active year validation (cannot activate past academic years) — v1.0
+- ✓ Upload rules enforcement (file types, sizes, toggle) at client and server — v1.0
+- ✓ Student comment thread with reply and SWR polling — v1.0
+- ✓ Coordinator review status tracking (Pending/Reviewing/Commented) — v1.0
+- ✓ Coordinator download-before-comment gate — v1.0
+- ✓ Server-side pagination for admin users and coordinator submissions — v1.0
+- ✓ PDF/Excel report export for managers and coordinators — v1.0
+- ✓ Guest multi-year selected submissions with year selector — v1.0
+- ✓ Guest summary dashboard (selected articles, percentages, contributors) — v1.0
+- ✓ Auto-deactivation of past academic years — v1.0
+- ✓ Toast notifications for admin actions — v1.0
+- ✓ Student submissions separated by academic year (current editable, archived read-only) — v1.0
+- ✓ Manager read-only submission detail slide-over — v1.0
 
 ### Active
 
@@ -61,8 +73,10 @@ Students can submit and manage their contributions, and coordinators can review,
 
 ## Context
 
-Shipped v1.0 MVP with 32,675 LOC TypeScript across 132 files.
-Tech stack: Next.js 16, React 19, Prisma 7, PostgreSQL (Neon), Better Auth, Vercel Blob, Nodemailer, Tailwind CSS 4, shadcn/ui.
+Shipped v1.0 MVP with 34,896 LOC TypeScript across 100 source files.
+Tech stack: Next.js 16, React 19, Prisma 7, PostgreSQL (Neon), Better Auth, Vercel Blob, Nodemailer, Tailwind CSS 4, shadcn/ui, jsPDF + jspdf-autotable, xlsx.
+9 phases (31 plans) + 21 quick tasks delivered over 8 days.
+All 31 core requirements satisfied. 2 integration warnings carried as tech debt (coordinator filter on page slice, hardcoded file type badges).
 UAT: 20/20 tests passed across 2 rounds covering all roles and workflows.
 
 ## Constraints
@@ -99,6 +113,11 @@ UAT: 20/20 tests passed across 2 rounds covering all roles and workflows.
 | Optimistic UI for selection toggle | Immediate feedback; rollback on error | ✓ Good |
 | Raw SQL for statistical reports | COUNT(DISTINCT) not in Prisma ORM | ✓ Good |
 | Active year validation (current/future only) | Prevents accidental past-year activation | ✓ Good |
+| Server-side redirect for GUEST role | Eliminates portal sidebar flash on login | ✓ Good |
+| useRef + useState counter for download tracking | Avoids re-render cost; counter triggers freshness | ✓ Good |
+| Raw SQL for guest summary stats | Matches reports API pattern; runs in Promise.all | ✓ Good |
+| Session-scoped download gate (not server-side) | Simple UX enforcement; no DB schema change | ✓ Good |
+| Separate (guest) route group with own layout | Isolates guest experience from portal sidebar | ✓ Good |
 
 ---
-*Last updated: 2026-03-02 after v1.0 milestone*
+*Last updated: 2026-03-05 after v1.0 milestone completion*
