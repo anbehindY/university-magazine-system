@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -151,6 +151,10 @@ export default function CoordinatorSubmissionsPage() {
   const [replyToId, setReplyToId] = useState<string | null>(null);
   const [replyToAuthor, setReplyToAuthor] = useState<string>("");
   const [commentPosting, setCommentPosting] = useState(false);
+
+  // Download tracking state (session-scoped, per-submission)
+  const downloadedSubmissionsRef = useRef<Set<string>>(new Set());
+  const [downloadVersion, setDownloadVersion] = useState(0);
 
   // Selection confirmation dialog state
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -394,6 +398,17 @@ export default function CoordinatorSubmissionsPage() {
   }
 
   // ---------------------------------------------------------------------------
+  // File download click handler (gates comment UI)
+  // ---------------------------------------------------------------------------
+
+  function handleFileClick(submissionId: string) {
+    if (!downloadedSubmissionsRef.current.has(submissionId)) {
+      downloadedSubmissionsRef.current.add(submissionId);
+      setDownloadVersion((v) => v + 1);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
   // Filtered & sorted submissions
   // ---------------------------------------------------------------------------
 
@@ -421,6 +436,17 @@ export default function CoordinatorSubmissionsPage() {
       // date-desc (default)
       return new Date(b.submittedAt ?? 0).getTime() - new Date(a.submittedAt ?? 0).getTime();
     });
+
+  // ---------------------------------------------------------------------------
+  // Derive hasDownloaded for the currently selected submission
+  // downloadVersion is read here to ensure re-render when a file is clicked
+  // ---------------------------------------------------------------------------
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _dv = downloadVersion; // ensures React re-renders when downloadVersion changes
+  const hasDownloaded = selectedSubmissionId
+    ? downloadedSubmissionsRef.current.has(selectedSubmissionId)
+    : false;
 
   // ---------------------------------------------------------------------------
   // Render
@@ -717,6 +743,7 @@ export default function CoordinatorSubmissionsPage() {
                           href={file.url}
                           target="_blank"
                           rel="noopener noreferrer"
+                          onClick={() => handleFileClick(selectedSubmission.id)}
                           className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 transition-colors"
                         >
                           <FileIcon className="h-4 w-4 shrink-0 text-slate-400" />
@@ -807,10 +834,15 @@ export default function CoordinatorSubmissionsPage() {
                     rows={2}
                     value={commentBody}
                     onChange={(e) => setCommentBody(e.target.value)}
-                    placeholder="Write a comment..."
-                    className="w-full resize-none rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                    disabled={!hasDownloaded}
+                    placeholder={
+                      hasDownloaded
+                        ? "Write a comment..."
+                        : "Download at least one file before commenting..."
+                    }
+                    className="w-full resize-none rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 disabled:bg-slate-50 disabled:cursor-not-allowed"
                     onKeyDown={(e) => {
-                      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                      if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && hasDownloaded) {
                         e.preventDefault();
                         handlePostComment(selectedSubmission.id);
                       }
@@ -818,11 +850,11 @@ export default function CoordinatorSubmissionsPage() {
                   />
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-slate-400">
-                      Ctrl+Enter to send
+                      {hasDownloaded ? "Ctrl+Enter to send" : "Download a file to enable commenting"}
                     </span>
                     <button
                       type="button"
-                      disabled={commentPosting || !commentBody.trim()}
+                      disabled={commentPosting || !commentBody.trim() || !hasDownloaded}
                       onClick={() => handlePostComment(selectedSubmission.id)}
                       className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-50"
                     >
