@@ -11,7 +11,7 @@ See: .planning/PROJECT.md (updated 2026-03-02)
 
 Milestone: v1.0 MVP — GAP CLOSURE
 Status: Complete (all phases done)
-Last activity: 2026-03-05 — Completed quick task 20: Guest year selector glow + publications header
+Last activity: 2026-03-05 — Completed quick task 21: Guest mini dashboard summary report stats
 
 Progress: [████████████████████] 100% (9/9 phases complete)
 
@@ -109,6 +109,8 @@ All decisions logged in PROJECT.md Key Decisions table.
 - [Quick-18]: isRefetching derived as loading && availableYears.length > 0 — distinguishes initial skeleton from year-switch opacity overlay
 - [Quick-19]: Stat cards wrapped in bg-slate-50 rounded-xl container with Overview label — creates visual grouping distinct from white article cards without changing Card component structure
 - [Quick-19]: border-slate-200/60 opacity tweak reduces visual noise of card borders against the slate-50 wrapper background
+- [Quick-21]: Raw SQL stats queries run in same Promise.all as submissions findMany -- no extra DB round-trip
+- [Quick-21]: BigInt to Number conversion and percentage rounding match reports API pattern
 
 ### Pending Todos
 
@@ -146,9 +148,10 @@ All decisions logged in PROJECT.md Key Decisions table.
 | 18 | Guest can view selected submissions for each academic year (year selector) | 2026-03-05 | fbfa228 | [18-guest-can-view-selected-submissions-for-](./quick/18-guest-can-view-selected-submissions-for-/) |
 | 19 | Fix guest page padding/spacing issues and add Overview dashboard section | 2026-03-05 | f7c48d2 | [19-fix-guest-page-padding-spacing-issues-an](./quick/19-fix-guest-page-padding-spacing-issues-an/) |
 | 20 | Guest year selector silver glow, publications header, smaller article cards | 2026-03-05 | 9ae0793 | — |
+| 21 | Guest mini dashboard summary report stat cards (submissions, percentage, contributors) | 2026-03-05 | 69fa62b | [21-guest-mini-dashboard-summary-report](./quick/21-guest-mini-dashboard-summary-report/) |
 
 ## Session Continuity
 
 Last session: 2026-03-05
-Stopped at: Quick task 20 complete
+Stopped at: Quick task 21 complete
 Resume file: None
