@@ -97,9 +97,10 @@ All decisions logged in PROJECT.md Key Decisions table.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 1 | Remove status from Previous Years and auto-deactivate years past final closure | 2026-03-04 | 029146d | [1-remove-status-from-previous-years-and-au](./quick/1-remove-status-from-previous-years-and-au/) |
+| 2 | Add success toast notifications to all 8 admin actions (closure-dates, upload-rules, users) | 2026-03-04 | a20c584 | [2-add-success-toasters-to-all-admin-action](./quick/2-add-success-toasters-to-all-admin-action/) |
 
 ## Session Continuity
 
 Last session: 2026-03-04
-Stopped at: Quick task 1 complete
+Stopped at: Quick task 2 complete
 Resume file: None
