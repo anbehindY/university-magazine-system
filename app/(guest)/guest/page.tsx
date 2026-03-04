@@ -33,6 +33,7 @@ import {
   File,
   CalendarDays,
   User,
+  Users,
   Download,
 } from "lucide-react";
 
@@ -94,6 +95,11 @@ export default function GuestMagazinePage() {
   const [selectedYearId, setSelectedYearId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [summaryStats, setSummaryStats] = useState<{
+    totalSubmissions: number;
+    percentageOfTotal: number;
+    distinctContributors: number;
+  }>({ totalSubmissions: 0, percentageOfTotal: 0, distinctContributors: 0 });
   const [selectedSubmission, setSelectedSubmission] =
     useState<SubmissionRow | null>(null);
 
@@ -134,6 +140,11 @@ export default function GuestMagazinePage() {
           academicYearLabel: string | null;
           availableYears: AvailableYear[];
           selectedYearId: string | null;
+          summaryStats?: {
+            totalSubmissions: number;
+            percentageOfTotal: number;
+            distinctContributors: number;
+          };
         };
 
         if (!cancelled) {
@@ -141,6 +152,7 @@ export default function GuestMagazinePage() {
           setFacultyName(data.facultyName);
           setAcademicYearLabel(data.academicYearLabel);
           setAvailableYears(data.availableYears ?? []);
+          setSummaryStats(data.summaryStats ?? { totalSubmissions: 0, percentageOfTotal: 0, distinctContributors: 0 });
 
           // On initial load, set the selectedYearId from the API response.
           // This won't trigger a re-fetch because initialLoadDone marks it as complete.
@@ -226,7 +238,7 @@ export default function GuestMagazinePage() {
           <div className="flex flex-wrap items-center gap-3">
             {availableYears.length > 1 ? (
               <Select value={selectedYearId} onValueChange={setSelectedYearId}>
-                <SelectTrigger className="w-40 bg-white/10 border-white/20 text-white hover:bg-white/20 animate-silver-glow cursor-pointer">
+                <SelectTrigger className="w-36 bg-white/10 border-white/20 text-white hover:bg-white/15 animate-silver-glass cursor-pointer [&_svg]:text-slate-300/50">
                   <SelectValue placeholder="Select year" />
                 </SelectTrigger>
                 <SelectContent>
@@ -258,40 +270,46 @@ export default function GuestMagazinePage() {
             <Card className="border-slate-200/60 bg-white shadow-sm text-slate-900">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-600">Published Articles</p>
-                  <p className="text-xs text-slate-500">Selected for publication</p>
+                  <p className="text-sm font-medium text-slate-500">Selected Articles</p>
                 </div>
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
                   <FileText className="h-5 w-5" />
                 </span>
               </CardHeader>
-              <CardContent className="text-3xl font-semibold">{submissions.length}</CardContent>
+              <CardContent>
+                <p className="text-3xl font-bold">{submissions.length}</p>
+                <p className="text-xs text-slate-500 mt-1">selected for publication</p>
+              </CardContent>
             </Card>
 
             <Card className="border-slate-200/60 bg-white shadow-sm text-slate-900">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-600">Faculty</p>
-                  <p className="text-xs text-slate-500">Your assigned faculty</p>
+                  <p className="text-sm font-medium text-slate-500">Total Submissions</p>
                 </div>
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
-                  <BookOpen className="h-5 w-5" />
+                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                  <FileText className="h-5 w-5" />
                 </span>
               </CardHeader>
-              <CardContent className="text-3xl font-semibold truncate">{facultyName}</CardContent>
+              <CardContent>
+                <p className="text-3xl font-bold">{summaryStats.totalSubmissions}</p>
+                <p className="text-xs text-slate-500 mt-1">{summaryStats.percentageOfTotal.toFixed(1)}% of university total</p>
+              </CardContent>
             </Card>
 
             <Card className="border-slate-200/60 bg-white shadow-sm text-slate-900">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-600">Academic Year</p>
-                  <p className="text-xs text-slate-500">Selected year</p>
+                  <p className="text-sm font-medium text-slate-500">Contributors</p>
                 </div>
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
-                  <CalendarDays className="h-5 w-5" />
+                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-50 text-purple-600">
+                  <Users className="h-5 w-5" />
                 </span>
               </CardHeader>
-              <CardContent className="text-3xl font-semibold">{academicYearLabel ?? "—"}</CardContent>
+              <CardContent>
+                <p className="text-3xl font-bold">{summaryStats.distinctContributors}</p>
+                <p className="text-xs text-slate-500 mt-1">unique {summaryStats.distinctContributors === 1 ? "student" : "students"}</p>
+              </CardContent>
             </Card>
           </div>
         </div>
