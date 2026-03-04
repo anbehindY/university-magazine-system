@@ -322,14 +322,6 @@ async function main() {
 
   const academicYears = [
     {
-      yearLabel: "2023-2024",
-      isActive: false,
-      firstClosureDate: new Date("2024-03-15T23:59:59Z"),
-      finalClosureDate: new Date("2024-04-15T23:59:59Z"),
-      startDate: new Date("2023-09-01"),
-      endDate: new Date("2024-08-31"),
-    },
-    {
       yearLabel: "2024-2025",
       isActive: false,
       firstClosureDate: new Date("2025-03-15T23:59:59Z"),
@@ -361,7 +353,7 @@ async function main() {
       yearIds[ay.yearLabel] = record.id;
     }
   }
-  console.log("✓ 3 academic years seeded (none active — admin must set up via Closure Dates)");
+  console.log("✓ 2 academic years seeded (none active — admin must set up via Closure Dates)");
 
   // ── 3. Admin user ─────────────────────────────────────────────────────────
 
@@ -562,69 +554,10 @@ async function main() {
     return submission;
   }
 
-  // ── 7. Past year submissions (2023-2024) ──────────────────────────────────
-  // All closed. ~60% of students submitted. Mix of selected/not. Some with comments, some without.
-
-  console.log("\nSeeding 2023-2024 submissions...");
-  const y2324 = yearIds["2023-2024"];
-  const submissionWindow2324 = { start: new Date("2024-01-15"), end: new Date("2024-03-14") };
-
-  for (const facultyName of FACULTY_NAMES) {
-    const students = studentsByFaculty[facultyName];
-    const coord = coordinators[facultyName];
-    const titles = [...TITLES[facultyName]];
-    const submittingStudents = students.slice(0, Math.floor(students.length * 0.6)); // 60% submit
-
-    for (let i = 0; i < submittingStudents.length; i++) {
-      const student = submittingStudents[i];
-      const title = titles[i % titles.length];
-      const submittedAt = randomDate(submissionWindow2324.start, submissionWindow2324.end);
-      const isSelected = Math.random() < 0.5; // 50% selected
-
-      // 70% have coordinator comments
-      const hasComment = Math.random() < 0.7;
-      const comments = hasComment
-        ? [
-            {
-              authorId: coord.id,
-              authorRole: "MARKETING_COORDINATOR",
-              body: COORD_COMMENTS[i % COORD_COMMENTS.length],
-              createdAt: new Date(submittedAt.getTime() + faker.number.int({ min: 1, max: 10 }) * 24 * 60 * 60 * 1000),
-              replies: Math.random() < 0.4
-                ? [
-                    {
-                      authorId: student.id,
-                      authorRole: "STUDENT",
-                      body: STUDENT_REPLIES[i % STUDENT_REPLIES.length],
-                      createdAt: new Date(submittedAt.getTime() + faker.number.int({ min: 11, max: 20 }) * 24 * 60 * 60 * 1000),
-                    },
-                  ]
-                : undefined,
-            },
-          ]
-        : undefined;
-
-      await createSubmission({
-        userId: student.id,
-        facultyId: student.facultyId,
-        academicYearId: y2324,
-        title: `${title}`,
-        status: "SUBMITTED",
-        submittedAt,
-        isSelected,
-        selectedById: manager.id,
-        notes: isSelected ? faker.lorem.sentence() : undefined,
-        fileCount: faker.number.int({ min: 1, max: 3 }),
-        comments,
-      });
-    }
-  }
-  console.log(`  ✓ 2023-2024: ${submissionCount} submissions so far`);
-
-  // ── 8. Past year submissions (2024-2025) ──────────────────────────────────
+  // ── 7. Past year submissions (2024-2025) ──────────────────────────────────
   // All closed. ~70% submit. More comments, more selections.
 
-  console.log("Seeding 2024-2025 submissions...");
+  console.log("\nSeeding 2024-2025 submissions...");
   const prevCount = submissionCount;
   const y2425 = yearIds["2024-2025"];
   const submissionWindow2425 = { start: new Date("2025-01-10"), end: new Date("2025-03-14") };
@@ -680,112 +613,12 @@ async function main() {
   }
   console.log(`  ✓ 2024-2025: ${submissionCount - prevCount} new submissions`);
 
-  // ── 9. Current year (2025-2026) ───────────────────────────────────────────
-  // Active year. Mix of DRAFT and SUBMITTED. Some selected, some awaiting review.
-  // Some with no comments (exceptions), some with active threads.
-
-  console.log("Seeding 2025-2026 submissions (active year)...");
-  const prevCount2 = submissionCount;
-  const y2526 = yearIds["2025-2026"];
-  const submissionWindow2526 = { start: new Date("2025-10-01"), end: new Date("2026-02-28") };
-
-  for (const facultyName of FACULTY_NAMES) {
-    const students = studentsByFaculty[facultyName];
-    const coord = coordinators[facultyName];
-    const titles = [...TITLES[facultyName]];
-
-    for (let i = 0; i < students.length; i++) {
-      const student = students[i];
-
-      // First 15 students submit, last 5 have drafts only
-      if (i < 15) {
-        // SUBMITTED submission
-        const title = titles[i % titles.length];
-        // Students i=13,14 have no coordinator comment (hasComment is false for i>=10).
-        // Give them recent submittedAt so they appear as "pending" (< 14 days) exceptions.
-        const submittedAt =
-          i === 13
-            ? new Date("2026-04-05T12:00:00Z") // 10 days before finalClosure → pending exception
-            : i === 14
-              ? new Date("2026-04-10T12:00:00Z") // 5 days before finalClosure → pending exception
-              : randomDate(submissionWindow2526.start, submissionWindow2526.end);
-
-        // Selection: ~40% selected by coordinator
-        const isSelected = i < 8; // First 8 students per faculty are selected
-        const selectedById = manager.id;
-
-        // Comments: ~60% have coordinator comments (leaves ~40% as exceptions)
-        const hasComment = i < 10;
-        const commentDate = new Date(submittedAt.getTime() + faker.number.int({ min: 1, max: 7 }) * 24 * 60 * 60 * 1000);
-        const comments = hasComment
-          ? [
-              {
-                authorId: coord.id,
-                authorRole: "MARKETING_COORDINATOR",
-                body: COORD_COMMENTS[(i + 7) % COORD_COMMENTS.length],
-                createdAt: commentDate,
-                replies: Math.random() < 0.6
-                  ? [
-                      {
-                        authorId: student.id,
-                        authorRole: "STUDENT",
-                        body: STUDENT_REPLIES[(i + 4) % STUDENT_REPLIES.length],
-                        createdAt: new Date(commentDate.getTime() + faker.number.int({ min: 1, max: 5 }) * 24 * 60 * 60 * 1000),
-                      },
-                    ]
-                  : undefined,
-              },
-            ]
-          : undefined;
-
-        await createSubmission({
-          userId: student.id,
-          facultyId: student.facultyId,
-          academicYearId: y2526,
-          title,
-          status: "SUBMITTED",
-          submittedAt,
-          isSelected,
-          selectedById,
-          notes: isSelected ? faker.lorem.sentence() : undefined,
-          fileCount: faker.number.int({ min: 1, max: 3 }),
-          comments,
-        });
-
-        // Some students also have a second submission (draft)
-        if (i < 3) {
-          await createSubmission({
-            userId: student.id,
-            facultyId: student.facultyId,
-            academicYearId: y2526,
-            title: titles[(i + 15) % titles.length],
-            status: "DRAFT",
-            fileCount: 1,
-          });
-        }
-      } else {
-        // DRAFT only (students who haven't submitted yet)
-        const title = titles[(i + 10) % titles.length];
-        await createSubmission({
-          userId: student.id,
-          facultyId: student.facultyId,
-          academicYearId: y2526,
-          title,
-          status: "DRAFT",
-          fileCount: faker.number.int({ min: 1, max: 2 }),
-        });
-      }
-    }
-  }
-  console.log(`  ✓ 2025-2026: ${submissionCount - prevCount2} new submissions`);
-  console.log("  (includes 2 pending + 3 overdue exceptions per faculty)");
-
-  // ── Summary ───────────────────────────────────────────────────────────────
+  // ── 8. Summary ────────────────────────────────────────────────────────────
 
   console.log("\n" + "═".repeat(60));
   console.log("  SEED COMPLETE");
   console.log("═".repeat(60));
-  console.log(`  Academic Years: 3 (none active — set up via /admin/closure-dates)`);
+  console.log(`  Academic Years: 2 (none active — set up via /admin/closure-dates)`);
   console.log(`  Faculties:      ${FACULTY_NAMES.length}`);
   console.log(`  Students:       ${allStudents.length}`);
   console.log(`  Staff:          2 admins, 1 manager, 5 coordinators, 5 guests`);
