@@ -11,7 +11,7 @@ See: .planning/PROJECT.md (updated 2026-03-02)
 
 Milestone: v1.0 MVP — GAP CLOSURE
 Status: Complete (all phases done)
-Last activity: 2026-03-04 — Quick task 1 complete (Remove Status column from Previous Years table and add auto-deactivation)
+Last activity: 2026-03-04 — Completed quick task 4: Improve student submissions loading UX and lock replies on archived year comments
 
 Progress: [████████████████████] 100% (9/9 phases complete)
 
