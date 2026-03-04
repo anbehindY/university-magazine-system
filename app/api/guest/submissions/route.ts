@@ -3,6 +3,15 @@ import prisma from "@/lib/prisma";
 import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
+type FacultyStatsRow = {
+  submission_count: bigint;
+  distinct_contributors: bigint;
+};
+
+type TotalCountRow = {
+  total_count: bigint;
+};
+
 export async function GET(request: NextRequest) {
   try {
     const session = await auth.api.getSession({
@@ -75,34 +84,61 @@ export async function GET(request: NextRequest) {
         academicYearLabel: null,
         availableYears,
         selectedYearId: null,
+        summaryStats: { totalSubmissions: 0, percentageOfTotal: 0, distinctContributors: 0 },
       });
     }
 
-    const submissions = await prisma.submission.findMany({
-      where: {
-        isSelected: true,
-        facultyId: guestFacultyId,
-        academicYearId: targetYearId,
-      },
-      orderBy: { submittedAt: "desc" },
-      select: {
-        id: true,
-        title: true,
-        submittedAt: true,
-        notes: true,
-        user: { select: { name: true } },
-        files: {
-          select: {
-            id: true,
-            url: true,
-            pathname: true,
-            contentType: true,
-            size: true,
-          },
+    // Run submissions query alongside summary stats queries
+    const [submissions, facultyStats, totalStats] = await Promise.all([
+      prisma.submission.findMany({
+        where: {
+          isSelected: true,
+          facultyId: guestFacultyId,
+          academicYearId: targetYearId,
         },
-        _count: { select: { files: true } },
-      },
-    });
+        orderBy: { submittedAt: "desc" },
+        select: {
+          id: true,
+          title: true,
+          submittedAt: true,
+          notes: true,
+          user: { select: { name: true } },
+          files: {
+            select: {
+              id: true,
+              url: true,
+              pathname: true,
+              contentType: true,
+              size: true,
+            },
+          },
+          _count: { select: { files: true } },
+        },
+      }),
+      prisma.$queryRaw<FacultyStatsRow[]>`
+        SELECT
+          COUNT(s.id) AS submission_count,
+          COUNT(DISTINCT s.user_id) AS distinct_contributors
+        FROM "submission" s
+        WHERE s.status = 'SUBMITTED'
+          AND s.faculty_id = ${guestFacultyId}
+          AND s.academic_year_id = ${targetYearId}
+      `,
+      prisma.$queryRaw<TotalCountRow[]>`
+        SELECT COUNT(s.id) AS total_count
+        FROM "submission" s
+        WHERE s.status = 'SUBMITTED'
+          AND s.academic_year_id = ${targetYearId}
+      `,
+    ]);
+
+    // Derive summary stats from raw query results
+    const facultySubmissionCount = facultyStats.length > 0 ? Number(facultyStats[0].submission_count) : 0;
+    const universityTotal = totalStats.length > 0 ? Number(totalStats[0].total_count) : 0;
+    const distinctContributors = facultyStats.length > 0 ? Number(facultyStats[0].distinct_contributors) : 0;
+    const percentageOfTotal = universityTotal > 0
+      ? Math.round((facultySubmissionCount / universityTotal) * 1000) / 10
+      : 0;
 
     const result = submissions.map((s) => ({
       id: s.id,
@@ -122,6 +158,11 @@ export async function GET(request: NextRequest) {
       academicYearLabel: selectedYear?.yearLabel ?? null,
       availableYears,
       selectedYearId: targetYearId,
+      summaryStats: {
+        totalSubmissions: facultySubmissionCount,
+        percentageOfTotal,
+        distinctContributors,
+      },
     });
   } catch (error) {
     console.error("Error fetching guest submissions:", error);
