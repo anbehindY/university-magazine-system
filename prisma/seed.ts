@@ -339,7 +339,7 @@ async function main() {
     },
     {
       yearLabel: "2025-2026",
-      isActive: true,
+      isActive: false,
       firstClosureDate: new Date("2026-03-15T23:59:59Z"),
       finalClosureDate: new Date("2026-04-15T23:59:59Z"),
       startDate: new Date("2025-09-01"),
@@ -361,7 +361,7 @@ async function main() {
       yearIds[ay.yearLabel] = record.id;
     }
   }
-  console.log("✓ 3 academic years seeded (2025-2026 active)");
+  console.log("✓ 3 academic years seeded (none active — admin must set up via Closure Dates)");
 
   // ── 3. Admin user ─────────────────────────────────────────────────────────
 
@@ -701,7 +701,14 @@ async function main() {
       if (i < 15) {
         // SUBMITTED submission
         const title = titles[i % titles.length];
-        const submittedAt = randomDate(submissionWindow2526.start, submissionWindow2526.end);
+        // Students i=13,14 have no coordinator comment (hasComment is false for i>=10).
+        // Give them recent submittedAt so they appear as "pending" (< 14 days) exceptions.
+        const submittedAt =
+          i === 13
+            ? new Date("2026-04-05T12:00:00Z") // 10 days before finalClosure → pending exception
+            : i === 14
+              ? new Date("2026-04-10T12:00:00Z") // 5 days before finalClosure → pending exception
+              : randomDate(submissionWindow2526.start, submissionWindow2526.end);
 
         // Selection: ~40% selected by coordinator
         const isSelected = i < 8; // First 8 students per faculty are selected
@@ -771,13 +778,14 @@ async function main() {
     }
   }
   console.log(`  ✓ 2025-2026: ${submissionCount - prevCount2} new submissions`);
+  console.log("  (includes 2 pending + 3 overdue exceptions per faculty)");
 
   // ── Summary ───────────────────────────────────────────────────────────────
 
   console.log("\n" + "═".repeat(60));
   console.log("  SEED COMPLETE");
   console.log("═".repeat(60));
-  console.log(`  Academic Years: 3 (2023-2024, 2024-2025, 2025-2026 active)`);
+  console.log(`  Academic Years: 3 (none active — set up via /admin/closure-dates)`);
   console.log(`  Faculties:      ${FACULTY_NAMES.length}`);
   console.log(`  Students:       ${allStudents.length}`);
   console.log(`  Staff:          2 admins, 1 manager, 5 coordinators, 5 guests`);
