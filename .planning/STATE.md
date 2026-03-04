@@ -11,7 +11,7 @@ See: .planning/PROJECT.md (updated 2026-03-02)
 
 Milestone: v1.0 MVP — GAP CLOSURE
 Status: Complete (all phases done)
-Last activity: 2026-03-05 — Completed quick task 17: Guest portal layout flicker fix + mini-dashboard
+Last activity: 2026-03-05 — Completed quick task 18: Guest multi-year selected submissions
 
 Progress: [████████████████████] 100% (9/9 phases complete)
 
