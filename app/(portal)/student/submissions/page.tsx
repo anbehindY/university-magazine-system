@@ -16,6 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { LoadingScreen } from "@/components/ui/loading-screen";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -99,6 +100,25 @@ function validateFiles(
   return null;
 }
 
+function SubmissionCardSkeleton() {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-3 w-24" />
+        </div>
+        <Skeleton className="h-5 w-16 rounded-sm" />
+      </div>
+      <Skeleton className="h-3 w-20" />
+      <div className="flex gap-2 pt-1">
+        <Skeleton className="h-8 w-20 rounded-md" />
+        <Skeleton className="h-8 w-24 rounded-md" />
+      </div>
+    </div>
+  );
+}
+
 export default function StudentSubmissionsPage() {
   const { data: session, isPending } = useSession();
   const [agreed, setAgreed] = useState(false);
@@ -139,7 +159,7 @@ export default function StudentSubmissionsPage() {
       files: { id: string; url: string; pathname: string; createdAt: string }[];
     }[]
   >([]);
-  const [submissionsLoading, setSubmissionsLoading] = useState(false);
+  const [submissionsLoading, setSubmissionsLoading] = useState(true);
   const [submissionsError, setSubmissionsError] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingSubmissionId, setEditingSubmissionId] = useState<string | null>(
@@ -741,6 +761,8 @@ export default function StudentSubmissionsPage() {
     }
   }
 
+  if (isPending) return <LoadingScreen />;
+
   return (
     <main className="w-full space-y-6 px-4 pt-4 pb-8 text-slate-900 sm:px-6">
       <header className="space-y-1">
@@ -1137,7 +1159,12 @@ export default function StudentSubmissionsPage() {
           )}
         </CardHeader>
         <CardContent className="space-y-4">
-          {submissionsLoading ? <LoadingScreen className="min-h-[20vh]" /> : null}
+          {submissionsLoading ? (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <SubmissionCardSkeleton />
+              <SubmissionCardSkeleton />
+            </div>
+          ) : null}
 
           {submissionsError ? (
             <Alert variant="destructive">
