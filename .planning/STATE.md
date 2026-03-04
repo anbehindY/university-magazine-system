@@ -11,7 +11,7 @@ See: .planning/PROJECT.md (updated 2026-03-02)
 
 Milestone: v1.0 MVP — GAP CLOSURE
 Status: Complete (all phases done)
-Last activity: 2026-03-05 — Completed quick task 10: Guest single-page magazine view
+Last activity: 2026-03-05 — Completed quick task 11: Rename Statistics tab to Summary + manager multi-faculty view
 
 Progress: [████████████████████] 100% (9/9 phases complete)
 
@@ -125,9 +125,10 @@ All decisions logged in PROJECT.md Key Decisions table.
 | 8 | Add coordinator review status to submissions (Pending, Reviewing, Commented) | 2026-03-05 | 8edbd43 | [8-add-coordinator-review-status-to-submiss](./quick/8-add-coordinator-review-status-to-submiss/) |
 | 9 | Export reports as PDF or Excel for Marketing Managers and Coordinators | 2026-03-05 | c12de89 | [9-export-reports-as-pdf-or-excel-for-marke](./quick/9-export-reports-as-pdf-or-excel-for-marke/) |
 | 10 | Guest single-page magazine view with standalone layout | 2026-03-05 | 0fb900e | [10-guest-single-page-magazine-view-with-sta](./quick/10-guest-single-page-magazine-view-with-sta/) |
+| 11 | Rename Statistics tab to Summary, always show multi-faculty view for managers | 2026-03-05 | 7ca7fe2 | [11-rename-statistics-tab-to-summary-and-alw](./quick/11-rename-statistics-tab-to-summary-and-alw/) |
 
 ## Session Continuity
 
 Last session: 2026-03-05
-Stopped at: Quick task 10 complete
+Stopped at: Quick task 11 complete
 Resume file: None
