@@ -26,6 +26,12 @@ enum SubmissionStatus {
   SUBMITTED
 }
 
+enum ReviewStatus {
+  PENDING
+  REVIEWING
+  COMMENTED
+}
+
 model User {
   id            String    @id
   name          String
@@ -153,6 +159,7 @@ model Submission {
   userId         String           @map("user_id")
   user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   status         SubmissionStatus @default(DRAFT)
+  reviewStatus   ReviewStatus     @default(PENDING) @map("review_status")
   agreed         Boolean          @default(false)
   title          String?          @db.Text
   notes          String?          @db.Text
