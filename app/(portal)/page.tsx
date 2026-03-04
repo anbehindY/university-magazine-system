@@ -509,15 +509,6 @@ export default function DashboardPage() {
       );
     }
 
-    if (r === "GUEST") {
-      fetches.push(
-        fetch("/api/guest/submissions")
-          .then((res) => res.json())
-          .then((d) => setData((prev) => ({ ...prev, guestSubmissions: d.submissions })))
-          .catch(() => {})
-      );
-    }
-
     if (r === "ADMINISTRATOR") {
       fetches.push(
         fetch("/api/admin/users/stats")
@@ -545,12 +536,6 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!isPending && !session?.user) {
       router.push("/sign-in");
-    }
-  }, [isPending, session, router]);
-
-  useEffect(() => {
-    if (!isPending && session?.user?.role === "GUEST") {
-      router.replace("/guest");
     }
   }, [isPending, session, router]);
 
