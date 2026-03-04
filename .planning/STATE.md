@@ -11,7 +11,7 @@ See: .planning/PROJECT.md (updated 2026-03-02)
 
 Milestone: v1.0 MVP — GAP CLOSURE
 Status: Complete (all phases done)
-Last activity: 2026-03-04 — Completed quick task 5: Add NEXT_PUBLIC_APP_URL and send selection email to student
+Last activity: 2026-03-04 — Completed quick task 6: Coordinator submissions no-comments filter + reports year selector
 
 Progress: [████████████████████] 100% (9/9 phases complete)
 
@@ -115,9 +115,10 @@ All decisions logged in PROJECT.md Key Decisions table.
 | 3 | Separate student submissions by academic year — current editable, archived read-only | 2026-03-04 | 4b6254b | [3-separate-student-submissions-by-academic](./quick/3-separate-student-submissions-by-academic/) |
 | 4 | Skeleton loading cards, auth guard, and archived-year comment reply locking | 2026-03-04 | cfdb0cb | [4-improve-student-submissions-loading-ux-a](./quick/4-improve-student-submissions-loading-ux-a/) |
 | 5 | Add NEXT_PUBLIC_APP_URL and send selection email to student | 2026-03-04 | 8a365c2 | [5-update-env-with-app-url-and-send-email-t](./quick/5-update-env-with-app-url-and-send-email-t/) |
+| 6 | Coordinator submissions no-comments filter/sort/column + reports year selector | 2026-03-04 | cfcb475 | [6-coordinator-submissions-filter-no-commen](./quick/6-coordinator-submissions-filter-no-commen/) |
 
 ## Session Continuity
 
 Last session: 2026-03-04
-Stopped at: Quick task 5 complete
+Stopped at: Quick task 6 complete
 Resume file: None
