@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Security, Audit & Guest Self-Registration
 status: in-progress
-stopped_at: Completed 12-01-PLAN.md
-last_updated: "2026-03-09T14:30:00Z"
-last_activity: 2026-03-09 -- Phase 12 Plan 01 completed (audit logging)
+stopped_at: Completed 13-02-PLAN.md
+last_updated: "2026-03-09T15:32:13Z"
+last_activity: 2026-03-09 -- Phase 13 Plan 02 completed (coordinator guest list)
 progress:
   total_phases: 5
-  completed_phases: 2
-  total_plans: 3
-  completed_plans: 3
+  completed_phases: 3
+  total_plans: 5
+  completed_plans: 5
 ---
 
 # Project State
@@ -24,12 +24,12 @@ See: .planning/PROJECT.md (updated 2026-03-09)
 
 ## Current Position
 
-Phase: 12 -- Audit Logging (COMPLETE)
-Plan: 01 (complete, 4/4 tasks)
-Status: Phase 12 complete -- ready for Phase 13
-Last activity: 2026-03-09 -- Phase 12 Plan 01 completed (audit log writes, API, viewer, sidebar)
+Phase: 13 -- Guest Registration & Guest List (Plan 02 complete)
+Plan: 02 (complete, 2/2 tasks)
+Status: Phase 13 Plan 02 complete -- guest list API, page, and sidebar done
+Last activity: 2026-03-09 -- Phase 13 Plan 02 completed (coordinator guest list)
 
-Progress: [######....] 3/5 phases
+Progress: [########..] 5/5 plans (awaiting Plan 01 execution)
 
 ## Performance Metrics
 
@@ -39,7 +39,7 @@ Progress: [######....] 3/5 phases
 - Requirements: 31/31 satisfied
 
 **v1.1 Velocity:**
-- Total plans completed: 3
+- Total plans completed: 5
 - Timeline: Started 2026-03-09
 
 | Phase | Plan | Duration | Tasks | Files |
@@ -47,6 +47,8 @@ Progress: [######....] 3/5 phases
 | 10 | 01 | 200s | 2 | 4 |
 | 11 | 01 | 225s | 5 | 7 |
 | 12 | 01 | 155s | 4 | 4 |
+| 13 | 01 | 146s | 2 | 4 |
+| 13 | 02 | 148s | 2 | 3 |
 
 **By Phase (v1.1):**
 
@@ -55,7 +57,7 @@ Progress: [######....] 3/5 phases
 | 10-schema-migration | 1 | Complete | 2026-03-09 |
 | 11-security-hardening | 1 | Complete | 2026-03-09 |
 | 12-audit-logging | 1 | Complete | 2026-03-09 |
-| 13-guest-registration-and-guest-list | TBD | Not started | - |
+| 13-guest-registration-and-guest-list | 2 | Complete | 2026-03-09 |
 | 14-admin-analytics-dashboard | TBD | Not started | - |
 
 ## Accumulated Context
@@ -73,6 +75,12 @@ All v1.0 decisions logged in PROJECT.md Key Decisions table.
 - [12-01] Fire-and-forget audit writes with .catch(console.error) to avoid blocking selection toggle
 - [12-01] Metadata denormalized into JSON for display without joins
 - [12-01] Default date filter is Last 30 days to balance relevance and performance
+- [13-01] GUEST role hardcoded server-side, never read from request body (first public write endpoint)
+- [13-01] mustChangePassword: false for self-registered guests (chose own password)
+- [13-01] Fire-and-forget coordinator email notification with .catch(console.error)
+- [13-01] Redirect to sign-in after registration (no auto-sign-in)
+- [13-02] Reused PaginationControls component for consistent coordinator page pagination
+- [13-02] useEffect+fetch with debounced search (not SWR) matching coordinator submissions pattern
 
 ### Pending Todos
 
@@ -93,7 +101,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T14:30:00Z
-Stopped at: Completed 12-01-PLAN.md
-Resume file: .planning/milestones/v1.1-phases/12-audit-logging/12-01-SUMMARY.md
-Next step: /gsd:execute-phase 13 (guest registration & guest list)
+Last session: 2026-03-09T15:32:13Z
+Stopped at: Completed 13-02-PLAN.md
+Resume file: .planning/milestones/v1.1-phases/13-guest-registration-and-guest-list/13-02-SUMMARY.md
+Next step: /gsd:execute-phase 14 (admin analytics dashboard)

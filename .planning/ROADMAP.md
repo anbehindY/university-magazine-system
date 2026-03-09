@@ -27,7 +27,7 @@
 - [x] **Phase 10: Schema Migration** -- AuditLog model + User fields (mustChangePassword, lastLoginAt) in a single migration
 - [x] **Phase 11: Security Hardening** -- First-login password change gate + login tracking with welcome message
 - [ ] **Phase 12: Audit Logging** -- Fire-and-forget audit writes on selection changes + admin audit viewer
-- [ ] **Phase 13: Guest Registration & Guest List** -- Public guest self-registration + coordinator notification + faculty-scoped guest list
+- [x] **Phase 13: Guest Registration & Guest List** -- Public guest self-registration + coordinator notification + faculty-scoped guest list
 - [ ] **Phase 14: Admin Analytics Dashboard** -- Session-based active users + browser usage charts with Recharts
 
 ## Phase Details
@@ -79,10 +79,10 @@ Plans:
   2. The registration endpoint hardcodes the GUEST role server-side and never reads role from the request body (no privilege escalation)
   3. When a guest registers, the faculty coordinator(s) receive an email notification
   4. A coordinator can view a read-only list of guest users for their faculty, showing name, email, and registration date
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 Plans:
-- [ ] 13-01-PLAN.md -- Registration API, email check endpoint, registration page, sign-in link (2 tasks)
-- [ ] 13-02-PLAN.md -- Guest list API, guest list page, sidebar entry (2 tasks)
+- [x] 13-01-PLAN.md -- Registration API, email check endpoint, registration page, sign-in link (2 tasks)
+- [x] 13-02-PLAN.md -- Guest list API, guest list page, sidebar entry (2 tasks)
 
 ### Phase 14: Admin Analytics Dashboard
 **Goal**: Administrators can see platform usage patterns through charts showing active users and browser breakdown
@@ -111,5 +111,5 @@ Plans:
 | 10. Schema Migration | v1.1 | Complete    | 2026-03-09 | 2026-03-09 |
 | 11. Security Hardening | v1.1 | 1/1 | Complete | 2026-03-09 |
 | 12. Audit Logging | v1.1 | 0/1 | Planned | - |
-| 13. Guest Registration & Guest List | v1.1 | 0/2 | Planned | - |
+| 13. Guest Registration & Guest List | v1.1 | 1/2 | In Progress | - |
 | 14. Admin Analytics Dashboard | v1.1 | 0/? | Not started | - |

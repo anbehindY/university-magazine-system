@@ -24,10 +24,10 @@ Requirements for v1.1 milestone. Each maps to roadmap phases.
 
 ### Guest Access
 
-- [ ] **GUEST-01**: External user can self-register as a guest by providing name, email, password, and selecting a faculty
-- [ ] **GUEST-02**: Guest registration hardcodes GUEST role server-side (never reads role from request body)
-- [ ] **GUEST-03**: Faculty coordinator(s) receive an email notification when a new guest registers for their faculty
-- [ ] **GUEST-04**: Guest account is immediately active after registration (no approval gate)
+- [x] **GUEST-01**: External user can self-register as a guest by providing name, email, password, and selecting a faculty
+- [x] **GUEST-02**: Guest registration hardcodes GUEST role server-side (never reads role from request body)
+- [x] **GUEST-03**: Faculty coordinator(s) receive an email notification when a new guest registers for their faculty
+- [x] **GUEST-04**: Guest account is immediately active after registration (no approval gate)
 - [ ] **GUEST-05**: Coordinator can view a read-only list of guest users registered for their faculty
 - [ ] **GUEST-06**: Guest list shows name, email, and registration date
 
@@ -82,10 +82,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AUDIT-02 | Phase 10 | Complete |
 | AUDIT-03 | Phase 10 | Complete |
 | AUDIT-04 | Phase 12 | Complete |
-| GUEST-01 | Phase 13 | Pending |
-| GUEST-02 | Phase 13 | Pending |
-| GUEST-03 | Phase 13 | Pending |
-| GUEST-04 | Phase 13 | Pending |
+| GUEST-01 | Phase 13 | Complete |
+| GUEST-02 | Phase 13 | Complete |
+| GUEST-03 | Phase 13 | Complete |
+| GUEST-04 | Phase 13 | Complete |
 | GUEST-05 | Phase 13 | Pending |
 | GUEST-06 | Phase 13 | Pending |
 | ANALYTICS-01 | Phase 14 | Pending |
