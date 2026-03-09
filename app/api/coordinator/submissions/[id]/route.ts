@@ -27,7 +27,7 @@ export async function PATCH(
 
     const dbUser = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { facultyId: true },
+      select: { facultyId: true, faculty: { select: { name: true } } },
     });
 
     if (!dbUser?.facultyId) {
@@ -116,6 +116,25 @@ export async function PATCH(
         user: { select: { email: true, name: true } },
       },
     });
+
+    // Audit log: fire-and-forget when selection state changes
+    if (typeof body.isSelected === "boolean" && wasSelected !== updated.isSelected) {
+      prisma.auditLog.create({
+        data: {
+          action: "SELECTION_CHANGE",
+          entityType: "SUBMISSION",
+          entityId: id,
+          actorId: session.user.id,
+          oldValue: String(wasSelected),
+          newValue: String(updated.isSelected),
+          metadata: {
+            submissionTitle: updated.title ?? "Untitled",
+            facultyName: dbUser?.faculty?.name ?? "Unknown",
+            studentName: updated.user.name ?? "Unknown",
+          },
+        },
+      }).catch(console.error);
+    }
 
     // Send notification email when submission is newly selected
     if (!wasSelected && updated.isSelected) {
