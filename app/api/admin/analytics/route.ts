@@ -1,6 +1,6 @@
 import { requireRole } from "@/lib/auth-helpers";
 import prisma from "@/lib/prisma";
-import UAParser from "ua-parser-js";
+import { UAParser } from "ua-parser-js";
 import { isBot } from "ua-parser-js/helpers";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -93,7 +93,6 @@ export async function GET(request: NextRequest) {
     const browserCounts: Record<string, number> = {};
     for (const s of allSessions) {
       if (!s.userAgent || isBot(s.userAgent)) continue;
-      // @ts-expect-error -- UAParser dual export (function+class) confuses TS; works at runtime
       const parser = new UAParser(s.userAgent);
       const browser = parser.getBrowser();
       const name = browser.name || "Unknown";

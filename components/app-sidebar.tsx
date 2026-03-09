@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Activity,
   Calendar,
   ChartColumn,
   CircleCheckBig,
@@ -91,6 +92,7 @@ function buildPages(role?: string | null) {
           icon: CircleCheckBig,
         },
         { title: "Reports", url: "/reports", icon: ChartColumn },
+        { title: "Usage Stats", url: "/admin/analytics", icon: Activity },
       ];
     case "GUEST":
       return [];
@@ -106,6 +108,7 @@ function buildPages(role?: string | null) {
         { title: "Upload Rules", url: "/admin/upload-rules", icon: Upload },
         { title: "User Management", url: "/admin/users", icon: Users },
         { title: "Audit Log", url: "/admin/audit-log", icon: ScrollText },
+        { title: "Usage Stats", url: "/admin/analytics", icon: Activity },
       ];
     default:
       return [];
