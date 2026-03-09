@@ -79,6 +79,7 @@ function buildPages(role?: string | null) {
           url: "/coordinator/submissions",
           icon: FileText,
         },
+        { title: "Guest List", url: "/coordinator/guests", icon: Users },
         { title: "Reports", url: "/reports", icon: ChartColumn },
       ];
     case "MARKETING_MANAGER":
