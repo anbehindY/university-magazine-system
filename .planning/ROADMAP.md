@@ -25,7 +25,7 @@
 ### v1.1 Security, Audit & Guest Self-Registration
 
 - [x] **Phase 10: Schema Migration** -- AuditLog model + User fields (mustChangePassword, lastLoginAt) in a single migration
-- [ ] **Phase 11: Security Hardening** -- First-login password change gate + login tracking with welcome message
+- [x] **Phase 11: Security Hardening** -- First-login password change gate + login tracking with welcome message
 - [ ] **Phase 12: Audit Logging** -- Fire-and-forget audit writes on selection changes + admin audit viewer
 - [ ] **Phase 13: Guest Registration & Guest List** -- Public guest self-registration + coordinator notification + faculty-scoped guest list
 - [ ] **Phase 14: Admin Analytics Dashboard** -- Session-based active users + browser usage charts with Recharts
@@ -54,7 +54,9 @@ Plans:
   2. The password change gate is enforced in portal layout, guest layout, and the API route helper (three enforcement points, no bypass via direct URL)
   3. After successful login, the user sees a welcome message showing their last login timestamp (or "first login" if none)
   4. Last login timestamp is recorded only on successful session creation -- banned or blocked attempts do not update it
-**Plans**: TBD
+**Plans:** 1/1 plans complete
+Plans:
+- [x] 11-01-PLAN.md -- Password change gate, login tracking, welcome card (5 tasks)
 
 ### Phase 12: Audit Logging
 **Goal**: Coordinator selection changes are permanently recorded and administrators can review the audit trail
@@ -102,7 +104,7 @@ Plans:
 | 8. Upload Rules Enforcement | v1.0 | 2/2 | Complete | 2026-03-03 |
 | 9. Pagination | v1.0 | 4/4 | Complete | 2026-03-03 |
 | 10. Schema Migration | v1.1 | Complete    | 2026-03-09 | 2026-03-09 |
-| 11. Security Hardening | v1.1 | 0/? | Not started | - |
+| 11. Security Hardening | v1.1 | 1/1 | Complete | 2026-03-09 |
 | 12. Audit Logging | v1.1 | 0/? | Not started | - |
 | 13. Guest Registration & Guest List | v1.1 | 0/? | Not started | - |
 | 14. Admin Analytics Dashboard | v1.1 | 0/? | Not started | - |
