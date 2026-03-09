@@ -402,6 +402,17 @@ async function main() {
 
   console.log("✓ Staff: 2 admins, 1 manager, 5 coordinators, 5 guests");
 
+  // Set mustChangePassword for testing (simulates admin-created accounts)
+  await prisma.user.update({
+    where: { email: "guest.eng@uog.com" },
+    data: { mustChangePassword: true },
+  });
+  await prisma.user.update({
+    where: { email: "charlie.brown@uog.com" },
+    data: { mustChangePassword: true },
+  });
+  console.log("  (mustChangePassword: guest.eng@uog.com, charlie.brown@uog.com)");
+
   // ── 5. Students — 20 per faculty ──────────────────────────────────────────
 
   const allStudents: { id: string; name: string; email: string; facultyId: string; facultyName: string }[] = [];
@@ -613,7 +624,41 @@ async function main() {
   }
   console.log(`  ✓ 2024-2025: ${submissionCount - prevCount} new submissions`);
 
-  // ── 8. Summary ────────────────────────────────────────────────────────────
+  // ── 8. Audit log sample entries ──────────────────────────────────────────
+  const selectedSubmissions = await prisma.submission.findMany({
+    where: { isSelected: true, academicYearId: y2425 },
+    take: 10,
+    include: { user: { select: { name: true } } },
+  });
+
+  let auditCount = 0;
+  for (const sub of selectedSubmissions) {
+    const coord = coordinators[
+      Object.keys(coordinators).find(
+        (f) => fac[f] === sub.facultyId
+      ) ?? FACULTY_NAMES[0]
+    ];
+    await prisma.auditLog.create({
+      data: {
+        action: "SELECTION_CHANGE",
+        entityType: "SUBMISSION",
+        entityId: sub.id,
+        actorId: coord.id,
+        oldValue: "false",
+        newValue: "true",
+        metadata: {
+          submissionTitle: sub.title,
+          facultyName: Object.keys(fac).find((k) => fac[k] === sub.facultyId) ?? "Unknown",
+          studentName: sub.user.name,
+        },
+        createdAt: sub.selectedAt ?? new Date(),
+      },
+    });
+    auditCount++;
+  }
+  console.log(`✓ ${auditCount} audit log entries seeded`);
+
+  // ── 9. Summary ────────────────────────────────────────────────────────────
 
   console.log("\n" + "═".repeat(60));
   console.log("  SEED COMPLETE");
@@ -625,6 +670,7 @@ async function main() {
   console.log(`  Total Users:    ${allStudents.length + 13}`);
   console.log(`  Submissions:    ${submissionCount}`);
   console.log(`  Comments:       ${commentCount}`);
+  console.log(`  Audit Logs:     ${auditCount}`);
   console.log("═".repeat(60));
   console.log("\n  Login credentials (all passwords: 'password'):");
   console.log("  ─────────────────────────────────────────────");

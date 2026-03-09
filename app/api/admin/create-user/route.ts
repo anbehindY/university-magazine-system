@@ -109,6 +109,7 @@ export async function POST(req: NextRequest) {
         role,
         facultyId,
         emailVerified: true,
+        mustChangePassword: true,
       },
       include: {
         faculty: true,
