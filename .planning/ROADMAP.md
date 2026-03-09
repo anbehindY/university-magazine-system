@@ -41,7 +41,9 @@
   2. User model has `mustChangePassword` field (default false) so existing users are unaffected
   3. User model has `lastLoginAt` nullable DateTime field
   4. Admin create-user API sets `mustChangePassword: true` on newly created users; self-registered users (future Phase 13) will not have this flag set
-**Plans**: TBD
+**Plans:** 1 plan
+Plans:
+- [ ] 10-01-PLAN.md -- AuditLog model, User fields, migration, API update, seed data
 
 ### Phase 11: Security Hardening
 **Goal**: Users with temporary passwords are forced to change them before accessing any feature, and all users see when they last logged in
@@ -99,7 +101,7 @@
 | 7. Student Comment Thread | v1.0 | 2/2 | Complete | 2026-03-03 |
 | 8. Upload Rules Enforcement | v1.0 | 2/2 | Complete | 2026-03-03 |
 | 9. Pagination | v1.0 | 4/4 | Complete | 2026-03-03 |
-| 10. Schema Migration | v1.1 | 0/? | Not started | - |
+| 10. Schema Migration | v1.1 | 0/1 | Not started | - |
 | 11. Security Hardening | v1.1 | 0/? | Not started | - |
 | 12. Audit Logging | v1.1 | 0/? | Not started | - |
 | 13. Guest Registration & Guest List | v1.1 | 0/? | Not started | - |
