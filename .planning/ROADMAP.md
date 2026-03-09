@@ -111,5 +111,5 @@ Plans:
 | 10. Schema Migration | v1.1 | Complete    | 2026-03-09 | 2026-03-09 |
 | 11. Security Hardening | v1.1 | 1/1 | Complete | 2026-03-09 |
 | 12. Audit Logging | v1.1 | 0/1 | Planned | - |
-| 13. Guest Registration & Guest List | v1.1 | 1/2 | In Progress | - |
+| 13. Guest Registration & Guest List | v1.1 | 2/2 | Complete | 2026-03-09 |
 | 14. Admin Analytics Dashboard | v1.1 | 0/? | Not started | - |

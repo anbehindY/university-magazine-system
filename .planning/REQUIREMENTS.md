@@ -28,8 +28,8 @@ Requirements for v1.1 milestone. Each maps to roadmap phases.
 - [x] **GUEST-02**: Guest registration hardcodes GUEST role server-side (never reads role from request body)
 - [x] **GUEST-03**: Faculty coordinator(s) receive an email notification when a new guest registers for their faculty
 - [x] **GUEST-04**: Guest account is immediately active after registration (no approval gate)
-- [ ] **GUEST-05**: Coordinator can view a read-only list of guest users registered for their faculty
-- [ ] **GUEST-06**: Guest list shows name, email, and registration date
+- [x] **GUEST-05**: Coordinator can view a read-only list of guest users registered for their faculty
+- [x] **GUEST-06**: Guest list shows name, email, and registration date
 
 ### Analytics
 
@@ -86,8 +86,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | GUEST-02 | Phase 13 | Complete |
 | GUEST-03 | Phase 13 | Complete |
 | GUEST-04 | Phase 13 | Complete |
-| GUEST-05 | Phase 13 | Pending |
-| GUEST-06 | Phase 13 | Pending |
+| GUEST-05 | Phase 13 | Complete |
+| GUEST-06 | Phase 13 | Complete |
 | ANALYTICS-01 | Phase 14 | Pending |
 | ANALYTICS-02 | Phase 14 | Pending |
 | ANALYTICS-03 | Phase 14 | Pending |
