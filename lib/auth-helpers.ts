@@ -20,6 +20,10 @@ export async function requireRole(allowedRoles: string[]) {
     return { authorized: false, user: null, error: "Not authenticated" };
   }
 
+  if ((user as any).mustChangePassword) {
+    return { authorized: false, user, error: "Password change required" };
+  }
+
   if (!user.role || !allowedRoles.includes(user.role)) {
     return { authorized: false, user, error: "Insufficient permissions" };
   }

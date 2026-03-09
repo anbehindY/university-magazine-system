@@ -14,6 +14,10 @@ export default async function Layout({
 }) {
   const user = await getCurrentUser();
 
+  if ((user as any)?.mustChangePassword) {
+    redirect("/change-password");
+  }
+
   if (user?.role === "GUEST") {
     redirect("/guest");
   }
