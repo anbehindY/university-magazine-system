@@ -11,6 +11,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSession } from "@/lib/auth-client";
 import { LoadingScreen } from "@/components/ui/loading-screen";
+import { format } from "date-fns";
 import {
   AlertTriangle,
   ArrowRight,
@@ -543,6 +544,7 @@ export default function DashboardPage() {
   if (!session?.user) return <LoadingScreen />;
 
   const { user } = session;
+  const lastLoginAt = (user as any)?.lastLoginAt as string | null;
   const desc = ROLE_DESCRIPTIONS[role] ?? ROLE_DESCRIPTIONS.STUDENT;
 
   return (
@@ -554,10 +556,17 @@ export default function DashboardPage() {
             {ROLE_LABELS[role] ?? role} Dashboard
           </p>
           <h1 className="text-2xl font-semibold sm:text-3xl">
-            Welcome back, {user.name || "User"}
+            {lastLoginAt
+              ? `Welcome back, ${user.name || "User"}`
+              : `Welcome, ${user.name || "User"}`}
           </h1>
           <p className="text-slate-500">{desc.headline}</p>
           <p className="text-sm text-slate-400">{desc.subhead}</p>
+          {lastLoginAt && (
+            <p className="text-xs text-slate-400 pt-1">
+              Last login: {format(new Date(lastLoginAt), "d MMMM yyyy, h:mm a")}
+            </p>
+          )}
         </div>
       </section>
 
