@@ -1,6 +1,7 @@
 "use client";
 
 import { University } from "lucide-react";
+import Link from "next/link";
 import { signIn } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -265,6 +266,15 @@ export default function SignInPage() {
                   </Button>
                 </form>
               </Form>
+              <p className="mt-4 text-center text-sm text-muted-foreground">
+                Don&apos;t have an account?{" "}
+                <Link
+                  href="/register"
+                  className="text-primary hover:underline"
+                >
+                  Register as Guest
+                </Link>
+              </p>
             </CardContent>
           </Card>
         </div>
