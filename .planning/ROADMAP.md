@@ -66,7 +66,9 @@ Plans:
   1. When a coordinator selects or deselects a submission, an audit entry is written with the actor, timestamp, submission, old value, and new value
   2. Audit writes are fire-and-forget (do not block or slow down the coordinator's selection toggle response)
   3. Admin can view the audit log page with paginated entries and date filtering
-**Plans**: TBD
+**Plans:** 0/1 plans complete
+Plans:
+- [ ] 12-01-PLAN.md -- Audit write on selection toggle, audit log API + viewer page, sidebar link (4 tasks)
 
 ### Phase 13: Guest Registration & Guest List
 **Goal**: External users can self-register as guests for a faculty, coordinators are notified and can see who registered
@@ -77,7 +79,10 @@ Plans:
   2. The registration endpoint hardcodes the GUEST role server-side and never reads role from the request body (no privilege escalation)
   3. When a guest registers, the faculty coordinator(s) receive an email notification
   4. A coordinator can view a read-only list of guest users for their faculty, showing name, email, and registration date
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 13-01-PLAN.md -- Registration API, email check endpoint, registration page, sign-in link (2 tasks)
+- [ ] 13-02-PLAN.md -- Guest list API, guest list page, sidebar entry (2 tasks)
 
 ### Phase 14: Admin Analytics Dashboard
 **Goal**: Administrators can see platform usage patterns through charts showing active users and browser breakdown
@@ -105,6 +110,6 @@ Plans:
 | 9. Pagination | v1.0 | 4/4 | Complete | 2026-03-03 |
 | 10. Schema Migration | v1.1 | Complete    | 2026-03-09 | 2026-03-09 |
 | 11. Security Hardening | v1.1 | 1/1 | Complete | 2026-03-09 |
-| 12. Audit Logging | v1.1 | 0/? | Not started | - |
-| 13. Guest Registration & Guest List | v1.1 | 0/? | Not started | - |
+| 12. Audit Logging | v1.1 | 0/1 | Planned | - |
+| 13. Guest Registration & Guest List | v1.1 | 0/2 | Planned | - |
 | 14. Admin Analytics Dashboard | v1.1 | 0/? | Not started | - |
