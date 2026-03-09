@@ -6,6 +6,7 @@ import {
   CircleCheckBig,
   FileText,
   LayoutDashboard,
+  ScrollText,
   Upload,
   Users,
 } from "lucide-react";
@@ -103,6 +104,7 @@ function buildPages(role?: string | null) {
         { title: "Closure Dates", url: "/admin/closure-dates", icon: Calendar },
         { title: "Upload Rules", url: "/admin/upload-rules", icon: Upload },
         { title: "User Management", url: "/admin/users", icon: Users },
+        { title: "Audit Log", url: "/admin/audit-log", icon: ScrollText },
       ];
     default:
       return [];
