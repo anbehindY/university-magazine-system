@@ -10,7 +10,7 @@ Requirements for v1.1 milestone. Each maps to roadmap phases.
 ### Security & Auth
 
 - [ ] **SEC-01**: User must change their password on first login before accessing any other page
-- [ ] **SEC-02**: Admin-created users are flagged with `mustChangePassword=true`; self-registered guests are not
+- [x] **SEC-02**: Admin-created users are flagged with `mustChangePassword=true`; self-registered guests are not
 - [ ] **SEC-03**: Password change gate is enforced in portal layout, guest layout, and API route helper
 - [ ] **SEC-04**: User sees their last login timestamp as a welcome message after signing in
 - [ ] **SEC-05**: Last login is recorded on successful session creation (not on blocked/banned attempts)
@@ -18,8 +18,8 @@ Requirements for v1.1 milestone. Each maps to roadmap phases.
 ### Audit & Compliance
 
 - [ ] **AUDIT-01**: System records an audit entry when a coordinator selects or deselects a submission
-- [ ] **AUDIT-02**: Audit entries are append-only (no edit or delete)
-- [ ] **AUDIT-03**: Audit entry captures actor, timestamp, submission, old value, and new value
+- [x] **AUDIT-02**: Audit entries are append-only (no edit or delete)
+- [x] **AUDIT-03**: Audit entry captures actor, timestamp, submission, old value, and new value
 - [ ] **AUDIT-04**: Admin can view audit log with pagination and date filtering
 
 ### Guest Access
@@ -74,13 +74,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | SEC-01 | Phase 11 | Pending |
-| SEC-02 | Phase 10 | Pending |
+| SEC-02 | Phase 10 | Complete |
 | SEC-03 | Phase 11 | Pending |
 | SEC-04 | Phase 11 | Pending |
 | SEC-05 | Phase 11 | Pending |
 | AUDIT-01 | Phase 12 | Pending |
-| AUDIT-02 | Phase 10 | Pending |
-| AUDIT-03 | Phase 10 | Pending |
+| AUDIT-02 | Phase 10 | Complete |
+| AUDIT-03 | Phase 10 | Complete |
 | AUDIT-04 | Phase 12 | Pending |
 | GUEST-01 | Phase 13 | Pending |
 | GUEST-02 | Phase 13 | Pending |
