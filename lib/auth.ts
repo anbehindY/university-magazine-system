@@ -22,6 +22,14 @@ export const auth = betterAuth({
             return false;
           }
         },
+        after: async (session) => {
+          const userId = session.userId as string | undefined;
+          if (!userId) return;
+          prisma.user.update({
+            where: { id: userId },
+            data: { lastLoginAt: new Date() },
+          }).catch(console.error);
+        },
       },
     },
   },
