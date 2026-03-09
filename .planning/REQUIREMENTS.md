@@ -73,31 +73,31 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SEC-01 | — | Pending |
-| SEC-02 | — | Pending |
-| SEC-03 | — | Pending |
-| SEC-04 | — | Pending |
-| SEC-05 | — | Pending |
-| AUDIT-01 | — | Pending |
-| AUDIT-02 | — | Pending |
-| AUDIT-03 | — | Pending |
-| AUDIT-04 | — | Pending |
-| GUEST-01 | — | Pending |
-| GUEST-02 | — | Pending |
-| GUEST-03 | — | Pending |
-| GUEST-04 | — | Pending |
-| GUEST-05 | — | Pending |
-| GUEST-06 | — | Pending |
-| ANALYTICS-01 | — | Pending |
-| ANALYTICS-02 | — | Pending |
-| ANALYTICS-03 | — | Pending |
-| ANALYTICS-04 | — | Pending |
+| SEC-01 | Phase 11 | Pending |
+| SEC-02 | Phase 10 | Pending |
+| SEC-03 | Phase 11 | Pending |
+| SEC-04 | Phase 11 | Pending |
+| SEC-05 | Phase 11 | Pending |
+| AUDIT-01 | Phase 12 | Pending |
+| AUDIT-02 | Phase 10 | Pending |
+| AUDIT-03 | Phase 10 | Pending |
+| AUDIT-04 | Phase 12 | Pending |
+| GUEST-01 | Phase 13 | Pending |
+| GUEST-02 | Phase 13 | Pending |
+| GUEST-03 | Phase 13 | Pending |
+| GUEST-04 | Phase 13 | Pending |
+| GUEST-05 | Phase 13 | Pending |
+| GUEST-06 | Phase 13 | Pending |
+| ANALYTICS-01 | Phase 14 | Pending |
+| ANALYTICS-02 | Phase 14 | Pending |
+| ANALYTICS-03 | Phase 14 | Pending |
+| ANALYTICS-04 | Phase 14 | Pending |
 
 **Coverage:**
 - v1.1 requirements: 19 total
-- Mapped to phases: 0
-- Unmapped: 19 ⚠️
+- Mapped to phases: 19
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-09*
-*Last updated: 2026-03-09 after initial definition*
+*Last updated: 2026-03-09 after roadmap creation*
