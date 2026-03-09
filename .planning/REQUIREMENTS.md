@@ -17,10 +17,10 @@ Requirements for v1.1 milestone. Each maps to roadmap phases.
 
 ### Audit & Compliance
 
-- [ ] **AUDIT-01**: System records an audit entry when a coordinator selects or deselects a submission
+- [x] **AUDIT-01**: System records an audit entry when a coordinator selects or deselects a submission
 - [x] **AUDIT-02**: Audit entries are append-only (no edit or delete)
 - [x] **AUDIT-03**: Audit entry captures actor, timestamp, submission, old value, and new value
-- [ ] **AUDIT-04**: Admin can view audit log with pagination and date filtering
+- [x] **AUDIT-04**: Admin can view audit log with pagination and date filtering
 
 ### Guest Access
 
@@ -78,10 +78,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SEC-03 | Phase 11 | Complete |
 | SEC-04 | Phase 11 | Complete |
 | SEC-05 | Phase 11 | Complete |
-| AUDIT-01 | Phase 12 | Pending |
+| AUDIT-01 | Phase 12 | Complete |
 | AUDIT-02 | Phase 10 | Complete |
 | AUDIT-03 | Phase 10 | Complete |
-| AUDIT-04 | Phase 12 | Pending |
+| AUDIT-04 | Phase 12 | Complete |
 | GUEST-01 | Phase 13 | Pending |
 | GUEST-02 | Phase 13 | Pending |
 | GUEST-03 | Phase 13 | Pending |
