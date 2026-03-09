@@ -54,7 +54,17 @@ Students can submit and manage their contributions, and coordinators can review,
 
 ### Active
 
-(No active requirements — next milestone TBD)
+## Current Milestone: v1.1 Security, Audit & Guest Self-Registration
+
+**Goal:** Add audit logging, first-login password change, login activity tracking, admin analytics, and guest self-registration with coordinator notification.
+
+**Target features:**
+- Audit log for submission selection changes (approve/deselect)
+- Forced password change on first login
+- Last login timestamp / welcome message
+- Admin analytics reports (page views, active users, browser usage)
+- Guest self-registration with coordinator email notification
+- Coordinator faculty-scoped guest list
 
 ### Out of Scope
 
@@ -120,4 +130,4 @@ UAT: 20/20 tests passed across 2 rounds covering all roles and workflows.
 | Separate (guest) route group with own layout | Isolates guest experience from portal sidebar | ✓ Good |
 
 ---
-*Last updated: 2026-03-05 after v1.0 milestone completion*
+*Last updated: 2026-03-09 — v1.1 milestone started*
