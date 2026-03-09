@@ -33,10 +33,10 @@ Requirements for v1.1 milestone. Each maps to roadmap phases.
 
 ### Analytics
 
-- [ ] **ANALYTICS-01**: Admin can view active user counts for the last 7 and 30 days
-- [ ] **ANALYTICS-02**: Admin can view browser usage breakdown parsed from session user-agent data
-- [ ] **ANALYTICS-03**: Analytics dashboard displays data using charts (Recharts)
-- [ ] **ANALYTICS-04**: Analytics is derived from existing session data (no separate page view tracking)
+- [x] **ANALYTICS-01**: Admin can view active user counts for the last 7 and 30 days
+- [x] **ANALYTICS-02**: Admin can view browser usage breakdown parsed from session user-agent data
+- [x] **ANALYTICS-03**: Analytics dashboard displays data using charts (Recharts)
+- [x] **ANALYTICS-04**: Analytics is derived from existing session data (no separate page view tracking)
 
 ## Future Requirements
 
@@ -88,10 +88,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | GUEST-04 | Phase 13 | Complete |
 | GUEST-05 | Phase 13 | Complete |
 | GUEST-06 | Phase 13 | Complete |
-| ANALYTICS-01 | Phase 14 | Pending |
-| ANALYTICS-02 | Phase 14 | Pending |
-| ANALYTICS-03 | Phase 14 | Pending |
-| ANALYTICS-04 | Phase 14 | Pending |
+| ANALYTICS-01 | Phase 14 | Complete |
+| ANALYTICS-02 | Phase 14 | Complete |
+| ANALYTICS-03 | Phase 14 | Complete |
+| ANALYTICS-04 | Phase 14 | Complete |
 
 **Coverage:**
 - v1.1 requirements: 19 total
