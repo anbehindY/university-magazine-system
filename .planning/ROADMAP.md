@@ -93,7 +93,9 @@ Plans:
   2. Admin can view a browser usage breakdown chart parsed from session user-agent data
   3. Analytics data is displayed using Recharts charts (not just tables or numbers)
   4. All analytics are derived from existing session data -- no separate page view tracking infrastructure is required
-**Plans**: TBD
+**Plans:** 1 plan
+Plans:
+- [ ] 14-01-PLAN.md -- Analytics API endpoint, Recharts dashboard page, sidebar entry (2 tasks)
 
 ## Progress
 
@@ -112,4 +114,4 @@ Plans:
 | 11. Security Hardening | v1.1 | 1/1 | Complete | 2026-03-09 |
 | 12. Audit Logging | v1.1 | 0/1 | Planned | - |
 | 13. Guest Registration & Guest List | v1.1 | Complete    | 2026-03-09 | 2026-03-09 |
-| 14. Admin Analytics Dashboard | v1.1 | 0/? | Not started | - |
+| 14. Admin Analytics Dashboard | v1.1 | 0/1 | Planned | - |
