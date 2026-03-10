@@ -8,6 +8,7 @@ import {
   FileText,
   LayoutDashboard,
   ScrollText,
+  Settings,
   Upload,
   Users,
 } from "lucide-react";
@@ -82,6 +83,7 @@ function buildPages(role?: string | null) {
         },
         { title: "Guest List", url: "/coordinator/guests", icon: Users },
         { title: "Reports", url: "/reports", icon: ChartColumn },
+        { title: "Settings", url: "/profile", icon: Settings },
       ];
     case "MARKETING_MANAGER":
       return [
@@ -93,6 +95,7 @@ function buildPages(role?: string | null) {
         },
         { title: "Reports", url: "/reports", icon: ChartColumn },
         { title: "Usage Stats", url: "/admin/analytics", icon: Activity },
+        { title: "Settings", url: "/profile", icon: Settings },
       ];
     case "GUEST":
       return [];
@@ -100,6 +103,7 @@ function buildPages(role?: string | null) {
       return [
         { title: "Dashboard", url: "/", icon: LayoutDashboard },
         { title: "My Submissions", url: "/student/submissions", icon: Upload },
+        { title: "Settings", url: "/profile", icon: Settings },
       ];
     case "ADMINISTRATOR":
       return [
@@ -109,6 +113,7 @@ function buildPages(role?: string | null) {
         { title: "User Management", url: "/admin/users", icon: Users },
         { title: "Audit Log", url: "/admin/audit-log", icon: ScrollText },
         { title: "Usage Stats", url: "/admin/analytics", icon: Activity },
+        { title: "Settings", url: "/profile", icon: Settings },
       ];
     default:
       return [];
