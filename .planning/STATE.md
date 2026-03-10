@@ -50,6 +50,7 @@ Progress: [##########] 6/6 plans complete
 | 13 | 01 | 146s | 2 | 4 |
 | 13 | 02 | 148s | 2 | 3 |
 | 14 | 01 | 1048s | 2 | 5 |
+| 11 | 02 | 122s | 2 | 6 |
 
 **By Phase (v1.1):**
 
@@ -85,6 +86,8 @@ All v1.0 decisions logged in PROJECT.md Key Decisions table.
 - [14-01] Used named import { UAParser } for Turbopack ESM compatibility (default import fails at build)
 - [14-01] Cumulative daily count computed in-memory from single session query (no N+1)
 - [14-01] Browser breakdown queries all sessions ever (not time-filtered) per CONTEXT.md decision
+- [11-02] additionalFields uses input:false for both fields to prevent client-side manipulation
+- [11-02] inferAdditionalFields<typeof auth>() for monorepo-style type inference from server config
 
 ### Pending Todos
 
@@ -105,7 +108,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T16:22:57Z
-Stopped at: Completed 14-01-PLAN.md
-Resume file: .planning/milestones/v1.1-phases/14-admin-analytics-dashboard/14-01-SUMMARY.md
-Next step: v1.1 milestone complete -- all phases 10-14 done
+Last session: 2026-03-10T00:00:00Z
+Stopped at: Completed 11-02-PLAN.md (gap closure)
+Resume file: .planning/milestones/v1.1-phases/11-security-hardening/11-02-SUMMARY.md
+Next step: Re-run UAT for Phase 11 to verify all 4 gaps are closed
