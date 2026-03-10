@@ -401,10 +401,27 @@ export default function CoordinatorSubmissionsPage() {
   // File download click handler (gates comment UI)
   // ---------------------------------------------------------------------------
 
-  function handleFileClick(submissionId: string) {
-    if (!downloadedSubmissionsRef.current.has(submissionId)) {
-      downloadedSubmissionsRef.current.add(submissionId);
-      setDownloadVersion((v) => v + 1);
+  async function handleFileDownload(
+    submissionId: string,
+    fileUrl: string,
+    filename: string
+  ) {
+    try {
+      const res = await fetch(fileUrl);
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = filename;
+      anchor.click();
+      URL.revokeObjectURL(objectUrl);
+
+      if (!downloadedSubmissionsRef.current.has(submissionId)) {
+        downloadedSubmissionsRef.current.add(submissionId);
+        setDownloadVersion((v) => v + 1);
+      }
+    } catch (err) {
+      console.error("Download failed:", err);
     }
   }
 
@@ -739,12 +756,16 @@ export default function CoordinatorSubmissionsPage() {
                   <ul className="space-y-1.5">
                     {selectedSubmission.files.map((file) => (
                       <li key={file.id}>
-                        <a
-                          href={file.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={() => handleFileClick(selectedSubmission.id)}
-                          className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 transition-colors"
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleFileDownload(
+                              selectedSubmission.id,
+                              file.url,
+                              file.filename
+                            )
+                          }
+                          className="flex w-full items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 transition-colors text-left"
                         >
                           <FileIcon className="h-4 w-4 shrink-0 text-slate-400" />
                           <span className="flex-1 truncate">{file.filename}</span>
@@ -754,7 +775,7 @@ export default function CoordinatorSubmissionsPage() {
                             </span>
                           )}
                           <Download className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-                        </a>
+                        </button>
                       </li>
                     ))}
                   </ul>

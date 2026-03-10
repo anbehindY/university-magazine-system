@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { signOut } from "@/lib/auth-client";
 import { Badge } from "@/components/ui/badge";
 import { LogOut } from "lucide-react";
@@ -120,6 +121,12 @@ export function GuestHeader({ user }: GuestHeaderProps) {
               {user.name}
             </span>
           )}
+          <Link
+            href="/guest/profile"
+            className="text-sm text-slate-600 hover:text-slate-900"
+          >
+            Profile
+          </Link>
           <button
             type="button"
             onClick={handleSignOut}

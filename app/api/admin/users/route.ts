@@ -8,7 +8,6 @@ const VALID_ROLES = [
   "MARKETING_COORDINATOR",
   "STUDENT",
   "ADMINISTRATOR",
-  "GUEST",
 ] as const;
 
 type ValidRole = (typeof VALID_ROLES)[number];
@@ -177,7 +176,6 @@ export async function PATCH(req: NextRequest) {
 
     if (
       (role === "MARKETING_COORDINATOR" ||
-        role === "GUEST" ||
         role === "STUDENT") &&
       !facultyId
     ) {

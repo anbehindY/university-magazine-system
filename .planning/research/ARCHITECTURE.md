@@ -1,398 +1,358 @@
-# Architecture Research
+# Architecture Patterns
 
-**Dimension:** Architecture
-**Milestone context:** Subsequent — adding comment threads, isSelected flag, email notifications, ZIP download, reports, and closure enforcement
-**Date:** 2026-02-25
+**Domain:** v1.1 feature integration into existing University Magazine System
+**Researched:** 2026-03-09
 
----
+## Existing Architecture Summary
 
-## Question
-
-How should the new features integrate with the existing Next.js App Router architecture? Specifically: data model for comment threads, server-side ZIP streaming from remote URLs, Prisma aggregation queries for reports, and email queue/retry patterns.
-
----
-
-## Summary
-
-The six new feature areas map cleanly onto the existing layered pattern (Presentation → API → Data Access → Auth). Each feature adds new API route handlers and Prisma model extensions without disrupting the existing submission or auth layers. The main architectural decisions are: (1) where closure enforcement lives, (2) how ZIP streaming is handled without blocking Next.js serverless function limits, (3) what scope guard pattern coordinator-facing routes use, and (4) whether email delivery requires retry infrastructure or a fire-and-forget call is sufficient given the testing-only SMTP requirement.
-
----
-
-## Component Boundaries
-
-### Existing components (unchanged boundaries)
-
-| Component | Owns | Does NOT own |
-|-----------|------|-------------|
-| `lib/auth.ts` | Session lifecycle, role definition | Business authorization logic (that stays in route handlers) |
-| `lib/auth-helpers.ts` | `getCurrentUser`, `requireRole` | Faculty-scoped filtering |
-| `lib/prisma.ts` | Singleton Prisma client | Query construction |
-| `app/api/submissions/route.ts` | Student CRUD on own submissions | Coordinator views, comment threads |
-| `app/api/submissions/upload/route.ts` | Vercel Blob token generation and `onUploadCompleted` hook | File streaming or ZIP |
-| `prisma/schema.prisma` | All persistent data models | Runtime session state |
-
-### New components required
-
-| Component | Owns | Boundary |
-|-----------|------|---------|
-| `lib/mailer.ts` | Nodemailer transporter singleton, `sendMail(options)` helper | Does not decide when to send; callers (route handlers) decide that |
-| `app/api/coordinator/submissions/route.ts` | Coordinator read/write of faculty-scoped submissions | Only MARKETING_COORDINATOR; filters by `user.facultyId` joining through `submission.user.facultyId` |
-| `app/api/coordinator/submissions/[id]/comments/route.ts` | GET thread, POST new comment | Validates caller is coordinator or the submitting student; enforces final closure date |
-| `app/api/coordinator/submissions/[id]/select/route.ts` | PATCH `isSelected` boolean | MARKETING_COORDINATOR only; enforces final closure date |
-| `app/api/manager/submissions/download/route.ts` | ZIP generation and streaming | MARKETING_MANAGER only; only after final closure date; fetches files from Vercel Blob and pipes through `archiver` |
-| `app/api/reports/route.ts` | Prisma aggregation queries, role-scoped filtering | Read-only; no mutations |
-| Closure guard (inline in route handlers) | Comparing `Date.now()` against `AcademicYear.closureDate` and `endDate` | Shared via a `lib/closure-guard.ts` helper to avoid duplication |
-
----
-
-## Data Model
-
-### Schema additions (new Prisma models and fields)
-
-**1. `isSelected` flag on `Submission`**
-
-A single boolean field added directly to the existing `Submission` model. No new table needed.
-
-```prisma
-model Submission {
-  // ... existing fields ...
-  isSelected  Boolean  @default(false) @map("is_selected")
-  comments    SubmissionComment[]
-}
-```
-
-**2. `SubmissionComment` model**
-
-A flat list of messages scoped to a submission. Sender identity is stored as a foreign key to `User`, and the role at time of posting is not stored — the current role is always used when reading. This keeps the model simple since roles do not change mid-thread in practice.
-
-```prisma
-model SubmissionComment {
-  id           String     @id @default(uuid())
-  submissionId String     @map("submission_id")
-  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
-  authorId     String     @map("author_id")
-  author       User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  body         String     @db.Text
-  createdAt    DateTime   @default(now()) @map("created_at")
-  updatedAt    DateTime   @updatedAt @map("updated_at")
-
-  @@index([submissionId])
-  @@map("submission_comment")
-}
-```
-
-**Design rationale:**
-- No `parentId` / threaded replies — the requirement specifies a two-way thread (coordinator and student exchanging messages), not a nested comment tree. A flat ordered list sorted by `createdAt` is sufficient.
-- `authorId` FK preserves who wrote each message without duplicating name/role. When rendering, `author.role` tells the UI whether to align left (student) or right (coordinator).
-- `onDelete: Cascade` from both `Submission` and `User` ensures no orphaned rows.
-- A Prisma index on `submissionId` is important because every comment query filters by submission.
-
-**3. `AcademicYear` closure dates clarification**
-
-The existing schema has `closureDate` (one field). The requirements reference both a "first closure date" (blocks new submissions) and a "final closure date" (blocks all updates). The schema needs both:
-
-```prisma
-model AcademicYear {
-  // ... existing fields ...
-  firstClosureDate  DateTime? @db.Date @map("first_closure_date")
-  finalClosureDate  DateTime? @db.Date @map("final_closure_date")
-}
-```
-
-The existing `closureDate` field should be mapped to one of these or migrated — this is a schema migration concern, not an API design concern, but it affects every closure check.
-
----
-
-## Data Flow
-
-### Comment thread flow
+The app follows a clean Next.js 16 App Router pattern with route groups for role separation:
 
 ```
-Student/Coordinator UI
-  → POST /api/coordinator/submissions/[id]/comments
-    - auth.api.getSession → verify MARKETING_COORDINATOR or submission.userId === caller
-    - check finalClosureDate not passed
-    - prisma.submissionComment.create({ submissionId, authorId: session.user.id, body })
-    → 201 { comment }
-
-  → GET /api/coordinator/submissions/[id]/comments
-    - auth check (coordinator or student who owns submission)
-    - prisma.submissionComment.findMany({ where: { submissionId }, include: { author: { select: { name, role } } }, orderBy: { createdAt: 'asc' } })
-    → 200 { comments }
+app/
+  (auth)/sign-in/           -- Public sign-in page (client component)
+  (portal)/                 -- All non-guest authenticated roles (server layout with sidebar)
+    admin/users|closure-dates|upload-rules
+    coordinator/submissions
+    manager/submissions
+    student/submissions
+    reports/
+  (guest)/                  -- Isolated guest layout (no sidebar, own header)
+    guest/
+  api/                      -- REST-style API routes
+    auth/[...all]           -- Better Auth catch-all
+    admin/create-user|users|academic-years|upload-rules
+    coordinator/submissions/[id]
+    manager/submissions/download
+    reports/
+    guest/submissions
 ```
 
-### Email notification flow
+**Auth flow:** Better Auth with admin plugin. `lib/auth.ts` configures server-side auth with `databaseHooks.session.create.before` (banned user check). `lib/auth-client.ts` exports client hooks (`useSession`, `signIn`). `lib/auth-helpers.ts` provides `getCurrentUser()` and `requireRole()` for server components and API routes. No Next.js middleware exists -- auth is checked per-layout and per-API-route.
+
+**Data layer:** Prisma 7 with PostgreSQL (Neon). Raw SQL used for aggregate reports. Session table already stores `ipAddress` and `userAgent`.
+
+**Email:** `lib/mailer.ts` wraps Nodemailer with a singleton transporter. Fire-and-forget pattern (`.catch(console.error)`).
+
+## Recommended Architecture for v1.1 Features
+
+### Component Boundaries
+
+| Component | Responsibility | New/Modified | Communicates With |
+|-----------|---------------|--------------|-------------------|
+| `AuditLog` model (Prisma) | Store selection change history | NEW | Prisma, coordinator API |
+| `lib/audit.ts` | Helper to create audit log entries | NEW | Prisma, coordinator API route |
+| `app/api/coordinator/submissions/[id]/route.ts` | Log selection changes on PATCH | MODIFIED | audit helper |
+| `app/api/admin/audit-log/route.ts` | Read audit logs for admin view | NEW | Prisma |
+| `app/(portal)/admin/audit-log/page.tsx` | Admin UI to browse audit logs | NEW | audit API |
+| `User.mustChangePassword` field | Flag for first-login forced change | NEW (schema) | auth flow, password change page |
+| `User.lastLoginAt` field | Track last login timestamp | NEW (schema) | Better Auth session hook, dashboard |
+| `app/api/admin/create-user/route.ts` | Set `mustChangePassword: true` on user creation | MODIFIED | Prisma |
+| `lib/auth.ts` | Update `lastLoginAt` in session create hook | MODIFIED | Prisma |
+| `app/(auth)/change-password/page.tsx` | Force password change UI | NEW | Better Auth client, redirect logic |
+| `app/(portal)/layout.tsx` | Check `mustChangePassword`, redirect if true | MODIFIED | Prisma |
+| `app/(portal)/page.tsx` | Show "Welcome back" with last login time | MODIFIED | session data or API |
+| `app/api/admin/analytics/route.ts` | Aggregate analytics data for admin | NEW | Prisma (sessions, users) |
+| `app/(portal)/admin/analytics/page.tsx` | Admin analytics dashboard | NEW | analytics API |
+| `app/(auth)/guest-register/page.tsx` | Public guest self-registration form | NEW | registration API |
+| `app/api/auth/guest-register/route.ts` | Create GUEST user, notify coordinator | NEW | Prisma, Better Auth, mailer |
+| `app/api/coordinator/guests/route.ts` | List guests for coordinator's faculty | NEW | Prisma |
+| `app/(portal)/coordinator/guests/page.tsx` | Coordinator guest list UI | NEW | guests API |
+
+### Data Flow
+
+#### 1. Audit Log for Selection Changes
 
 ```
-PUT /api/submissions → status SUBMITTED
-  → prisma.submission.update(...)
-  → after successful DB write:
-      find coordinator for student's faculty:
-        prisma.user.findFirst({ where: { role: 'MARKETING_COORDINATOR', facultyId: student.facultyId } })
-      if coordinator found:
-        lib/mailer.ts sendMail({ to: coordinator.email, subject: '...', html: '...' })
-        fire-and-forget (await inside try/catch, log error but don't fail the submission response)
-  → return 200 { submission }
+Coordinator toggles selection
+  --> PATCH /api/coordinator/submissions/[id]
+    --> (existing) Update submission.isSelected
+    --> (NEW) Call createAuditLog({ submissionId, coordinatorId, action, previousValue, newValue })
+    --> (existing) Send email if newly selected
+  --> Response includes updated submission
 ```
 
-No queue, no retry infrastructure. The SMTP/Gmail channel is explicitly scoped to testing. If `sendMail` throws, it is caught and logged; the HTTP response still succeeds. A queue can be added later by replacing the `sendMail` call with an enqueue call without touching the submission route's contract.
+The audit log write happens in the same API route handler, AFTER the Prisma update succeeds. No transaction needed -- audit is append-only observational data; a failed audit write should not roll back the selection change. Use `.catch(console.error)` like the existing email pattern.
 
-**`lib/mailer.ts` structure:**
+#### 2. First-Login Password Change
+
+```
+User signs in via Better Auth
+  --> Client redirects to / (existing behavior)
+  --> (portal) layout.tsx server component checks user.mustChangePassword
+    --> If true: redirect("/change-password")
+  --> /change-password page:
+    --> User enters new password
+    --> POST /api/auth/change-password (Better Auth changePassword API or custom)
+    --> On success: UPDATE user SET mustChangePassword = false
+    --> Redirect to /
+```
+
+The check happens in the server-side `(portal)/layout.tsx` which already calls `getCurrentUser()`. Add a Prisma query for `mustChangePassword` (or include it in the user select). The `(guest)/layout.tsx` needs the same check. The `(auth)/change-password` page lives outside both layouts so the redirect does not create a loop.
+
+**Important:** The `(auth)/sign-in` page currently redirects to `/` after sign-in. This does NOT need to change. The `/` page loads `(portal)/layout.tsx` which will catch the `mustChangePassword` flag and redirect before rendering children.
+
+#### 3. Last Login Tracking
+
+```
+User signs in
+  --> Better Auth creates session
+  --> databaseHooks.session.create.after (NEW hook)
+    --> UPDATE user SET lastLoginAt = NOW() WHERE id = session.userId
+  --> Dashboard page fetches session + user
+  --> Welcome section shows "Last login: {date}" (or "Welcome! First time here.")
+```
+
+The existing `databaseHooks.session.create.before` already runs a banned-user check. Add an `after` hook (or extend `before` to also update `lastLoginAt` after the ban check passes). Better Auth supports both `before` and `after` hooks on session creation.
+
+The Session model already has `createdAt`, `ipAddress`, and `userAgent` -- no schema changes needed for session-level data. The `lastLoginAt` on User is the PREVIOUS session's timestamp (set on new session creation), giving a "last time you were here" message.
+
+#### 4. Admin Analytics Reports
+
+```
+Admin visits /admin/analytics
+  --> Client fetches GET /api/admin/analytics?period=30d
+  --> API aggregates:
+    - Active users: COUNT(DISTINCT userId) from session WHERE createdAt > cutoff
+    - Browser usage: Parse userAgent from session, GROUP BY browser family
+    - Login frequency: COUNT sessions GROUP BY date
+    - Users by role: COUNT users GROUP BY role (already exists in /api/admin/users/stats)
+  --> Returns JSON, rendered as charts/tables
+```
+
+**Key insight:** The existing Session table already stores `userAgent` and `createdAt`. No new tracking infrastructure needed. Parse `userAgent` server-side using a lightweight parser (e.g., `ua-parser-js`, ~12KB). For "page views," the system has no page-view tracking today and adding it is disproportionate effort -- reframe as "login activity / active user analytics" which the Session table already supports.
+
+If true page-view analytics are required, recommend a lightweight middleware that logs to a `PageView` table. But this was NOT in v1.0 and the Session-based approach covers the stated requirement of "active users, browser usage."
+
+#### 5. Guest Self-Registration
+
+```
+Unauthenticated user visits /guest-register
+  --> Selects faculty, enters name/email/password
+  --> POST /api/auth/guest-register
+    --> Validate fields (name, email, password, facultyId)
+    --> Check email uniqueness
+    --> Create user via auth.api.signUpEmail (same pattern as admin create-user)
+    --> Update user: role=GUEST, facultyId, emailVerified=true, mustChangePassword=false
+    --> Find faculty's coordinator(s): SELECT * FROM user WHERE role='MARKETING_COORDINATOR' AND facultyId=X
+    --> Send notification email to coordinator(s)
+    --> Return success (do NOT auto-sign-in)
+  --> Client shows success message with link to /sign-in
+```
+
+The registration page lives at `app/(auth)/guest-register/page.tsx` in the `(auth)` route group (no sidebar, no auth required). The API endpoint mirrors the existing `admin/create-user` pattern but is publicly accessible with hardcoded GUEST role.
+
+#### 6. Coordinator Guest List
+
+```
+Coordinator visits /coordinator/guests
+  --> Client fetches GET /api/coordinator/guests
+  --> API: requireRole(MARKETING_COORDINATOR)
+    --> Get coordinator's facultyId
+    --> SELECT users WHERE role='GUEST' AND facultyId = coordinator's faculty
+    --> Return list with name, email, createdAt
+  --> Rendered as a simple table (read-only)
+```
+
+## Patterns to Follow
+
+### Pattern 1: Append-Only Audit Log
+**What:** Write audit entries as immutable records. Never update or delete audit rows.
+**When:** Any action that needs accountability (selection changes now, potentially more later).
+**Example:**
 ```typescript
-import nodemailer from 'nodemailer';
+// lib/audit.ts
+import prisma from "@/lib/prisma";
 
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-});
-
-export async function sendMail(options: { to: string; subject: string; html: string }) {
-  await transporter.sendMail({ from: process.env.SMTP_USER, ...options });
-}
-```
-
-The transporter is created once at module load (module-level singleton), consistent with how `lib/prisma.ts` works.
-
-### ZIP download flow
-
-```
-GET /api/manager/submissions/download
-  - auth check: MARKETING_MANAGER only
-  - check finalClosureDate has passed (enforce server-side)
-  - prisma.submission.findMany({
-      where: { isSelected: true },
-      include: {
-        files: true,
-        user: { include: { faculty: true } },
-      }
-    })
-  - Create archiver instance (zip format)
-  - Set response headers: Content-Type: application/zip, Content-Disposition: attachment; filename="selected-submissions.zip"
-  - Return a streaming Response using ReadableStream or TransformStream
-  - For each file:
-      fetch(file.url)          ← HTTP GET to Vercel Blob CDN URL
-      pipe response body into archiver at path: `{faculty.name}/{user.name}/{filename}`
-  - archiver.finalize()
-  - Stream the zip bytes to client as they are produced
-```
-
-**Streaming pattern in Next.js App Router route handlers:**
-
-Route handlers can return a `Response` with a `ReadableStream` body. The correct approach is:
-
-```typescript
-// app/api/manager/submissions/download/route.ts
-export async function GET() {
-  // ... auth + closure checks ...
-
-  const { readable, writable } = new TransformStream();
-  const writer = writable.getWriter();
-
-  // Run archiver in background, piping chunks into the TransformStream writer
-  (async () => {
-    const archive = archiver('zip');
-    archive.on('data', (chunk) => writer.write(chunk));
-    archive.on('end', () => writer.close());
-    archive.on('error', (err) => writer.abort(err));
-
-    for (const submission of submissions) {
-      for (const file of submission.files) {
-        const res = await fetch(file.url);
-        const stream = res.body;
-        // append stream to archive at path
-        archive.append(stream, { name: `${facultyName}/${userName}/${basename}` });
-      }
-    }
-    archive.finalize();
-  })();
-
-  return new Response(readable, {
-    headers: {
-      'Content-Type': 'application/zip',
-      'Content-Disposition': 'attachment; filename="selected-submissions.zip"',
+export async function createAuditLog(entry: {
+  action: string;        // "SUBMISSION_SELECTED" | "SUBMISSION_DESELECTED"
+  entityType: string;    // "Submission"
+  entityId: string;      // submission.id
+  performedById: string; // coordinator user id
+  metadata?: Record<string, unknown>;
+}) {
+  return prisma.auditLog.create({
+    data: {
+      ...entry,
+      metadata: entry.metadata ? JSON.stringify(entry.metadata) : null,
     },
   });
 }
 ```
 
-**Critical constraint:** Vercel serverless functions have a 60-second (Hobby) or configurable timeout limit. For large ZIP downloads this may be an issue. Since the requirement states "on-demand" with no background job, the mitigation is: (1) only trigger after final closure (preventing further file additions), (2) the number of files is bounded by the submission window. This is acceptable for the current scope.
-
-The `archiver` npm package must be added as a dependency. The `@types/archiver` dev dependency is also needed.
-
-### Reports flow
-
-```
-GET /api/reports?academicYearId=<id>&type=<reportType>
-  - auth check: any authenticated role
-  - derive facultyId scope from role:
-      ADMINISTRATOR, MARKETING_MANAGER → no faculty filter
-      MARKETING_COORDINATOR, GUEST → { facultyId: session.user.facultyId }
-      STUDENT → blocked (reports not listed in student requirements)
-  - execute appropriate Prisma aggregation query
-  → 200 { data }
-```
-
-**Prisma aggregation patterns for each report:**
-
+### Pattern 2: Server Layout Guard for Password Change
+**What:** Check `mustChangePassword` in the server-side layout, redirect before rendering children.
+**When:** Forced password change on first login.
+**Why:** Follows the existing pattern where `(portal)/layout.tsx` already checks role and redirects guests. Consistent, server-side, no flash of content.
 ```typescript
-// Contributions per faculty per academic year
-const counts = await prisma.submission.groupBy({
-  by: ['user.facultyId'],  // requires join — use raw or nested aggregation
-  _count: { id: true },
-  where: { status: 'SUBMITTED', user: { facultyId: facultyFilter } },
+// In (portal)/layout.tsx -- after getCurrentUser()
+const dbUser = await prisma.user.findUnique({
+  where: { id: user.id },
+  select: { mustChangePassword: true },
 });
-
-// Distinct contributors per faculty
-const contributors = await prisma.submission.findMany({
-  where: { status: 'SUBMITTED', ... },
-  distinct: ['userId'],
-  select: { userId: true, user: { select: { facultyId: true } } },
-});
-
-// Exception: submissions without any coordinator comment
-const noComment = await prisma.submission.findMany({
-  where: {
-    status: 'SUBMITTED',
-    comments: { none: {} },
-  },
-  include: { user: { select: { name: true, faculty: { select: { name: true } } } } },
-});
-
-// Exception: submitted > 14 days ago, no coordinator comment
-const stale = await prisma.submission.findMany({
-  where: {
-    status: 'SUBMITTED',
-    submittedAt: { lt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000) },
-    comments: { none: {} },
-  },
-});
-```
-
-Note: `groupBy` with a joined relation field (`user.facultyId`) is not directly supported by Prisma's `groupBy` — it can only group by scalar fields on the model itself. The workaround is either: (a) add a denormalized `facultyId` to the `Submission` model (duplicating the value from `user.facultyId`), or (b) use a raw SQL query (`prisma.$queryRaw`). Option (a) is simpler and avoids raw SQL but adds a field that can drift out of sync. Option (b) is more robust. Given the coordinator-only submission creation pattern (faculty is set at the user level and never changes on a submission), option (a) is pragmatic. A migration adds `facultyId` as a snapshot field populated at submission creation time.
-
-### Closure enforcement flow
-
-```
-lib/closure-guard.ts
-  export async function getActiveAcademicYear(): Promise<AcademicYear | null>
-  export function isPastFirstClosure(year: AcademicYear): boolean
-  export function isPastFinalClosure(year: AcademicYear): boolean
-```
-
-Route handlers call these helpers before any mutation. Pattern:
-
-```typescript
-// In any write route handler:
-const year = await getActiveAcademicYear();
-if (!year || isPastFirstClosure(year)) {
-  return NextResponse.json({ error: 'Submission period closed' }, { status: 403 });
+if (dbUser?.mustChangePassword) {
+  redirect("/change-password");
 }
 ```
 
-"Active" academic year = the one where `startDate <= today <= endDate`. If no active year exists, all submissions are blocked (conservative default).
+### Pattern 3: Session Hook for Login Tracking
+**What:** Use Better Auth's `databaseHooks.session.create` to update user's `lastLoginAt`.
+**When:** Every successful login.
+**Why:** Centralized, automatic, no extra API calls needed. Piggybacks on existing hook infrastructure in `lib/auth.ts`.
 
----
+### Pattern 4: Faculty-Scoped API Routes
+**What:** API routes that scope data by the authenticated user's `facultyId`.
+**When:** Coordinator guest list, faculty-scoped reports.
+**Why:** Follows the exact pattern already used in `coordinator/submissions` and `reports` routes. Look up `dbUser.facultyId`, use it in the WHERE clause.
+
+## Anti-Patterns to Avoid
+
+### Anti-Pattern 1: Client-Side Auth Guards for Password Change
+**What:** Checking `mustChangePassword` in a client component and redirecting.
+**Why bad:** Flash of protected content before redirect. Race condition with SWR session fetch. The existing app already solved this with server-side layout checks.
+**Instead:** Check in `(portal)/layout.tsx` and `(guest)/layout.tsx` server components.
+
+### Anti-Pattern 2: Next.js Middleware for Auth
+**What:** Adding a `middleware.ts` to check `mustChangePassword` or auth state.
+**Why bad:** The app has no middleware today. Better Auth session checking in middleware requires edge-compatible database access, which Prisma + Neon may not cleanly support. Adding middleware for one feature creates a second auth-checking surface that diverges from the existing per-layout pattern.
+**Instead:** Stay with per-layout server-side checks.
+
+### Anti-Pattern 3: Separate Analytics Tracking Table
+**What:** Creating a `PageView` or `AnalyticsEvent` table with custom tracking.
+**Why bad:** Disproportionate effort for stated requirements. Adds write load on every page view. The Session table already provides active user and browser data.
+**Instead:** Derive analytics from the existing Session table. Add a `PageView` table only if explicitly required later.
+
+### Anti-Pattern 4: Transaction Wrapping Audit Writes
+**What:** Using `prisma.$transaction` to wrap the selection update + audit log.
+**Why bad:** Audit is observational. A failed audit write should NOT prevent the business operation (selection toggle). Transactions add latency and complexity.
+**Instead:** Write audit after the successful update. Use `.catch(console.error)` like the existing email pattern.
+
+### Anti-Pattern 5: Auto-Sign-In After Guest Registration
+**What:** Automatically signing in the guest after self-registration.
+**Why bad:** The existing admin-create-user flow does not auto-sign-in. Auto-sign-in requires handling session creation, cookie setting, and redirect in a public endpoint. Larger security surface.
+**Instead:** Show success message and link to sign-in page.
+
+## Schema Changes (New Models and Fields)
+
+### New Model: AuditLog
+
+```prisma
+model AuditLog {
+  id            String   @id @default(uuid())
+  action        String   @db.VarChar(100)   // e.g. "SUBMISSION_SELECTED"
+  entityType    String   @db.VarChar(50) @map("entity_type")
+  entityId      String   @map("entity_id")
+  performedById String   @map("performed_by_id")
+  performedBy   User     @relation(fields: [performedById], references: [id])
+  metadata      String?  @db.Text           // JSON string for flexible data
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([entityType, entityId])
+  @@index([performedById])
+  @@index([createdAt])
+  @@map("audit_log")
+}
+```
+
+### Modified Model: User (new fields)
+
+```prisma
+model User {
+  // ... existing fields ...
+  mustChangePassword Boolean   @default(false) @map("must_change_password")
+  lastLoginAt        DateTime? @map("last_login_at")
+  auditLogs          AuditLog[]
+}
+```
+
+### No New Models Needed For:
+- **Analytics:** Derived from existing `Session` table (has `createdAt`, `userAgent`, `userId`)
+- **Guest registration:** Uses existing `User` model with `role: GUEST`
+- **Guest list:** Query existing `User` table filtered by `role` and `facultyId`
+
+## New Routes Summary
+
+| Route | Type | Auth | Purpose |
+|-------|------|------|---------|
+| `app/(auth)/change-password/page.tsx` | Page | Authenticated (any role) | Forced password change UI |
+| `app/(auth)/guest-register/page.tsx` | Page | Public | Guest self-registration form |
+| `app/api/auth/guest-register/route.ts` | API | Public | Create guest account, notify coordinator |
+| `app/api/auth/change-password/route.ts` | API | Authenticated | Update password, clear `mustChangePassword` flag |
+| `app/api/admin/audit-log/route.ts` | API | Admin only | Read paginated audit logs |
+| `app/api/admin/analytics/route.ts` | API | Admin only | Aggregated analytics data |
+| `app/api/coordinator/guests/route.ts` | API | Coordinator only | Faculty-scoped guest list |
+| `app/(portal)/admin/audit-log/page.tsx` | Page | Admin only | Audit log viewer |
+| `app/(portal)/admin/analytics/page.tsx` | Page | Admin only | Analytics dashboard |
+| `app/(portal)/coordinator/guests/page.tsx` | Page | Coordinator only | Guest list table |
+
+## Modified Files Summary
+
+| File | Change | Reason |
+|------|--------|--------|
+| `prisma/schema.prisma` | Add `AuditLog` model, add `mustChangePassword` and `lastLoginAt` to User | Schema for new features |
+| `lib/auth.ts` | Add logic in session create hook to update `lastLoginAt` | Login tracking |
+| `app/api/admin/create-user/route.ts` | Set `mustChangePassword: true` in user update | First-login force change |
+| `app/api/coordinator/submissions/[id]/route.ts` | Add audit log write after selection toggle | Audit logging |
+| `app/(portal)/layout.tsx` | Add `mustChangePassword` check + redirect | Force password change |
+| `app/(guest)/layout.tsx` | Add `mustChangePassword` check + redirect | Force password change (guest role) |
+| `app/(portal)/page.tsx` | Display last login timestamp in welcome section | Last login UX |
+| `app/(auth)/sign-in/page.tsx` | Add link to guest registration | Discovery for self-registering guests |
 
 ## Suggested Build Order
 
-Dependencies are listed as "must exist before this can be built".
+Build order is driven by schema dependencies and feature isolation:
 
-### Phase 1 — Schema and foundation (no UI, no deps on new features)
+```
+1. Schema migration (AuditLog model + User fields)
+   |-- No feature depends on another feature, but ALL features depend on schema
+   |
+2. First-login password change
+   |-- Depends on: schema (mustChangePassword field)
+   |-- Blocks: nothing directly, but should ship early since create-user sets the flag
+   |-- Includes: change-password page, API, layout guards, create-user modification
+   |
+3. Last login tracking
+   |-- Depends on: schema (lastLoginAt field)
+   |-- Includes: auth.ts hook modification, dashboard welcome UI change
+   |-- Small, isolated change
+   |
+4. Audit logging for selection changes
+   |-- Depends on: schema (AuditLog model)
+   |-- Includes: lib/audit.ts helper, coordinator API modification, admin audit log page + API
+   |
+5. Guest self-registration with coordinator notification
+   |-- Depends on: schema (no new fields beyond mustChangePassword already added)
+   |-- Includes: registration page, API, coordinator email notification
+   |-- Should come after password change (so new guests get forced change if desired)
+   |
+6. Coordinator guest list
+   |-- Depends on: guest registration feature existing (otherwise empty list)
+   |-- Includes: coordinator guests API + page
+   |
+7. Admin analytics reports
+   |-- Depends on: nothing new (reads existing Session data)
+   |-- Includes: analytics API + page, ua-parser-js dependency
+   |-- Lowest priority -- fully independent, can ship in any order
+```
 
-1. **Schema migration: `SubmissionComment` + `isSelected` + `firstClosureDate`/`finalClosureDate`**
-   - Unblocks everything else
-   - One migration, one `prisma generate`
+**Rationale:** Schema first because every feature touches it. Password change second because it affects the create-user flow that admins use daily. Audit logging third because it modifies a critical existing endpoint (coordinator selection toggle). Guest registration fourth because it is a new public surface requiring careful validation. Analytics last because it is purely read-only and completely independent.
 
-2. **`lib/closure-guard.ts`**
-   - Depends on: updated `AcademicYear` schema
-   - Unblocks: all write route handlers
+## Scalability Considerations
 
-3. **`lib/mailer.ts`**
-   - Depends on: `nodemailer` installed, env vars `SMTP_USER`/`SMTP_PASS`
-   - No Prisma dependency; can be built in parallel with schema work
+| Concern | Current Scale | At Scale | Approach |
+|---------|---------------|----------|----------|
+| Audit log growth | Dozens of entries | Thousands per year | Index on `createdAt`, paginate API. Consider retention policy later. |
+| Session-based analytics | Small session table | Thousands of sessions | Date-range filter queries. Cache results for 5 min if needed. |
+| Guest registration spam | N/A (admin-created today) | Possible with public endpoint | Rate limit the endpoint. Require valid faculty. Consider CAPTCHA if abused. |
+| Password change redirect | Per-request DB check | Minimal overhead | Single Prisma select per layout render. Could cache in session cookie later. |
 
-### Phase 2 — API layer (no UI yet, tested via curl/Postman)
+## Sources
 
-4. **Closure enforcement in existing submission routes (`/api/submissions/route.ts`)**
-   - Depends on: `lib/closure-guard.ts`
-   - Add `isPastFirstClosure` check to POST, `isPastFinalClosure` check to PUT
-
-5. **`/api/coordinator/submissions/route.ts`** — GET faculty-scoped submissions
-   - Depends on: schema (for `isSelected`), `requireRole(['MARKETING_COORDINATOR'])`
-   - Faculty scope: `where: { user: { facultyId: session.user.facultyId } }`
-
-6. **`/api/coordinator/submissions/[id]/comments/route.ts`** — GET + POST
-   - Depends on: `SubmissionComment` schema, `lib/closure-guard.ts`
-
-7. **`/api/coordinator/submissions/[id]/select/route.ts`** — PATCH `isSelected`
-   - Depends on: `isSelected` field on `Submission`, `lib/closure-guard.ts`
-
-8. **Email trigger inside `/api/submissions/route.ts` PUT handler**
-   - Depends on: `lib/mailer.ts`, faculty-aware user lookup
-   - Added to the existing PUT handler when `status` transitions to `SUBMITTED`
-
-9. **`/api/manager/submissions/download/route.ts`** — ZIP streaming
-   - Depends on: `isSelected` field, `archiver` installed, final closure check
-   - No comment dependency
-
-10. **`/api/reports/route.ts`** — aggregation queries
-    - Depends on: `SubmissionComment` (for exception reports), `isSelected` (optional for report scope)
-    - Role-scoped filtering; read-only
-
-### Phase 3 — UI layer
-
-11. **Coordinator submissions view** (`app/(management)/coordinator/page.tsx`)
-    - Depends on: `/api/coordinator/submissions/route.ts`
-
-12. **Comment thread UI** (component within coordinator view or submission detail)
-    - Depends on: `/api/coordinator/submissions/[id]/comments/route.ts`
-
-13. **Selected-for-publication toggle** (within coordinator view)
-    - Depends on: `/api/coordinator/submissions/[id]/select/route.ts`
-
-14. **Marketing Manager view + ZIP download button** (`app/(management)/manager/page.tsx`)
-    - Depends on: `/api/manager/submissions/download/route.ts`
-
-15. **Reports page** (`app/(management)/reports/page.tsx`)
-    - Depends on: `/api/reports/route.ts`
-
-16. **Guest view** (`app/(management)/guest/page.tsx` or route group adjustment)
-    - Depends on: reports API, coordinator submissions read path
-
----
-
-## Key Architectural Decisions
-
-| Decision | Rationale |
-|----------|-----------|
-| `SubmissionComment` as flat list, no `parentId` | Requirement is a two-way thread, not nested replies; flat list sorted by `createdAt` is sufficient and simpler |
-| Email: fire-and-forget, no queue | SMTP/Gmail is testing-only; a failed email should not fail a submission; queue can be added later by replacing one call site |
-| ZIP: streaming `TransformStream` in route handler | No background jobs in stack; on-demand generation bounded by post-closure submission set; streams bytes rather than buffering full ZIP in memory |
-| Closure guard as shared `lib/` utility | Multiple routes need the same check; centralising avoids drift between implementations |
-| Faculty scope enforced at API layer | Matches existing pattern (role checks in route handlers, not middleware); coordinator cannot escalate scope via client manipulation |
-| `facultyId` snapshot on `Submission` for groupBy reports | Prisma `groupBy` cannot group on relation fields; snapshot at creation avoids raw SQL while keeping queries simple |
-| Coordinator routes under `/api/coordinator/` prefix | Separates coordinator-facing API from student-facing `/api/submissions/`; mirrors route group structure |
-
----
-
-## New Environment Variables Required
-
-| Variable | Used by | Notes |
-|----------|---------|-------|
-| `SMTP_USER` | `lib/mailer.ts` | Gmail address |
-| `SMTP_PASS` | `lib/mailer.ts` | Gmail app password |
-
----
-
-## New npm Dependencies Required
-
-| Package | Used by | Type |
-|---------|---------|------|
-| `nodemailer` | `lib/mailer.ts` | dependency |
-| `@types/nodemailer` | TypeScript types | devDependency |
-| `archiver` | ZIP download route | dependency |
-| `@types/archiver` | TypeScript types | devDependency |
-
----
-
-*Research completed: 2026-02-25*
+- Codebase analysis: `lib/auth.ts` (Better Auth config with session hooks), `lib/auth-helpers.ts`, `lib/auth-client.ts`
+- Codebase analysis: `lib/mailer.ts` (fire-and-forget email pattern)
+- Codebase analysis: `app/(portal)/layout.tsx` (server-side role check + redirect pattern)
+- Codebase analysis: `app/(guest)/layout.tsx` (server layout for guest role)
+- Codebase analysis: `app/api/coordinator/submissions/[id]/route.ts` (selection toggle with email)
+- Codebase analysis: `app/api/admin/create-user/route.ts` (user creation via auth.api.signUpEmail)
+- Codebase analysis: `prisma/schema.prisma` (Session model has ipAddress, userAgent, createdAt)
+- Better Auth session hooks: `before` hook verified from existing `lib/auth.ts` usage (MEDIUM confidence for `after` hook -- consistent with Better Auth patterns)
+- Better Auth admin plugin: `auth.api.signUpEmail` verified from existing create-user route (HIGH confidence)

@@ -52,8 +52,7 @@ type Role =
   | "MARKETING_MANAGER"
   | "MARKETING_COORDINATOR"
   | "STUDENT"
-  | "ADMINISTRATOR"
-  | "GUEST";
+  | "ADMINISTRATOR";
 
 type Faculty = {
   id: string;
@@ -215,11 +214,9 @@ export default function UsersPage() {
 
   const requiresFaculty =
     role === "MARKETING_COORDINATOR" ||
-    role === "GUEST" ||
     role === "STUDENT";
   const requiresEditFaculty =
     editRole === "MARKETING_COORDINATOR" ||
-    editRole === "GUEST" ||
     editRole === "STUDENT";
 
   function openEditDialog(user: UserRow) {
@@ -502,9 +499,6 @@ export default function UsersPage() {
                       <SelectItem value="ADMINISTRATOR" className="text-slate-900">
                         Administrator
                       </SelectItem>
-                      <SelectItem value="GUEST" className="text-slate-900">
-                        Guest (Faculty level)
-                      </SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-sm text-slate-500">
@@ -516,8 +510,6 @@ export default function UsersPage() {
                       "Can submit articles and upload images"}
                     {role === "ADMINISTRATOR" &&
                       "Can maintain system data and manage closure dates"}
-                    {role === "GUEST" &&
-                      "Read-only access to selected reports for their faculty"}
                   </p>
                 </div>
 
@@ -660,9 +652,6 @@ export default function UsersPage() {
                       </SelectItem>
                       <SelectItem value="ADMINISTRATOR" className="text-slate-900">
                         Administrator
-                      </SelectItem>
-                      <SelectItem value="GUEST" className="text-slate-900">
-                        Guest
                       </SelectItem>
                     </SelectContent>
                   </Select>

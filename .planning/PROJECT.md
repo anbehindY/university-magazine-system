@@ -52,9 +52,21 @@ Students can submit and manage their contributions, and coordinators can review,
 - ✓ Student submissions separated by academic year (current editable, archived read-only) — v1.0
 - ✓ Manager read-only submission detail slide-over — v1.0
 
+- ✓ First-login password change gate (3 enforcement points) — v1.1
+- ✓ Admin-created users flagged with mustChangePassword — v1.1
+- ✓ Last login timestamp with welcome message — v1.1
+- ✓ Login tracking on successful session creation only — v1.1
+- ✓ Immutable audit log for coordinator selection changes — v1.1
+- ✓ Admin audit log viewer with pagination and date filtering — v1.1
+- ✓ Guest self-registration with hardcoded GUEST role — v1.1
+- ✓ Coordinator email notification on guest registration — v1.1
+- ✓ Coordinator faculty-scoped guest list — v1.1
+- ✓ Admin analytics dashboard (active users, browser usage) via Recharts — v1.1
+- ✓ Self-service profile page (name update, password change) — v1.1
+
 ### Active
 
-(No active requirements — next milestone TBD)
+(No active requirements — next milestone not yet defined)
 
 ### Out of Scope
 
@@ -70,14 +82,21 @@ Students can submit and manage their contributions, and coordinators can review,
 | Pre-generated ZIP | On-demand sufficient at scale |
 | Native mobile app | Web-first; responsive via Tailwind |
 | Rich text comments | Plain text sufficient |
+| Password complexity policy engine | Zod min-length validation is sufficient |
+| Coordinator guest account management | Read-only list; admin handles user management |
+| Client-side analytics (Google Analytics) | Privacy concerns; server-side tracking preferred |
+| Audit log entry deletion or editing | Immutable by design for accountability |
+| Real-time analytics dashboard | WebSocket/SSE out of scope per constraints |
+| Guest approval workflow | Auto-approve with admin ban fallback is sufficient |
+| User self-service email change | Email is the login identifier; admin-only change prevents account confusion |
 
 ## Context
 
-Shipped v1.0 MVP with 34,896 LOC TypeScript across 100 source files.
-Tech stack: Next.js 16, React 19, Prisma 7, PostgreSQL (Neon), Better Auth, Vercel Blob, Nodemailer, Tailwind CSS 4, shadcn/ui, jsPDF + jspdf-autotable, xlsx.
-9 phases (31 plans) + 21 quick tasks delivered over 8 days.
-All 31 core requirements satisfied. 2 integration warnings carried as tech debt (coordinator filter on page slice, hardcoded file type badges).
-UAT: 20/20 tests passed across 2 rounds covering all roles and workflows.
+Shipped v1.1 with 39,260 LOC TypeScript. Cumulative: 14 phases, 38 plans + 21 quick tasks.
+Tech stack: Next.js 16, React 19, Prisma 7, PostgreSQL (Neon), Better Auth, Vercel Blob, Nodemailer, Tailwind CSS 4, shadcn/ui, jsPDF + jspdf-autotable, xlsx, Recharts, ua-parser-js.
+v1.0: 9 phases (31 plans) + 21 quick tasks over 8 days. 31/31 requirements satisfied.
+v1.1: 5 phases (7 plans) in 1 day. 19/19 requirements satisfied. All UAT passed.
+2 v1.0 tech debt items still open (coordinator filter on page slice, hardcoded file type badges).
 
 ## Constraints
 
@@ -96,7 +115,8 @@ UAT: 20/20 tests passed across 2 rounds covering all roles and workflows.
 5. First closure blocks new submissions; final closure blocks all updates including comments
 6. Reports are role-scoped (coordinator/guest see their faculty; manager/admin see all)
 7. Exception "14 days" measures from student's submittedAt to finalClosureDate
-8. Guest accounts created by administrator (GUEST role)
+8. Guest accounts created by administrator or via self-registration (GUEST role)
+9. Users can self-service their display name and password; email, role, and faculty are read-only (admin-managed)
 
 ## Key Decisions
 
@@ -118,6 +138,18 @@ UAT: 20/20 tests passed across 2 rounds covering all roles and workflows.
 | Raw SQL for guest summary stats | Matches reports API pattern; runs in Promise.all | ✓ Good |
 | Session-scoped download gate (not server-side) | Simple UX enforcement; no DB schema change | ✓ Good |
 | Separate (guest) route group with own layout | Isolates guest experience from portal sidebar | ✓ Good |
+| AuditLog action as String (not enum) | Flexible action types without migration per new action | ✓ Good |
+| Immutable audit entries (no updatedAt) | Append-only preserves accountability (AUDIT-02) | ✓ Good |
+| mustChangePassword default false | Safe migration; existing users unaffected | ✓ Good |
+| Password change gate in 3 places | Portal layout, guest layout, requireRole API helper — no bypass | ✓ Good |
+| Fire-and-forget audit writes | .catch(console.error) avoids blocking selection toggle | ✓ Good |
+| GUEST role hardcoded server-side | First public write endpoint; never reads role from request body | ✓ Good |
+| No auto-sign-in after registration | Redirect to sign-in page; simpler and more secure | ✓ Good |
+| UAParser named import | Turbopack ESM compatibility (default import fails at build) | ✓ Good |
+| Cumulative daily count in-memory | Single session query, no N+1; computed in-memory | ✓ Good |
+| additionalFields with input:false | Prevents client-side manipulation of mustChangePassword/lastLoginAt | ✓ Good |
+| Profile: name-only self-service, email read-only | Email is the login identifier; name is safe to self-service | ✓ Good |
+| Current password required for profile password change | Prevents changes on unattended sessions | ✓ Good |
 
 ---
-*Last updated: 2026-03-05 after v1.0 milestone completion*
+*Last updated: 2026-03-10 after v1.1 milestone*

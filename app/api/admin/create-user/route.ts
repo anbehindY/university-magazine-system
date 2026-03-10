@@ -8,7 +8,6 @@ const VALID_ROLES = [
   "MARKETING_COORDINATOR",
   "STUDENT",
   "ADMINISTRATOR",
-  "GUEST",
 ] as const;
 
 type ValidRole = (typeof VALID_ROLES)[number];
@@ -56,10 +55,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate faculty requirement for coordinators and guests
+    // Validate faculty requirement for coordinators and students
     if (
       (role === "MARKETING_COORDINATOR" ||
-        role === "GUEST" ||
         role === "STUDENT") &&
       !facultyId
     ) {
@@ -109,6 +107,7 @@ export async function POST(req: NextRequest) {
         role,
         facultyId,
         emailVerified: true,
+        mustChangePassword: true,
       },
       include: {
         faculty: true,

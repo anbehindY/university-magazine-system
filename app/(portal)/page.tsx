@@ -554,7 +554,7 @@ export default function DashboardPage() {
             {ROLE_LABELS[role] ?? role} Dashboard
           </p>
           <h1 className="text-2xl font-semibold sm:text-3xl">
-            Welcome back, {user.name || "User"}
+            Welcome, {user.name || "User"}
           </h1>
           <p className="text-slate-500">{desc.headline}</p>
           <p className="text-sm text-slate-400">{desc.subhead}</p>

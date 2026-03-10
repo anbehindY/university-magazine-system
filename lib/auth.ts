@@ -8,6 +8,21 @@ export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
+  user: {
+    additionalFields: {
+      mustChangePassword: {
+        type: "boolean",
+        required: false,
+        defaultValue: false,
+        input: false,
+      },
+      lastLoginAt: {
+        type: "date",
+        required: false,
+        input: false,
+      },
+    },
+  },
   databaseHooks: {
     session: {
       create: {
@@ -21,6 +36,14 @@ export const auth = betterAuth({
           if (user?.banned) {
             return false;
           }
+        },
+        after: async (session) => {
+          const userId = session.userId as string | undefined;
+          if (!userId) return;
+          prisma.user.update({
+            where: { id: userId },
+            data: { lastLoginAt: new Date() },
+          }).catch(console.error);
         },
       },
     },

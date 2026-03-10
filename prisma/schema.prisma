@@ -50,11 +50,15 @@ model User {
   banReason  String?
   banExpires DateTime?
 
+  mustChangePassword Boolean   @default(false) @map("must_change_password")
+  lastLoginAt        DateTime? @map("last_login_at")
+
   updatedConfigSettings ConfigSetting[]
   updatedAcademicYears  AcademicYear[]
   submissions           Submission[]
   selectedSubmissions   Submission[]    @relation("SubmissionSelector")
   submissionComments    SubmissionComment[]
+  auditLogs             AuditLog[]
 
   @@unique([email])
   @@map("user")
@@ -207,4 +211,22 @@ model SubmissionFile {
   createdAt    DateTime   @default(now()) @map("created_at")
 
   @@map("submission_file")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id")
+  actorId    String   @map("actor_id")
+  actor      User     @relation(fields: [actorId], references: [id])
+  oldValue   String?  @map("old_value")
+  newValue   String?  @map("new_value")
+  metadata   Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@index([actorId])
+  @@index([entityId])
+  @@map("audit_log")
 }

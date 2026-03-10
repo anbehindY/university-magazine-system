@@ -3,6 +3,7 @@
 ## Milestones
 
 - ✅ **v1.0 MVP** — Phases 1-9 + 21 quick tasks (shipped 2026-03-05)
+- ✅ **v1.1 Security, Audit & Guest Self-Registration** — Phases 10-14 (shipped 2026-03-10)
 
 ## Phases
 
@@ -21,16 +22,32 @@
 
 </details>
 
+<details>
+<summary>✅ v1.1 Security, Audit & Guest Self-Registration (Phases 10-14) — SHIPPED 2026-03-10</summary>
+
+- [x] Phase 10: Schema Migration (1/1 plan) — completed 2026-03-09
+- [x] Phase 11: Security Hardening (2/2 plans) — completed 2026-03-09
+- [x] Phase 12: Audit Logging (1/1 plan) — completed 2026-03-09
+- [x] Phase 13: Guest Registration & Guest List (2/2 plans) — completed 2026-03-09
+- [x] Phase 14: Admin Analytics Dashboard (1/1 plan) — completed 2026-03-09
+
+</details>
+
 ## Progress
 
-| Phase                          | Milestone | Plans Complete | Status   | Completed  |
-| ------------------------------ | --------- | -------------- | -------- | ---------- |
-| 1. Schema and Infrastructure   | v1.0      | 4/4            | Complete | 2026-02-25 |
-| 2. Closure Enforcement         | v1.0      | 3/3            | Complete | 2026-02-26 |
-| 3. Coordinator and Comment API | v1.0      | 3/3            | Complete | 2026-02-26 |
-| 4. Manager and Reports API     | v1.0      | 3/3            | Complete | 2026-02-26 |
-| 5. UI Layer                    | v1.0      | 5/5            | Complete | 2026-03-02 |
-| 6. Critical Fixes              | v1.0      | 5/5            | Complete | 2026-03-03 |
-| 7. Student Comment Thread      | v1.0      | 2/2            | Complete | 2026-03-03 |
-| 8. Upload Rules Enforcement    | v1.0      | 2/2            | Complete | 2026-03-03 |
-| 9. Pagination                  | v1.0      | 4/4            | Complete | 2026-03-03 |
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 1. Schema and Infrastructure | v1.0 | 4/4 | Complete | 2026-02-25 |
+| 2. Closure Enforcement | v1.0 | 3/3 | Complete | 2026-02-26 |
+| 3. Coordinator and Comment API | v1.0 | 3/3 | Complete | 2026-02-26 |
+| 4. Manager and Reports API | v1.0 | 3/3 | Complete | 2026-02-26 |
+| 5. UI Layer | v1.0 | 5/5 | Complete | 2026-03-02 |
+| 6. Critical Fixes | v1.0 | 5/5 | Complete | 2026-03-03 |
+| 7. Student Comment Thread | v1.0 | 2/2 | Complete | 2026-03-03 |
+| 8. Upload Rules Enforcement | v1.0 | 2/2 | Complete | 2026-03-03 |
+| 9. Pagination | v1.0 | 4/4 | Complete | 2026-03-03 |
+| 10. Schema Migration | v1.1 | 1/1 | Complete | 2026-03-09 |
+| 11. Security Hardening | v1.1 | 2/2 | Complete | 2026-03-09 |
+| 12. Audit Logging | v1.1 | 1/1 | Complete | 2026-03-09 |
+| 13. Guest Registration & Guest List | v1.1 | 2/2 | Complete | 2026-03-09 |
+| 14. Admin Analytics Dashboard | v1.1 | 1/1 | Complete | 2026-03-09 |

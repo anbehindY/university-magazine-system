@@ -1,5 +1,27 @@
 # Milestones
 
+## v1.1 Security, Audit & Guest Self-Registration (Shipped: 2026-03-10)
+
+**Phases completed:** 5 phases (10-14), 7 plans, 19 tasks
+**Files modified:** 54 | **LOC:** 39,260 TypeScript (+4,364 from v1.0)
+**Timeline:** 1 day (2026-03-09 → 2026-03-10)
+**Requirements:** 19/19 v1.1 requirements satisfied (100%)
+**Git range:** `03d2803` → `06bbc0e`
+
+**Key accomplishments:**
+1. Schema migration — AuditLog model with immutable append-only entries + User mustChangePassword/lastLoginAt fields
+2. Security hardening — First-login password change gate enforced in 3 places (portal layout, guest layout, API helper) with login tracking
+3. Audit logging — Fire-and-forget audit writes on coordinator selection changes with paginated admin viewer and date filtering
+4. Guest self-registration — Public registration with hardcoded GUEST role, faculty validation, and coordinator email notification
+5. Coordinator guest list — Faculty-scoped paginated guest list with search for coordinators
+6. Admin analytics dashboard — Active user charts (7d/30d AreaChart) and browser usage PieChart from session data via Recharts
+
+**Archives:**
+- [v1.1-ROADMAP.md](milestones/v1.1-ROADMAP.md)
+- [v1.1-REQUIREMENTS.md](milestones/v1.1-REQUIREMENTS.md)
+
+---
+
 ## v1.0 MVP (Shipped: 2026-03-05)
 
 **Phases completed:** 9 phases, 31 plans + 21 quick tasks

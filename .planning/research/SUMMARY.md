@@ -1,268 +1,174 @@
 # Project Research Summary
 
-**Project:** University Magazine Contribution System — Subsequent Milestone
-**Domain:** Academic editorial workflow / document submission and review
-**Researched:** 2026-02-25
+**Project:** University Magazine System v1.1 -- Security, Audit & Guest Self-Registration
+**Domain:** University CMS with role-based access, editorial workflow, and admin analytics
+**Researched:** 2026-03-09
 **Confidence:** HIGH
 
 ## Executive Summary
 
-This project is a brownfield enhancement to an existing Next.js 15 / Prisma / PostgreSQL application that manages student magazine submissions. The subsequent milestone adds the full coordinator review workflow: comment threads between coordinators and students, submission selection for publication, Nodemailer email notifications, server-side ZIP download from Vercel Blob, statistical/exception reports, and two-tier closure date enforcement. Research across all four dimensions confirms this is a well-understood problem domain with established patterns — nothing in the feature set requires novel architecture. The principal decisions (Nodemailer 6.x, `archiver` for streaming ZIP, Prisma `$queryRaw` for multi-table aggregations, SWR polling for comments) are all HIGH confidence and map cleanly onto the existing layered architecture.
+This milestone adds six features to an existing, production-stable Next.js 16 / Prisma 7 / Better Auth university magazine system: audit logging for coordinator selection changes, first-login forced password change, last login tracking, admin analytics dashboard (active users, browser usage, page views), guest self-registration with coordinator notification, and a coordinator faculty-scoped guest list. Research across all four dimensions confirms that every feature maps onto patterns already proven in the v1.0 codebase. The total new dependency footprint is two runtime packages (`recharts`, `ua-parser-js`) and one dev type package. Everything else uses the existing stack -- Better Auth hooks, Prisma models, Nodemailer, layout-level auth guards, and raw SQL aggregation.
 
-The most important finding that cuts across all four research areas is a schema migration prerequisite: the existing `AcademicYear` model has a single `closureDate` field, but the requirements imply two distinct dates (first closure blocks new submissions; final closure blocks all updates). Every feature in this milestone either reads or enforces a closure date. Getting the schema wrong here will cause silent enforcement failures across comment creation, selection flag toggling, ZIP download gating, and submission updates. This migration must be the first task — it is the highest-risk single point of failure in the entire milestone.
+The recommended approach is schema-first development: a single Prisma migration adds two new models (`AuditLog`, `PageView`) and two new fields on `User` (`mustChangePassword`, `lastLoginAt`), unlocking all six features. From there, build security features first (password change gate, login tracking), then audit logging, then guest registration with its companion coordinator list, and analytics last. This order prioritizes security hardening and data integrity before adding new public surface area or complex read-only reporting.
 
-The second cross-cutting concern is faculty scope enforcement. Every coordinator-facing mutation route — comments, selection flag, metadata edits — must enforce `submission.user.facultyId === coordinator.facultyId` at the database query level, not the UI level. Research indicates this is the most commonly missed authorization check in systems with role-scoped data access. The remaining risks (ZIP memory/timeout, email fire-and-forget, N+1 report queries) are all well-documented and have clear, standard prevention strategies.
-
----
+The primary risks are concentrated in two areas. First, the forced password change feature is the only one that can be silently bypassed if implementation is incomplete -- the gate must be enforced in both portal and guest layouts AND in the `requireRole()` helper for API routes, not just in the sign-in redirect. Second, the guest self-registration endpoint is the system's first public-facing write endpoint, which introduces role escalation risk (attacker submitting `role: ADMIN` in request body) and faculty scoping risk (guests with null or wrong `facultyId`). Both risks have clear, concrete prevention strategies documented in PITFALLS.md.
 
 ## Key Findings
 
 ### Recommended Stack
 
-The existing stack requires only four new npm packages. No infrastructure changes are needed. `nodemailer ^6.9.x` handles SMTP email; version 7 is ESM-only and conflicts with the CommonJS/ESM hybrid resolution used by Prisma and better-auth in this project — stay on 6.x. `archiver ^7.0.x` handles streaming ZIP generation from remote Vercel Blob URLs using Node.js streams piped through a `TransformStream` into the HTTP `Response`. `@types/nodemailer` and `@types/archiver` provide TypeScript support. For comment polling, `swr ^2.2.x` is the correct fit: it ships React 19 compatible hooks, handles deduplication and focus-revalidation, and a 15-second `refreshInterval` is adequate for the coordinator-reviewing-submissions workflow — no real-time infrastructure is warranted or required.
+The existing stack handles nearly everything. Only two runtime packages are needed: `recharts` (for admin analytics charts, aligned with shadcn/ui's chart component) and `ua-parser-js` (for browser usage parsing from User-Agent strings). No new infrastructure, environment variables, or external services are required.
 
-All routes using `nodemailer` or `archiver` must explicitly declare `export const runtime = 'nodejs'` to prevent Vercel from deploying them to the Edge Runtime, where Node.js APIs (`net`, `tls`, streams) are unavailable. Prisma's built-in `groupBy`, `aggregate`, and `$queryRaw` handle all reporting requirements without additional libraries.
+**Core technologies (new additions only):**
+- `recharts ^2.15`: Analytics charts -- shadcn/ui's official chart component is built on Recharts; SVG-based, React 19 compatible
+- `ua-parser-js ^2.0`: Browser usage reports -- lightweight UA parser, server-side only at report generation time
+- `@types/ua-parser-js` (dev): TypeScript types for ua-parser-js
 
-**Core technologies:**
-- `nodemailer ^6.9.x`: SMTP email — spec-mandated; 6.x required for CommonJS compatibility
-- `@types/nodemailer ^6.4.x`: TypeScript types — devDependency
-- `archiver ^7.0.x`: Streaming ZIP — preferred over jszip for streaming support; no memory buffering of full archive
-- `@types/archiver ^6.0.x`: TypeScript types — devDependency (verify exact version)
-- `swr ^2.2.x`: Comment polling — lightweight, React 19 compatible, sufficient for low-frequency review workflow
-- Prisma `$queryRaw` (existing): Multi-table aggregations — no additional analytics library needed
+**What NOT to add:** No audit logging library (simple Prisma model suffices), no external analytics service (internal PageView table), no Better Auth plugins (none exist for forced password change; lastLoginMethod plugin tracks method not timestamp), no middleware (layout guards are the correct pattern), no Redis or caching layer (university-scale volume).
 
-**Versions to verify before installing** (training data cutoff August 2025):
-- `npm view nodemailer version`
-- `npm view archiver version`
-- `npm view @types/archiver version`
-- `npm view swr version`
-
----
+**Version caveat:** Recharts and ua-parser-js versions are from training data (cutoff May 2025). Verify with `npm view <pkg> version` before installing.
 
 ### Expected Features
 
-All 10 table-stakes features, 4 differentiators, and 8 explicit anti-features are documented in detail in `FEATURES.md`. The summary below reflects what the roadmap must deliver.
-
 **Must have (table stakes):**
-- Dual closure date enforcement (first closure blocks new submissions; final closure blocks all edits) — institutional systems always enforce hard stops, not warnings
-- Coordinator email notification on student submission — without it, coordinators have no reliable trigger to begin review
-- Coordinator faculty-scoped submission list (SUBMITTED only, not DRAFT) — the core coordinator job surface
-- Two-way comment threads (flat, append-only, coordinator and student only) — mandatory for structured feedback without email
-- Selected-for-publication boolean flag on Submission — the editorial decision record; required by ZIP, Manager view, and Guest view
-- Marketing Manager read-only view of all selected submissions across all faculties
-- On-demand ZIP download of all selected submissions structured as `Faculty/Student/filename` — terminal Manager action
-- Guest read-only view of selected submissions for their own faculty
-- Statistical reports: contributions per faculty per year, percentage of total, distinct contributors per faculty per year
-- Exception reports: submissions with no coordinator comment; submissions >14 days without coordinator comment
+- Audit log for coordinator selection changes -- accountability trail for who selected/deselected what
+- First-login forced password change -- admin-created accounts must not persist temporary passwords
+- Last login timestamp with welcome message -- basic security hygiene for university portal
+- Coordinator faculty-scoped guest list -- visibility into who has guest access to their faculty
 
-**Should have (differentiators — include in milestone, not blockers):**
-- Inline exception highlighting in coordinator list view — surfacing exception state without navigation away
-- Comment read/unread indicator for students — avoids students missing coordinator feedback
-- Coordinator metadata edit (notes/title fields only — no file replacement) — annotating submissions for internal organisation
-- Multi-coordinator email (all coordinators for a faculty receive notification) — robustness against staff changes
+**Should have (differentiators):**
+- Admin analytics dashboard (active users, browser usage, page views) -- usage visibility beyond content reports
+- Guest self-registration with coordinator notification -- reduces admin burden for external stakeholder access
 
-**Defer (explicitly out of scope — do not build):**
-- Per-file comments (submission-level is correct)
-- Coordinator file replacement (chain of custody integrity)
-- Comment editing or deletion (audit trail integrity)
-- Real-time WebSocket/SSE notifications
-- Late submission bypass paths
-- Pre-generated or scheduled ZIP archives
-- Student-to-student visibility
-- Rich text (markdown/HTML) comments
-
----
+**Defer (v2+):**
+- Full audit trail for ALL actions (v1.1 is selection changes only; model is extensible)
+- Guest approval workflow (auto-approve with ban fallback is sufficient)
+- Real-time analytics dashboard (no WebSocket/SSE per project constraints)
+- Coordinator guest account management (read-only list; admin handles user management)
+- Password complexity policy engine (Zod min-length validation is sufficient)
 
 ### Architecture Approach
 
-The new features slot cleanly into the existing layered pattern (Presentation → API → Data Access → Auth) without disrupting existing component boundaries. New components are additive: `lib/mailer.ts` (Nodemailer singleton), `lib/closure-guard.ts` (shared closure date helper), and a new set of Route Handlers under `/api/coordinator/`, `/api/manager/`, and `/api/reports/`. The key architectural decisions are: email is fire-and-forget after DB write (SMTP failure must not fail the submission response); ZIP streaming uses `archiver` piped through a `TransformStream` to avoid buffering the full archive in memory; closure checks are centralised in a single shared utility called by every mutating route handler; faculty scope is enforced at the Prisma query level, not middleware or UI.
+All six features integrate into the existing layered architecture without disrupting component boundaries. The patterns are additive: a new `lib/audit.ts` helper for audit writes, session hook extension for login tracking, layout guard extension for password change enforcement, a `PageViewTracker` client component for analytics collection, and new API routes that follow the established coordinator/admin route patterns. Schema changes are consolidated into a single migration. The key architectural decision is fire-and-forget for non-critical writes (audit logs, page views, emails) to avoid blocking the hot path.
 
 **Major components:**
-1. `lib/closure-guard.ts` — Shared helper returning `{ firstClosed, finalClosed }` per active AcademicYear; called by all write routes
-2. `lib/mailer.ts` — Nodemailer transporter singleton + `sendMail()` helper; fire-and-forget call pattern
-3. `app/api/coordinator/submissions/[id]/comments/route.ts` — GET thread / POST comment; enforces faculty scope + final closure
-4. `app/api/coordinator/submissions/[id]/select/route.ts` — PATCH `isSelected`; enforces faculty scope + final closure
-5. `app/api/manager/submissions/download/route.ts` — ZIP streaming; MARKETING_MANAGER only; post-final-closure gate
-6. `app/api/reports/route.ts` — Aggregation queries; role-scoped faculty filtering at Prisma query level
-
-**New schema additions (one migration):**
-- `AcademicYear.firstClosureDate DateTime?` and `AcademicYear.finalClosureDate DateTime?` — replace ambiguous single `closureDate`
-- `Submission.isSelected Boolean @default(false)` — publication flag
-- `Submission.facultyId String?` — snapshot at submission time for `groupBy` report queries (avoids raw SQL)
-- `Submission.selectedAt DateTime?` and `Submission.selectedById String?` — audit trail
-- `SubmissionComment` model — flat thread with `submissionId`, `authorId`, `body`, `createdAt` index on `submissionId`
-
----
+1. `AuditLog` model + `lib/audit.ts` helper -- append-only selection change history, called from coordinator PATCH route
+2. `User.mustChangePassword` + layout guards + `/change-password` page -- first-login security gate enforced server-side
+3. `User.lastLoginAt` + `databaseHooks.session.create.after` -- login tracking piggybacking on existing hook infrastructure
+4. `PageView` model + `PageViewTracker` component + analytics API -- page view collection and aggregation with Recharts visualization
+5. Guest registration page + API + coordinator email notification -- public registration endpoint with hardcoded GUEST role
+6. Coordinator guest list API + page -- faculty-scoped read-only query reusing existing pagination patterns
 
 ### Critical Pitfalls
 
-1. **Schema has one closure date, requirements need two** — add `firstClosureDate` and `finalClosureDate` to `AcademicYear` before writing any closure-gated code; one overloaded field causes silent enforcement failures across all new routes. This is the highest priority fix.
+1. **Password change bypass via direct URL navigation** -- The gate must be enforced in BOTH `(portal)/layout.tsx` AND `(guest)/layout.tsx` AND in `requireRole()` for API routes. Checking only at sign-in redirect is insufficient because users can navigate directly to any URL.
 
-2. **Faculty scope not enforced on coordinator mutations** — every coordinator POST/PATCH route (comments, selection flag) must include `user: { facultyId: session.user.facultyId }` in the Prisma `where` clause; role check alone is insufficient. A coordinator can otherwise read or modify submissions from other faculties.
+2. **Guest registration role escalation** -- The registration API must NEVER read `role` from the request body. Hardcode `role: "GUEST"` server-side. The admin create-user route reads role from the body; copying that pattern into the public endpoint is a privilege escalation vulnerability.
 
-3. **Email sent synchronously, failure breaks submission** — always persist the submission first, return 200 to the student, then call `sendCoordinatorEmail().catch(console.error)` in a fire-and-forget pattern; never `await` email before the response.
+3. **Guest accounts with null or wrong facultyId** -- Faculty selection must be required and server-validated. Self-registration inverts the trust model from admin-assigned to user-chosen faculty. A guest with null `facultyId` breaks the faculty-scoping invariant the entire system relies on.
 
-4. **ZIP assembled in memory for all files simultaneously** — use `archiver` with serial fetching and streaming pipeline (fetch each blob serially, pipe to archive, pipe to `TransformStream`, return `Response(readable)`); a `Promise.all()` prefetch of all blobs will exhaust the Vercel 1 GB function memory limit on any substantial submission set.
+4. **Login tracking in wrong session hook** -- Use `session.create.after`, not `before`. The `before` hook runs even when session creation is subsequently blocked (e.g., banned users). Updating `lastLoginAt` in `before` produces false login records.
 
-5. **Report queries not role-scoped at the database level** — the faculty filter (`{ facultyId: session.user.facultyId }`) must be in the Prisma `where` clause for every coordinator and guest report query; never return a full dataset and filter client-side for access control. Also avoid N+1 patterns for exception reports — use `comments: { none: {} }` in the Prisma `where`, not a per-submission loop.
-
-**Additional pitfalls to address by phase (see `PITFALLS.md` for full detail):**
-- Time zone confusion on date-only `closureDate` comparisons (use full DateTime or combine with time fields)
-- Comment route does not validate thread ownership on student replies
-- No input validation (Zod is installed — use it on every new route's request body)
-- No pagination on coordinator submission list (add `take`/`skip` from the start)
-- ZIP available before final closure date (gate the download route server-side)
-- Blob URL expiry during ZIP assembly (check `response.ok` before appending; re-generate URLs via SDK if needed)
-- Email sent on every re-submission rather than only on first DRAFT → SUBMITTED transition
-
----
+5. **PageView table unbounded growth** -- Raw page views grow with ALL user sessions, not just coordinator actions. Index `createdAt` and `userId`, implement daily aggregation for reports, and add a retention policy for raw events older than 30 days.
 
 ## Implications for Roadmap
 
-Based on the feature dependency map in FEATURES.md and the build order in ARCHITECTURE.md, the natural phase structure is three phases with a strict dependency boundary between each.
+Based on combined research, the natural structure is five phases driven by schema dependencies, security priority, and feature isolation.
 
-### Phase 1: Schema Migration and Shared Infrastructure
+### Phase 1: Schema Migration
 
-**Rationale:** Every single feature in this milestone depends on schema changes that do not yet exist. Building any feature before the schema is in place means migrating mid-development with data already in non-test tables. The shared utilities (`closure-guard.ts`, `mailer.ts`) have no UI and can be verified with unit tests before any UI work begins.
+**Rationale:** Every feature depends on new models or fields. A single migration upfront avoids mid-development schema changes and validates the data model before any feature code is written.
+**Delivers:** Complete schema with `AuditLog` model, `PageView` model, `User.mustChangePassword` (default false), and `User.lastLoginAt` fields. Single `prisma migrate dev` run.
+**Addresses:** Foundation for all six features.
+**Avoids:** Pitfall 7 (mustChangePassword default must be `false` so existing users are unaffected; admin create-user route explicitly sets `true`).
 
-**Delivers:** A complete, correct data model and two zero-UI utility modules that unlock all subsequent development. Developers can work on later phases with confidence the foundation is correct.
+### Phase 2: Security Hardening -- Password Change & Login Tracking
 
-**Addresses:** All 10 table-stakes features depend on this phase.
+**Rationale:** Security features should ship before adding new public surface area (guest registration). The forced password change affects the admin create-user flow used daily, so it must be correct early. Login tracking is small and isolated, pairs naturally with the auth flow changes.
+**Delivers:** `/change-password` page and API, layout guards in both portal and guest layouts, `requireRole()` enforcement, `lastLoginAt` update in session hook, welcome message display.
+**Addresses:** First-login forced password change (table stakes), last login tracking (table stakes).
+**Avoids:** Pitfall 1 (bypass via direct navigation -- enforce in layouts + requireRole), Pitfall 4 (wrong hook -- use `session.create.after`), Pitfall 11 (null lastLoginAt -- conditional "first login" message).
 
-**Implements schema additions:**
-- `AcademicYear.firstClosureDate` + `finalClosureDate` (replaces ambiguous `closureDate`)
-- `Submission.isSelected`, `selectedAt`, `selectedById`
-- `Submission.facultyId` (snapshot for report groupBy)
-- `SubmissionComment` model with index on `submissionId`
+### Phase 3: Audit Logging
 
-**Implements utilities:**
-- `lib/closure-guard.ts` — `getActiveAcademicYear()`, `isPastFirstClosure()`, `isPastFinalClosure()`
-- `lib/mailer.ts` — `sendMail()` with Nodemailer 6.x transporter singleton
+**Rationale:** Modifies the critical coordinator selection endpoint. Should be isolated from other changes to that route. The admin audit viewer is a standalone read-only page with no dependencies on other v1.1 features.
+**Delivers:** `lib/audit.ts` helper, audit write in coordinator PATCH route (fire-and-forget after successful update), admin audit log viewer page with pagination and filters.
+**Addresses:** Audit log for selection changes (table stakes).
+**Avoids:** Pitfall 2 (Neon latency -- fire-and-forget, no transaction wrapping), Pitfall 5 (N+1 on admin view -- Prisma includes with pagination), Pitfall 13 (enum drift -- derive action from actual state change, not request body).
 
-**Avoids:** Pitfall 6.4 (ambiguous closure dates), Pitfall 2.3 (SMTP credentials in version control — set up env vars and `.env.example` here)
+### Phase 4: Guest Self-Registration & Coordinator Guest List
 
-**Research flag:** Standard patterns — skip research-phase.
+**Rationale:** Guest registration is the system's first public write endpoint. It depends on the password change infrastructure (to correctly set `mustChangePassword: false` for self-registered users). The coordinator guest list is its natural companion -- an empty list before registration exists provides no value.
+**Delivers:** Public `/guest-register` page in `(auth)` route group, registration API with hardcoded GUEST role and faculty validation, coordinator email notification, coordinator guest list page with faculty scoping.
+**Addresses:** Guest self-registration (differentiator), coordinator guest list (table stakes).
+**Avoids:** Pitfall 3 (wrong-faculty accounts -- validate facultyId exists), Pitfall 6 (role escalation -- hardcode GUEST server-side), Pitfall 8 (Gmail SMTP limits -- fire-and-forget with clear error logging), Pitfall 12 (missing faculty scope on guest list -- copy coordinator submissions scoping pattern), Pitfall 14 (missing email uniqueness check -- debounced client-side check + server-side enforcement).
 
----
+### Phase 5: Admin Analytics Dashboard
 
-### Phase 2: API Layer — Coordinator and Closure Features
-
-**Rationale:** With schema and shared utilities in place, the API layer can be built and tested independently of UI. Building API-first means the coordinator and manager views in Phase 3 can be built against real endpoints, not mocks.
-
-**Delivers:** All server-side business logic: closure enforcement on existing submission routes, comment CRUD, selection flag, email notification trigger, ZIP generation endpoint, and the reports endpoint.
-
-**Addresses (from FEATURES.md):**
-- Hard closure enforcement (first + final)
-- Coordinator notification email (including transition guard to prevent re-notification)
-- Comment thread API (GET + POST, faculty-scoped, final-closure-gated)
-- Selection flag API (PATCH, faculty-scoped, final-closure-gated)
-- ZIP download API (MARKETING_MANAGER only, post-final-closure)
-- Reports API (role-scoped at query level, single query for each report type)
-
-**Uses (from STACK.md):**
-- `nodemailer ^6.9.x` via `lib/mailer.ts`
-- `archiver ^7.0.x` in ZIP route
-- Prisma `$queryRaw` for multi-table aggregations in reports route
-
-**Avoids:**
-- Pitfall 1.1 + 6.2 (faculty scope on every coordinator mutation)
-- Pitfall 2.1 (fire-and-forget email pattern)
-- Pitfall 2.2 (faculty-scoped coordinator lookup)
-- Pitfall 2.4 (transition guard for email deduplication)
-- Pitfall 3.1 (streaming ZIP, not buffered)
-- Pitfall 3.2 (final closure gate on ZIP route)
-- Pitfall 3.3 (blob fetch response.ok check)
-- Pitfall 5.1 + 5.4 (role scope enforced in Prisma query, not UI)
-- Pitfall 5.2 (single `comments: { none: {} }` query, not N+1 loop)
-- Pitfall 5.3 (date filter in Prisma `where`, not application-layer)
-- Pitfall 6.1 (Zod validation on every route body)
-- Pitfall 6.3 (pagination on coordinator submission list from the start)
-
-**Research flag:** Standard patterns — skip research-phase. All patterns are well-documented in STACK.md and ARCHITECTURE.md.
-
----
-
-### Phase 3: UI Layer — Coordinator, Manager, Reports, and Guest Views
-
-**Rationale:** UI is built last, against real API endpoints. Each view is a thin presentation layer over already-tested business logic. The SWR polling for comment threads is configured here.
-
-**Delivers:** All end-user-facing surfaces:
-- Coordinator submission list (faculty-scoped, SUBMITTED only, with inline exception highlighting)
-- Comment thread UI (`<CommentThread submissionId={id} />` extracted client component with SWR polling)
-- Selected-for-publication toggle within coordinator view
-- Marketing Manager selected-submissions view + ZIP download button with loading state
-- Reports page (statistical + exception, role-scoped)
-- Guest view (selected submissions, their faculty only)
-
-**Addresses (differentiators from FEATURES.md):**
-- Inline exception highlighting (D1) — fold into coordinator list, same query
-- Comment read/unread state (D2) — add `readByStudent` to `SubmissionComment` if time permits
-- Coordinator metadata edit (D3) — notes/title fields in coordinator view
-- Multi-coordinator email (D4) — `findMany` in the email lookup, already correct pattern
-
-**Uses (from STACK.md):**
-- `swr ^2.2.x` for comment thread polling (`refreshInterval: 15000`, `mutate()` on POST)
-
-**Avoids:**
-- Pitfall 1.4 (extract `<CommentThread>` component, do not bolt comments onto existing 1,126-line submissions page)
-- Pitfall 4.3 (server-side enforcement is the real gate; UI state is display-only)
-
-**Research flag:** Standard patterns — skip research-phase. Component structure follows existing Next.js App Router route group patterns.
-
----
+**Rationale:** Purely additive, read-only feature with no dependencies on other v1.1 features. Most complex feature in the milestone. Can be deferred or simplified without affecting other deliverables. If time-constrained, session-based analytics (active users + browser stats) can ship without PageView tracking, cutting complexity roughly in half.
+**Delivers:** `PageViewTracker` client component, page view collection API, analytics dashboard with Recharts charts (active users over time, browser breakdown, top pages, login frequency).
+**Addresses:** Admin analytics dashboard (differentiator).
+**Avoids:** Pitfall 9 (unbounded PageView growth -- daily aggregation + retention policy), Pitfall 10 (UA parsing failures -- use ua-parser-js library, filter bots, group unknowns as "Other"), Pitfall 15 (tracking unauthenticated pages -- place tracker in portal/guest layouts only, not root layout).
+**Uses:** `recharts`, `ua-parser-js` (only phase requiring new npm packages).
 
 ### Phase Ordering Rationale
 
-- Phase 1 before everything: four separate schema gaps (closure dates, isSelected, facultyId snapshot, SubmissionComment) block all ten table-stakes features. A schema migration mid-development risks data integrity issues. Doing it first also forces the two-closure-date ambiguity to be resolved explicitly before any enforcement code is written.
-- Phase 2 before Phase 3: API-first development means UI components are built against real data contracts. It also allows backend testing (curl/Postman) without any frontend complexity, isolating bugs to either layer.
-- Phase 3 last: UI is the thinnest layer here. All access control, business logic, and data shaping happens server-side. Phase 3 is wiring components to endpoints.
-- Differentiators (D1-D4) are folded into Phase 3 rather than a separate phase because they share the same UI surfaces as their table-stakes counterparts and add minimal extra scope.
+- Schema first because every feature touches it and migration mid-development risks data integrity issues.
+- Security features second because they affect the daily admin workflow (create-user sets mustChangePassword flag) and must be correct before adding public endpoints.
+- Audit logging third because it modifies the coordinator selection endpoint -- an existing critical path that should be changed in isolation.
+- Guest registration fourth because it is the first public write endpoint and depends on password change infrastructure being correct.
+- Analytics last because it is fully independent, purely read-only, and the most complex feature -- natural candidate for scope reduction if the timeline is tight.
 
----
+### Research Flags
+
+Phases likely needing deeper research during planning:
+- **Phase 5 (Analytics):** Recharts integration with shadcn/ui chart components, PageView aggregation query patterns, ua-parser-js API for server-side parsing. Most novel code in the milestone.
+
+Phases with standard patterns (skip research-phase):
+- **Phase 1 (Schema):** Standard Prisma migration. No unknowns.
+- **Phase 2 (Security):** Layout redirect pattern already proven in v1.0. Better Auth `changePassword` API and `session.create.after` hook verified in source.
+- **Phase 3 (Audit):** Append-only model with fire-and-forget write. Proven Prisma patterns.
+- **Phase 4 (Guest Registration):** Directly mirrors existing admin create-user flow. Nodemailer infrastructure already working.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | All library choices are well-established; the only uncertainty is exact patch versions (npm view to verify before install). Nodemailer 6.x / archiver / SWR are canonical choices for their respective problems. |
-| Features | HIGH | Feature set derived from editorial management system conventions (OJS, Canvas SpeedGrader, ScholarOne) plus explicit project spec. Table stakes and anti-features are clear and non-controversial. |
-| Architecture | HIGH | All patterns (fire-and-forget email, streaming ZIP, shared closure guard, faculty scope at query level) are standard Next.js App Router patterns with no novel integration risk. |
-| Pitfalls | HIGH | Pitfall catalogue is specific and concrete, drawn from the actual codebase structure (CONCERNS.md referenced, existing 1,126-line submissions page noted). Prevention strategies are implementation-ready. |
+| Stack | HIGH | Only 2 new packages. All other patterns verified against existing codebase. Recharts/ua-parser-js versions need npm verification. |
+| Features | HIGH | Feature set derived from codebase analysis and university CMS domain expertise. Table stakes vs differentiators clearly separated. Anti-features explicitly scoped. |
+| Architecture | HIGH | All patterns are additive extensions of existing v1.0 architecture. No new infrastructure, no architectural changes, no pattern deviations. |
+| Pitfalls | HIGH | 15 specific pitfalls identified from direct codebase analysis with line-number references. Prevention strategies are implementation-ready. |
 
 **Overall confidence: HIGH**
 
 ### Gaps to Address
 
-- **Exact npm versions:** Training data cutoff is August 2025. Run `npm view <package> version` for nodemailer, archiver, @types/archiver, and swr before installing. The version constraints in STACK.md are reliable for major version targeting but patch versions may have advanced.
+- **Recharts and ua-parser-js versions:** Training data versions (^2.15 and ^2.0 respectively) need verification via `npm view` before installing. Library existence and purpose are high confidence; exact versions are medium.
 
-- **`AcademicYear` schema migration strategy:** The existing `closureDate` field must be mapped to one of the two new closure date fields (`firstClosureDate` or `finalClosureDate`) or the existing field must be repurposed. The correct mapping depends on how the admin UI currently sets this date and what the university operations team expects. Clarify with the product owner before writing the migration.
+- **Audit log transaction vs fire-and-forget:** STACK.md recommends `$transaction` wrapping audit + update; ARCHITECTURE.md and PITFALLS.md recommend fire-and-forget after successful update to avoid Neon latency doubling. Recommendation: follow PITFALLS.md guidance (fire-and-forget) because audit integrity is less critical than coordinator UX responsiveness. A missed audit entry is preferable to a sluggish selection toggle.
 
-- **Vercel Blob URL signing:** STACK.md notes that Blob URLs are direct HTTP (no per-request auth). PITFALLS.md notes they may be signed/time-limited. Verify whether stored `SubmissionFile.url` values have expiry, and if so whether the Vercel Blob SDK `generateSignedUrl()` or equivalent is needed at ZIP generation time. This is a moderate risk if files were uploaded months before ZIP generation.
+- **PageView tracking scope:** ARCHITECTURE.md suggests deferring PageView tracking entirely and using Session-based analytics only. FEATURES.md and STACK.md include PageView as part of the analytics feature. Recommendation: build PageView tracking but make it the last sub-feature of Phase 5, so it can be dropped if timeline is tight. Session-based active users and browser stats deliver meaningful value without it.
 
-- **Existing `closureDate` field usage:** If any existing UI or API code reads `AcademicYear.closureDate` by name, those references must be updated as part of the Phase 1 migration. A grep of the codebase for `closureDate` references is required before writing the migration.
+- **Better Auth `session.create.after` hook:** The `before` hook is verified in production code. The `after` hook is consistent with Better Auth's documented hook pattern but has not been tested in this codebase. Verify during Phase 2 implementation.
 
-- **Comment visibility for Marketing Manager:** FEATURES.md states comments are visible to coordinator and student only, not Marketing Manager or Guest. The Manager view must explicitly exclude comment data even though comments are on the same Submission record. This access control rule should be documented in the API layer.
-
----
+- **`mustChangePassword` default value:** STACK.md says `@default(true)`, FEATURES.md says `@default(false)`, PITFALLS.md explicitly warns about using `@default(true)` because it would force existing users to change passwords. Recommendation: use `@default(false)` in the schema migration, and explicitly set `true` in the admin create-user endpoint. This is the safe choice.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- `STACK.md` (2026-02-25) — Nodemailer, archiver, SWR, Prisma reporting patterns with code examples
-- `FEATURES.md` (2026-02-25) — Feature classification, behavioural expectations, schema gap analysis
-- `ARCHITECTURE.md` (2026-02-25) — Component boundaries, data flow, schema additions, build order
-- `PITFALLS.md` (2026-02-25) — 18 specific pitfalls with prevention code patterns
+- `.planning/research/STACK.md` (2026-03-09) -- Stack additions, schema changes, integration points, version requirements
+- `.planning/research/FEATURES.md` (2026-03-09) -- Feature classification, dependency map, complexity estimates, MVP priority order
+- `.planning/research/ARCHITECTURE.md` (2026-03-09) -- Component boundaries, data flows, patterns/anti-patterns, build order, route inventory
+- `.planning/research/PITFALLS.md` (2026-03-09) -- 15 pitfalls (4 critical, 8 moderate, 3 minor) with detection and prevention strategies
 
 ### Secondary (MEDIUM confidence)
-- Existing `package.json` — confirms Zod 4.3.6 installed, Prisma 7.3.0, Next.js 15; informs library compatibility decisions
-- Existing `prisma/schema.prisma` — confirms single `closureDate` field, confirms no `Comment` model, confirms no `isSelected` field
-- CONCERNS.md (referenced in PITFALLS.md) — confirms existing issues including 1,126-line submissions page and missing pagination
+- Existing codebase (`lib/auth.ts`, `prisma/schema.prisma`, `app/api/admin/create-user/route.ts`, `app/(portal)/layout.tsx`) -- verified patterns referenced across all research files
+- Better Auth source (`node_modules/better-auth/dist/plugins/`) -- plugin availability and hook API verified
 
 ### Tertiary (LOW confidence)
-- npm version data in STACK.md — training data cutoff August 2025; patch versions may be outdated; verify before installing
-- Vercel Blob URL signing behaviour — not directly verified; noted as a risk requiring validation during implementation
+- Recharts ^2.15 and ua-parser-js ^2.0 version numbers -- from training data (May 2025 cutoff); verify before installing
 
 ---
 
-*Research completed: 2026-02-25*
+*Research completed: 2026-03-09*
 *Ready for roadmap: yes*

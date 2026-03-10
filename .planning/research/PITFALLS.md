@@ -1,570 +1,205 @@
-# PITFALLS.md — University Magazine Contribution System
+# Domain Pitfalls
 
-**Scope:** Subsequent milestone — coordinator comment threads, submission selection flag, Nodemailer SMTP email, server-side ZIP download from Vercel Blob, statistical reports with Prisma aggregations, closure date enforcement.
-
-**Purpose:** Pre-emptive catalogue of critical mistakes specific to this domain and stack. Each entry includes warning signs, a concrete prevention strategy, and the phase where it should be addressed.
+**Domain:** Adding audit logging, first-login password change, login tracking, admin analytics, guest self-registration, and coordinator guest list to an existing Next.js/Better Auth/Prisma university magazine system
+**Researched:** 2026-03-09
 
 ---
 
-## 1. Comment Threads
+## Critical Pitfalls
 
-### 1.1 No Faculty Scope Enforcement on Comment API
+Mistakes that cause security holes, rewrites, or major issues.
 
-**What goes wrong:** A coordinator POSTs a comment to `/api/submissions/:id/comments` for a submission belonging to a student in a different faculty. The route checks session validity but not whether `submission.user.facultyId === coordinator.facultyId`. Data leaks across faculty boundaries.
+### Pitfall 1: First-Login Password Change Bypass via Direct URL Navigation
 
-**Warning signs:**
-- Comment route reads `submission.userId` but does not join through `user.facultyId`
-- Faculty check exists on a GET list endpoint but not on the POST/mutation endpoint
-- Role check says `MARKETING_COORDINATOR` is allowed with no further WHERE clause
+**What goes wrong:** A `mustChangePassword` flag is added and the sign-in page redirects to `/change-password`, but users navigate directly to `/` or any dashboard route and skip the password change entirely. The sign-in page (`app/(auth)/sign-in/page.tsx`) does a client-side `router.push("/")` after login -- intercepting only here is insufficient because the portal layout does not enforce the gate.
+
+**Why it happens:** The system has no middleware. Authentication gates live in the portal layout (`app/(portal)/layout.tsx`, which calls `getCurrentUser()`) and the guest layout. A naive implementation adds a redirect only in the sign-in flow but forgets that both layouts and all API routes must also enforce the gate.
+
+**Consequences:** Users with admin-assigned temporary passwords continue using the system without setting their own password. The entire security feature is cosmetic.
 
 **Prevention:**
-When fetching the target submission to validate a comment, always include:
-```typescript
-const submission = await prisma.submission.findFirst({
-  where: {
-    id: submissionId,
-    user: { facultyId: session.user.facultyId },
-  },
-});
-if (!submission) return 403;
-```
-Never rely solely on the UI to filter the faculty scope; enforce it in every mutating API route.
+- Enforce the password-change gate in `app/(portal)/layout.tsx` AND the guest layout server component -- both already call `getCurrentUser()`. Add: if `user.mustChangePassword === true`, redirect to `/change-password`.
+- The `/change-password` page must live in the `(auth)` route group (alongside `sign-in`), which is outside both `(portal)` and `(guest)` groups.
+- API routes must also reject requests when `mustChangePassword` is true. Add this check to `requireRole()` in `lib/auth-helpers.ts` so every role-gated route inherits the enforcement.
+- The `/change-password` API endpoint itself must be the only endpoint exempt from this check.
 
-**Phase:** Comment thread implementation (do not add the route without this guard).
+**Detection:** Log in with a new admin-created account, then type `http://localhost:5000/` in the address bar. If the dashboard loads, the gate is broken.
 
----
+### Pitfall 2: Audit Log Write Bottleneck on Neon Serverless
 
-### 1.2 Final Closure Date Not Checked on Comment Creation
+**What goes wrong:** Every selection toggle (approve/deselect) creates an audit log row. The audit insert is wrapped in a `$transaction` with the submission update. On Neon serverless PostgreSQL, each query traverses the network, so adding a second write to the hot path doubles latency on the coordinator PATCH endpoint (`app/api/coordinator/submissions/[id]/route.ts`).
 
-**What goes wrong:** The project spec states the final closure date blocks "all updates including comments." If the comment POST route only checks the first closure date (or no date at all), coordinators and students can still exchange messages after the hard deadline, undermining the published academic year policy.
+**Why it happens:** The current selection toggle is a single `prisma.submission.update()` (line 107). Wrapping it in a transaction with an audit insert means two sequential round-trips to Neon. During bulk selection (coordinator reviewing many submissions), the optimistic UI rollback flash becomes visible if the server response exceeds ~200ms.
 
-**Warning signs:**
-- Comment POST route does not query `AcademicYear` before writing
-- Closure date check only exists in the student submission PUT route and is not extracted to a shared utility
-- Two independent "is closed?" implementations drift out of sync
+**Consequences:** Coordinator selection workflow feels sluggish. The optimistic UI pattern (noted in project KEY DECISIONS) masks brief delays but exposes slow transactions as visible flicker.
 
 **Prevention:**
-Extract closure-date logic into a single shared helper (e.g., `lib/academic-year-helpers.ts`) that returns `{ firstClosed: boolean; finalClosed: boolean }` given the current timestamp. Call it in every mutating route — submission create, submission update, comment create, selection flag toggle. A single source of truth prevents drift.
+- Do NOT wrap the audit insert in a transaction with the update. The audit log is append-only -- if the update succeeds but audit fails, you have a missed log entry, not data corruption. This is acceptable.
+- Insert the audit log *after* the successful update, fire-and-forget with `.catch(console.error)` -- the same pattern already used for email notifications (lines 125-131 of the coordinator PATCH route).
+- Keep the audit table lean: `id`, `submissionId`, `action` (SELECTED/DESELECTED), `performedById`, `performedAt`, `previousValue`, `newValue`. Do NOT store full submission snapshots.
+- Add database indexes on `submissionId` and `performedAt`.
 
-Also note: the current `AcademicYear` schema has one `closureDate` field. The PROJECT.md references both a "first closure date" (blocks new submissions) and a "final closure date" (blocks all updates). Verify whether these map to `closureDate` + `endDate`, or whether a second date column is needed. Getting this wrong at the schema level causes silent enforcement failures.
+**Detection:** Measure coordinator selection response times before and after adding audit logging. If p95 increases by more than 50ms, the implementation is too tightly coupled.
 
-**Phase:** Before any closure-gated routes are written; schema clarification must precede coding.
+### Pitfall 3: Guest Self-Registration Creates Unscoped or Wrong-Faculty Accounts
 
----
+**What goes wrong:** The admin create-user flow (`app/api/admin/create-user/route.ts`, lines 60-69) requires `facultyId` for GUEST role. Guest self-registration must also enforce faculty assignment, but now the *guest* chooses their faculty. If the form lets guests skip faculty selection or the API does not validate the `facultyId` exists, guests end up with null `facultyId` or access to the wrong faculty's selected submissions.
 
-### 1.3 Thread Ownership Not Validated on Reply
+**Why it happens:** The existing system assumes admin creates guests and assigns them to the correct faculty. Self-registration inverts the trust model. A developer copies the signup flow but forgets that faculty scoping is the primary access control for guests.
 
-**What goes wrong:** A student PATCHes or DELETEs another student's comment by guessing a comment UUID. The route checks auth but not authorship.
-
-**Warning signs:**
-- Comment update/delete route uses `where: { id: commentId }` without also filtering by the requesting user's ID
-- No check that the comment's parent submission belongs to the requesting student
-
-**Prevention:**
-Always scope mutations to the authenticated actor:
-```typescript
-// For student deleting own comment:
-await prisma.comment.findFirst({
-  where: { id: commentId, authorId: session.user.id },
-});
-// For coordinator deleting any comment on their faculty's submission:
-await prisma.comment.findFirst({
-  where: {
-    id: commentId,
-    submission: { user: { facultyId: session.user.facultyId } },
-  },
-});
-```
-
-**Phase:** Comment thread implementation.
-
----
-
-### 1.4 Unbounded Comment Growth Added to the Already Oversized Submissions Page
-
-**What goes wrong:** Comment thread UI is bolted onto `app/(student)/submissions/page.tsx`, which is already 1,126 lines. The component becomes unmaintainable and regression risk escalates further.
-
-**Warning signs:**
-- New comment-related `useState` hooks added directly to the submissions page component
-- Comment fetch logic lives in the same `useEffect` that handles submission fetch
-- No sub-component extracted for the thread UI
+**Consequences:** Guests see selected submissions from faculties they should not access, or guests with null `facultyId` see nothing and report bugs. Both violate the faculty-scoping invariant the v1.0 system relies on.
 
 **Prevention:**
-Before adding comment UI, extract a `<CommentThread submissionId={id} />` client component. Keep all comment state, fetch logic, and rendering inside it. This is also the natural time to begin decomposing the submissions mega-component (CONCERNS.md item #5).
+- Faculty selection must be a required field on the registration form, populated from the Faculty table.
+- The registration API must validate the selected `facultyId` exists via `prisma.faculty.findUnique()` before creating the account.
+- The guest role must be hardcoded server-side -- NEVER read `role` from the client request body (see Pitfall 10 for details).
+- The coordinator notification email must include which faculty the guest registered for, so coordinators can verify legitimacy.
 
-**Phase:** Before writing comment UI; treat it as a forced refactor opportunity.
+**Detection:** Register a guest without selecting a faculty. If the account is created, validation is missing. Inspect the database for any guest with null `facultyId`.
 
----
+### Pitfall 4: Login Tracking Update in the Wrong Session Hook
 
-## 2. Email Notifications (Nodemailer SMTP)
+**What goes wrong:** `lastLoginAt` is updated in `databaseHooks.session.create.before` (the same hook that checks banned status at line 13-26 of `lib/auth.ts`). The `before` hook runs before the session is persisted. If the session creation subsequently fails, the login was never actually completed but `lastLoginAt` was already updated.
 
-### 2.1 Email Sent Inside the HTTP Request/Response Cycle
+**Why it happens:** The existing code only uses `databaseHooks.session.create.before`. Developers add login tracking to the same hook out of convenience, not realizing the timing difference matters.
 
-**What goes wrong:** The coordinator notification email is sent synchronously inside the submission PUT/POST handler using `await transporter.sendMail(...)`. If Gmail SMTP is slow or rejects the message (rate limit, auth failure), the student's submission action times out or returns a 500. The student loses their submission or has to retry, not knowing whether it was saved.
-
-**Warning signs:**
-- `sendMail` is `await`-ed directly before `return NextResponse.json(...)` in the submission route
-- No separate try/catch around the email call — if it throws, the whole route handler fails
-- Submission is not persisted to DB before the email attempt
+**Consequences:** `lastLoginAt` becomes unreliable. Worst case: a banned user triggers the hook, `lastLoginAt` is updated, then the hook returns `false` (line 23) blocking the session. The user's last login appears recent even though they were blocked.
 
 **Prevention:**
-Always persist the submission to the database first, return success to the student, then send the email in a fire-and-forget fashion:
-```typescript
-// Save submission
-const submission = await prisma.submission.update(...);
+- Use `databaseHooks.session.create.after` for login tracking. The `after` hook fires only when the session was successfully created.
+- Keep the banned check in `before` (as-is) and login tracking in `after` -- separation of concerns.
+- The `after` hook receives the created session, so you can extract `userId` and fire-and-forget a `prisma.user.update({ where: { id: userId }, data: { lastLoginAt: new Date() } })`.
 
-// Return to student immediately
-const response = NextResponse.json({ submission }, { status: 200 });
-
-// Non-blocking email — failure does not affect the student response
-sendCoordinatorEmail(submission).catch((err) =>
-  console.error("Email notification failed:", err)
-);
-
-return response;
-```
-Log email failures clearly. For testing with Gmail SMTP this is sufficient; a proper queue (BullMQ, etc.) would be needed for production scale.
-
-**Phase:** Email notification implementation.
+**Detection:** Attempt to log in as a banned user. Check the database -- if `lastLoginAt` was updated despite the login being blocked, the tracking is in the wrong hook.
 
 ---
 
-### 2.2 Email Sent to the Wrong Coordinator (Faculty Mismatch)
+## Moderate Pitfalls
 
-**What goes wrong:** The submission route looks up "the coordinator" to notify but queries `WHERE role = 'MARKETING_COORDINATOR'` without filtering by `facultyId`. A large university with multiple faculties would spam every coordinator with every submission.
+### Pitfall 5: Audit Log Admin View N+1 on User Names and Submission Titles
 
-**Warning signs:**
-- Email lookup: `prisma.user.findMany({ where: { role: "MARKETING_COORDINATOR" } })` with no faculty filter
-- Student's `facultyId` is not joined into the coordinator lookup
-- "No coordinator found" case sends to no one silently
+**What goes wrong:** The audit log admin view needs to show "Coordinator X selected/deselected submission Y." A naive implementation queries the audit log, then for each entry separately fetches the user name and submission title.
 
 **Prevention:**
-Derive the coordinator's faculty from the submitting student's `facultyId`:
-```typescript
-const student = await prisma.user.findUnique({
-  where: { id: session.user.id },
-  select: { facultyId: true },
-});
-const coordinators = await prisma.user.findMany({
-  where: {
-    role: "MARKETING_COORDINATOR",
-    facultyId: student?.facultyId,
-    banned: false,
-  },
-  select: { email: true, name: true },
-});
-```
-If a student has no `facultyId`, log the anomaly and skip the email — do not crash.
+- Use Prisma `include` or `select` with relations when querying: `include: { performedBy: { select: { name: true } }, submission: { select: { title: true } } }`.
+- Add pagination from day one. Audit logs grow linearly with coordinator activity. Build the API with `skip`/`take` or cursor-based pagination even if the dataset is small now.
 
-**Phase:** Email notification implementation.
+### Pitfall 6: Guest Self-Registration Endpoint Accepts Arbitrary Roles
 
----
-
-### 2.3 Gmail SMTP Credentials in Version Control
-
-**What goes wrong:** `SMTP_USER` and `SMTP_PASS` (an App Password) are committed directly into code or into a `.env` file that gets staged accidentally.
-
-**Warning signs:**
-- Nodemailer transporter constructed with inline string credentials rather than `process.env.*`
-- `.env` not in `.gitignore`, or `.env.example` contains real values
-- No CI check for secrets
+**What goes wrong:** The self-registration API endpoint accepts a request body with user details. An attacker modifies the request to include `role: "ADMINISTRATOR"` and gains admin access. The admin create-user route reads role from the body (line 48), so a developer copying that pattern into the registration endpoint inherits the vulnerability.
 
 **Prevention:**
-Use environment variables exclusively. Add the required keys to `.env.example` with placeholder values. Verify `.gitignore` includes `.env*` before committing any Nodemailer code. For testing, generate a Gmail App Password (not the account password) scoped only to SMTP.
+- The registration endpoint must NEVER read `role` from the request body. Hardcode `role: "GUEST"` server-side.
+- Use Better Auth's `signUpEmail` for account creation (same as admin create-user on line 90), then immediately update with `role: "GUEST"` and the validated `facultyId`.
+- Add rate limiting: max 5 registrations per IP per hour.
+- Consider email domain validation if only university-associated emails should register.
 
-**Phase:** Before any Nodemailer code is written.
+### Pitfall 7: First-Login Flag Not Set When Admin Creates Users
 
----
-
-### 2.4 No Deduplication — Coordinator Notified on Every Re-Submission
-
-**What goes wrong:** A student submits, then re-edits (back to DRAFT), then submits again. Each status transition to SUBMITTED triggers a new notification email. Coordinators receive duplicate alerts.
-
-**Warning signs:**
-- Email is triggered on every PUT where `status === "SUBMITTED"` without checking prior status
-- No `notifiedAt` or `notificationSent` flag on the submission record
+**What goes wrong:** `mustChangePassword` is added to the User model with `@default(true)`. Existing users created before the migration are forced to change their passwords (wrong). Or it defaults to `false`, and admin-created users after the migration are not required to change theirs (also wrong).
 
 **Prevention:**
-Gate the notification on a transition check:
-```typescript
-const wasAlreadySubmitted = existing.status === "SUBMITTED";
-// Only send email on first transition to SUBMITTED
-if (!wasAlreadySubmitted && nextStatus === "SUBMITTED") {
-  sendCoordinatorEmail(submission).catch(...);
-}
-```
-The existing `submittedAt` field can serve this purpose — only send if `submittedAt` was previously null.
+- Migration: add `mustChangePassword` with `@default(false)` so existing users are unaffected.
+- In the admin create-user endpoint (`app/api/admin/create-user/route.ts`, line 106-116), explicitly set `mustChangePassword: true` in the `prisma.user.update()` data.
+- For guest self-registration, set `mustChangePassword: false` because the guest chose their own password.
+- Document the asymmetry: admin-created users must change password on first login; self-registered users do not.
 
-**Phase:** Email notification implementation.
+### Pitfall 8: Coordinator Notification Email for Guest Registration Hits Gmail SMTP Limits
 
----
-
-## 3. ZIP Generation
-
-### 3.1 ZIP Assembled in Server Memory — Unbounded Size
-
-**What goes wrong:** The ZIP route fetches all `SubmissionFile` blobs from Vercel Blob into memory simultaneously before writing them into an `archiver`/`jszip` buffer. If selected submissions contain dozens of large Word documents and images, the serverless function exhausts its memory limit (Vercel default: 1 GB) and crashes with no meaningful error to the user.
-
-**Warning signs:**
-- Route does `await fetch(file.url)` for every file in a `Promise.all([...])` before piping anything
-- All blob responses are buffered into `Buffer` or `ArrayBuffer` before archiving begins
-- No streaming pipeline from Vercel Blob fetch → archiver → response
+**What goes wrong:** Guest self-registration triggers a notification to the coordinator of the relevant faculty. If multiple guests register in quick succession (start of term), Gmail SMTP rate limits kick in (500 emails/day for regular Gmail). Emails silently fail because `sendMail` uses fire-and-forget `.catch(console.error)`.
 
 **Prevention:**
-Stream each blob into the archive rather than buffering everything first. Use `archiver` (Node.js streams) and pipe the archive to the `Response`:
-```typescript
-const archive = archiver("zip");
-for (const file of selectedFiles) {
-  const blobResponse = await fetch(file.url);
-  archive.append(blobResponse.body, { name: file.pathname });
-}
-archive.finalize();
-return new Response(archive, { headers: { "Content-Type": "application/zip" } });
-```
-Fetch files serially or in small batches (≤5 concurrent) to avoid Vercel Blob rate limits and memory spikes.
+- This is a known testing limitation (PROJECT.md: "Gmail SMTP for testing; config swap"). For testing, this is acceptable.
+- Log failed email sends clearly so testers know they failed.
+- Consider a simple in-app notification (badge/count on the coordinator's guest list page) as the primary notification, with email as secondary best-effort.
+- If testing requires many registrations, add a toggle to disable notification emails.
 
-**Phase:** ZIP generation implementation.
+### Pitfall 9: Analytics Event Table Grows Unbounded Without Retention Policy
 
----
-
-### 3.2 ZIP Available Before Final Closure Date
-
-**What goes wrong:** The Marketing Manager endpoint that generates the ZIP is not gated by the final closure date. A manager downloads the ZIP while students can still update submissions, meaning the archive is stale the moment it is generated.
-
-**Warning signs:**
-- ZIP route has no `AcademicYear` query to check whether `finalClosed` is true
-- Route is accessible immediately after a submission is flagged as Selected
-- No UI or API feedback telling the manager "not yet available"
+**What goes wrong:** Page view tracking inserts a row for every page load by every user. Unlike audit logs (which grow proportionally to coordinator actions, maybe dozens per day), page view events grow proportionally to ALL user sessions, potentially thousands per day during active submission periods. Without a retention policy or aggregation strategy, the table becomes the largest in the database and queries slow down.
 
 **Prevention:**
-The ZIP route must query the current academic year and return 403 if the final closure date has not passed:
-```typescript
-const year = await getCurrentAcademicYear();
-if (!year || new Date() < new Date(year.endDate)) {
-  return NextResponse.json(
-    { error: "ZIP download is only available after the final closure date." },
-    { status: 403 }
-  );
-}
-```
-Use the same shared `getCurrentAcademicYear()` helper as every other closure-gated route.
+- Never query raw page view events for analytics reports. Pre-aggregate into daily summary rows: `{ date, page, viewCount, uniqueUserCount }`.
+- Add a retention policy: raw events older than 30 days are either deleted or rolled up into aggregations.
+- Index `createdAt` and `userId` on the events table.
+- For active users metric, count distinct `userId` in the session table (which already exists) rather than creating a separate tracking table.
 
-**Phase:** ZIP generation implementation.
+### Pitfall 10: Admin Analytics Browser Usage Parsing Fails on Bots and Unusual Agents
 
----
-
-### 3.3 Vercel Blob URL Expiry During ZIP Assembly
-
-**What goes wrong:** Vercel Blob URLs can be signed/time-limited. If ZIP generation takes longer than the token validity window, mid-archive fetches return 403, producing a corrupt or incomplete ZIP with no error surfaced to the user.
-
-**Warning signs:**
-- File URLs are stored in `SubmissionFile.url` at upload time and used directly months later without refreshing
-- ZIP generation silently skips files where `fetch(url)` returns non-200
-- No check on `response.ok` before appending to archive
+**What goes wrong:** Browser usage analytics parses `userAgent` strings. Bot traffic, curl requests, and server-side rendering produce unexpected or null user agents. The analytics dashboard shows "Unknown" as the top browser, making the report useless.
 
 **Prevention:**
-Always check `response.ok` before appending. If a blob fetch fails, abort the ZIP and return a meaningful error rather than silently producing an incomplete archive. If Vercel Blob tokens are short-lived, re-generate download URLs via the Vercel Blob SDK at ZIP generation time rather than using stored URLs directly.
+- Filter out bot traffic (check for common bot identifiers like "bot", "crawler", "spider") before recording events.
+- Use a lightweight UA parser library (e.g., `ua-parser-js`) rather than regex -- browser UA strings are notoriously inconsistent.
+- Parse `userAgent` at write time and store browser name as a separate column, not at query time.
+- Group unknown/rare browsers under "Other" in reports.
 
-**Phase:** ZIP generation implementation.
+### Pitfall 11: Welcome Message Shows Stale or Broken "Last Login" on First Visit
 
----
-
-### 3.4 ZIP Directory Structure Not Matching Spec
-
-**What goes wrong:** The spec requires `Faculty > Student > files` directory structure. A naive implementation flattens all files into the ZIP root or uses internal UUIDs instead of human-readable faculty and student names.
-
-**Warning signs:**
-- Archive entries named using `file.pathname` (which contains UUID-based paths like `submissions/{userId}/{submissionId}/filename`)
-- No join to `User.name` and `Faculty.name` when building archive entry paths
-- Files from the same student colliding if two submissions contain identically-named files
+**What goes wrong:** The dashboard shows "Welcome back! Last login: [date]." On a user's first login, `lastLoginAt` is null, and the UI shows "Last login: Invalid Date" or throws a runtime error formatting null.
 
 **Prevention:**
-Build archive paths explicitly from joined data:
-```typescript
-const entryPath = `${faculty.name}/${student.name}/${file.originalFilename}`;
-archive.append(stream, { name: entryPath });
-```
-Sanitize names (strip path separators, limit length). Handle filename collisions within a student's folder by appending a numeric suffix.
+- Handle null explicitly: show "Welcome! This is your first login." when `lastLoginAt` is null.
+- Decide whether to show *previous* last login or *current* login. The former is more useful ("You last logged in 3 days ago"). Store previous value before updating: read current `lastLoginAt`, display it, then update to `now()` in the session hook.
 
-**Phase:** ZIP generation implementation.
+### Pitfall 12: Coordinator Guest List Missing Faculty Scope
 
----
-
-## 4. Closure Date Enforcement
-
-### 4.1 Closure Check Only in the UI — Not in the API
-
-**What goes wrong:** The student submissions page checks `closureDate` client-side and hides the submit button after it passes. But the API route (POST/PUT `/api/submissions`) has no corresponding server-side check. A student can bypass the UI by sending a request directly and create or update submissions past the deadline.
-
-**Warning signs:**
-- `closureDate` comparison logic exists only in `app/(student)/submissions/page.tsx`
-- Submission POST route does not query `AcademicYear` before inserting
-- Submission PUT route does not check `endDate` before updating
+**What goes wrong:** The coordinator guest list shows ALL guests in the system instead of only guests assigned to the coordinator's faculty. This is the same class of bug that the v1.0 codebase already guards against for submissions, but a developer building the guest list from scratch might not apply the same pattern.
 
 **Prevention:**
-Every state-changing submission route must independently query the active academic year and enforce closure:
-```typescript
-const year = await getActiveAcademicYear();
-// Block new submissions after first closure date
-if (year && new Date() > new Date(year.closureDate)) {
-  return NextResponse.json({ error: "Submissions are closed." }, { status: 403 });
-}
-```
-The UI check is a courtesy; the API check is the actual gate.
-
-**Phase:** Closure date enforcement (first task in this milestone phase).
+- Follow the exact pattern in `app/api/coordinator/submissions/[id]/route.ts` (lines 28-38): fetch coordinator's `facultyId`, filter guests by matching `facultyId`.
+- Query: `prisma.user.findMany({ where: { role: "GUEST", facultyId: coordinator.facultyId } })`.
+- Test: log in as Coordinator A (Faculty X), verify guests from Faculty Y are not visible.
 
 ---
 
-### 4.2 Time Zone Confusion on Closure Date Comparisons
+## Minor Pitfalls
 
-**What goes wrong:** `closureDate` is stored as `@db.Date` (date-only, no time component) in the schema. `new Date()` in a Node.js serverless function returns UTC. If the university is in a non-UTC timezone, a submission at 23:30 local time on the closure day could be accepted (UTC is still the prior day) or rejected (UTC is already the next day), depending on the offset direction.
+### Pitfall 13: Audit Log Enum Drift from Submission Selection Logic
 
-**Warning signs:**
-- Closure comparison: `new Date() > new Date(year.closureDate)` with no timezone consideration
-- `startTime`/`endTime` fields on `AcademicYear` exist but are not combined with `closureDate` in comparisons
-- No `TZ` or timezone configuration in the deployment environment
+**What goes wrong:** The audit log records `action: SELECTED | DESELECTED`, but the submission toggle is a boolean `isSelected`. If someone adds the audit entry based on the request body value rather than the actual state change, you get audit entries that do not reflect reality (e.g., selecting an already-selected submission logs SELECTED again).
 
 **Prevention:**
-Combine the `closureDate` (date) with the relevant `endTime` (time) fields from `AcademicYear` when constructing the enforcement datetime. Use `date-fns` (already in the stack) with explicit timezone awareness, or store closure dates as full `DateTime` (with time) in the database rather than `@db.Date`. Document the chosen timezone convention in a code comment.
+- Derive the audit action from the actual state change. Compare `wasSelected` (line 69 in coordinator PATCH) with `updated.isSelected` (line 121) to determine the action.
+- Only create an audit entry when `isSelected` actually changed value, not on every PATCH that includes `isSelected` in the body.
 
-**Phase:** Closure date enforcement; resolve this before any date comparison code is written.
+### Pitfall 14: Guest Registration Form Missing Email Uniqueness Check Before Submission
 
----
-
-### 4.3 Stale Closure State Cached on the Client
-
-**What goes wrong:** The student page fetches the academic year once on mount (via the existing `/api/academic-years` route) and caches it in component state. If the administrator changes the closure date mid-session, the student's UI continues showing the wrong deadline — either letting them submit after closure or blocking them before it.
-
-**Warning signs:**
-- `useEffect` with an empty dependency array fetches the academic year once and never re-validates
-- No periodic re-fetch or stale-while-revalidate pattern
-- No server-side check (see pitfall 4.1) to catch the stale client case
+**What goes wrong:** A guest fills out the entire registration form and submits, only to get a 409 error because the email already exists. Poor UX -- should validate email availability earlier.
 
 **Prevention:**
-Pitfall 4.1's server-side enforcement is the primary guard. The UI state is secondary. Optionally, re-fetch the academic year when the user returns focus to the tab (`visibilitychange` event) or on a short interval. Display the closure date prominently so users understand when they're operating near a boundary.
+- Add a debounced email uniqueness check on blur of the email field (query `/api/auth/check-email` or similar).
+- The existing admin create-user route already does this check (lines 73-87). Extract the email existence check into a shared utility.
+- Still enforce uniqueness server-side in the registration endpoint (defense in depth).
 
-**Phase:** Closure date enforcement.
+### Pitfall 15: Analytics Page Views Tracked for Unauthenticated Pages
 
----
-
-## 5. Role-Scoped Reports
-
-### 5.1 Aggregation Query Runs Without Role Scope Filter
-
-**What goes wrong:** The report endpoint is built for the admin (all faculties) and then reused for coordinators and guests by relying on the UI to filter displayed results. A coordinator fetching `/api/reports/contributions` receives aggregated data for all faculties, not just their own.
-
-**Warning signs:**
-- Report route has one Prisma `groupBy` query with no `where` clause conditional on role
-- Faculty filter is applied in the component after the full dataset arrives
-- GUEST role receives a complete cross-faculty dataset
+**What goes wrong:** Page view tracking is added globally (e.g., in a layout component) and records views of the sign-in page, the registration page, and error pages. These inflate "active users" and "page view" counts with noise.
 
 **Prevention:**
-Apply the scope filter inside the Prisma query based on the authenticated user's role:
-```typescript
-const facultyFilter =
-  session.user.role === "ADMINISTRATOR" || session.user.role === "MARKETING_MANAGER"
-    ? {}
-    : { facultyId: session.user.facultyId };
-
-const result = await prisma.submission.groupBy({
-  by: ["user.facultyId"],
-  where: {
-    status: "SUBMITTED",
-    user: facultyFilter,
-  },
-  _count: { id: true },
-});
-```
-Never return a superset and filter client-side for access control.
-
-**Phase:** Reports implementation.
+- Only track page views inside the `(portal)` and `(guest)` route groups -- pages that require authentication.
+- Add the tracking component to the portal layout and guest layout, not the root layout.
 
 ---
 
-### 5.2 "Contributions Without Comment" Exception Report Is an N+1 Query
+## Phase-Specific Warnings
 
-**What goes wrong:** The exception report ("submissions with no coordinator comment") is implemented by fetching all submissions and then, for each one, issuing a separate query to check whether a comment exists. At university scale this is O(n) database round trips.
-
-**Warning signs:**
-- Report logic uses a `for` loop with `await prisma.comment.count({ where: { submissionId: s.id } })` inside
-- Response time grows linearly with submission count
-- No `include: { _count: { select: { comments: true } } }` pattern used
-
-**Prevention:**
-Use a single Prisma query with a nested count or a subquery filter:
-```typescript
-const submissionsWithoutComments = await prisma.submission.findMany({
-  where: {
-    status: "SUBMITTED",
-    comments: { none: {} },
-    user: { facultyId: session.user.facultyId },
-  },
-  include: { user: { select: { name: true, faculty: true } } },
-});
-```
-
-**Phase:** Reports implementation.
+| Phase Topic | Likely Pitfall | Mitigation |
+|-------------|---------------|------------|
+| Audit logging | Write bottleneck on Neon (Pitfall 2), N+1 queries in admin view (Pitfall 5), enum drift (Pitfall 13) | Fire-and-forget inserts after successful update, Prisma includes with pagination, derive action from state diff |
+| First-login password change | Bypass via direct navigation (Pitfall 1), flag not set for admin-created users (Pitfall 7) | Enforce in both layouts + `requireRole()`, explicit flag in admin create-user endpoint |
+| Login tracking | Wrong hook placement (Pitfall 4), stale welcome message (Pitfall 11) | Use `session.create.after` hook, handle null `lastLoginAt` with conditional UI |
+| Admin analytics | Unbounded event table (Pitfall 9), UA parsing failures (Pitfall 10), noisy page views (Pitfall 15) | Daily aggregation with retention policy, UA parser library, scope tracking to authenticated routes |
+| Guest self-registration | Wrong-faculty accounts (Pitfall 3), role escalation (Pitfall 6), email limits (Pitfall 8), missing email check (Pitfall 14) | Server-side role hardcoding, faculty validation, in-app + email notification, debounced uniqueness check |
+| Coordinator guest list | Missing faculty scope (Pitfall 12) | Copy existing coordinator submission scoping pattern from PATCH route |
 
 ---
 
-### 5.3 "14-Day Without Comment" Report Uses Application-Layer Date Math
+## Sources
 
-**What goes wrong:** The exception report for submissions older than 14 days without a comment is computed by fetching all uncommented submissions and filtering in JavaScript: `submissions.filter(s => daysSince(s.submittedAt) > 14)`. This pulls the entire table across the network when only a small subset is needed.
+- Direct codebase analysis (HIGH confidence): `lib/auth.ts` (Better Auth config with `databaseHooks.session.create.before`), `lib/auth-helpers.ts` (`getCurrentUser()` and `requireRole()`), `app/api/admin/create-user/route.ts` (user creation with role from body), `app/api/coordinator/submissions/[id]/route.ts` (selection toggle with fire-and-forget email), `app/(portal)/layout.tsx` (server-side auth gate with GUEST redirect), `app/(auth)/sign-in/page.tsx` (client-side `router.push("/")` after login), `prisma/schema.prisma` (Session model with `userAgent` and `ipAddress`)
+- Project context (HIGH confidence): `.planning/PROJECT.md` (constraints, key decisions, v1.1 scope, Gmail SMTP limitation)
+- Neon serverless performance characteristics (MEDIUM confidence): based on general serverless PostgreSQL behavior, not load-tested against this schema
 
-**Warning signs:**
-- `date-fns` `differenceInDays` called in a `.filter()` after a `findMany` with no date `where` clause
-- Report endpoint response size grows with total submission count
-- No `submittedAt: { lte: fourteenDaysAgo }` in the Prisma `where`
-
-**Prevention:**
-Push the date arithmetic into the database query:
-```typescript
-const fourteenDaysAgo = new Date();
-fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
-
-const result = await prisma.submission.findMany({
-  where: {
-    status: "SUBMITTED",
-    submittedAt: { lte: fourteenDaysAgo },
-    comments: { none: {} },
-    user: { facultyId: session.user.facultyId },
-  },
-});
-```
-
-**Phase:** Reports implementation.
-
----
-
-### 5.4 Guest Role Can Access Reports for Other Faculties by Manipulating Query Parameters
-
-**What goes wrong:** The report page accepts a `?facultyId=` query parameter so the admin can view any faculty's report. A GUEST passes a different `facultyId` in the URL and sees another faculty's data.
-
-**Warning signs:**
-- Report API reads `searchParams.get("facultyId")` and passes it directly to the Prisma `where` clause
-- No check that the requesting GUEST's `session.user.facultyId` matches the requested `facultyId`
-- Guest UI hides the selector but the API accepts arbitrary values
-
-**Prevention:**
-For GUEST and MARKETING_COORDINATOR, ignore the requested `facultyId` entirely and substitute the user's own:
-```typescript
-const effectiveFacultyId =
-  role === "ADMINISTRATOR" || role === "MARKETING_MANAGER"
-    ? requestedFacultyId
-    : session.user.facultyId; // Guests/coordinators: always their own faculty
-```
-
-**Phase:** Reports implementation.
-
----
-
-## 6. Cross-Cutting Concerns (Multiple Features Affected)
-
-### 6.1 No Input Validation Schema on New Routes
-
-**What goes wrong:** Existing routes cast `req.json()` directly to a payload type with no runtime validation (`as SubmissionPayload`). New routes for comments, selection flag, and reports inherit this pattern. Malformed or malicious payloads (oversized strings, wrong types, missing required fields) cause Prisma errors or silent data corruption instead of a clean 400 response.
-
-**Warning signs:**
-- `(await req.json()) as CommentPayload` with no Zod parse
-- `body.content` used directly in `prisma.comment.create` without a length check
-- Required fields checked manually with `if (!body.field)` rather than a schema
-
-**Prevention:**
-Zod is already installed (`zod 4.3.6`). Define a schema for every new route's request body and parse before touching Prisma:
-```typescript
-const CommentSchema = z.object({
-  submissionId: z.string().uuid(),
-  content: z.string().min(1).max(2000),
-});
-const parsed = CommentSchema.safeParse(await req.json());
-if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
-```
-
-**Phase:** All new routes — enforce this from the start, do not retrofit later.
-
----
-
-### 6.2 Coordinator Faculty Check Missing from the Selection Flag Route
-
-**What goes wrong:** The "Selected for Publication" PATCH endpoint checks that the user is a `MARKETING_COORDINATOR` but not that the submission belongs to their faculty. A coordinator can flag (or unflag) submissions from other faculties.
-
-**Warning signs:**
-- Selection route does `where: { id: submissionId }` without joining through `user.facultyId`
-- Faculty check is present on the coordinator's submission list GET but not on the selection PATCH
-
-**Prevention:**
-Same pattern as comment ownership (pitfall 1.1): always include the faculty scope in the Prisma `where` for every coordinator mutation:
-```typescript
-const submission = await prisma.submission.findFirst({
-  where: {
-    id: submissionId,
-    user: { facultyId: session.user.facultyId },
-  },
-});
-if (!submission) return 403;
-```
-
-**Phase:** Selection flag implementation.
-
----
-
-### 6.3 Pagination Still Missing When New Coordinator View Adds Cross-Submission Queries
-
-**What goes wrong:** The existing concern (CONCERNS.md #7) notes no pagination on submission list endpoints. The coordinator view adds a new context — a coordinator sees all submissions for their faculty, potentially hundreds. Loading all of them without pagination will degrade performance during active submission periods.
-
-**Warning signs:**
-- New coordinator GET endpoint returns `findMany` with no `take`/`skip`
-- Response payload grows linearly with faculty submission count
-- No `totalCount` or `nextCursor` returned to the client
-
-**Prevention:**
-Add cursor-based or offset pagination to the coordinator submissions endpoint from the outset:
-```typescript
-await prisma.submission.findMany({
-  where: { user: { facultyId: coordinatorFacultyId } },
-  take: 50,
-  skip: page * 50,
-  orderBy: { submittedAt: "desc" },
-});
-```
-This also applies to the reports endpoint — do not return unbounded aggregation results.
-
-**Phase:** Coordinator submission view implementation.
-
----
-
-### 6.4 AcademicYear Schema Has One Closure Date Field — Requirements Imply Two
-
-**What goes wrong:** `AcademicYear.closureDate` is a single `DateTime?`. The requirements specify a "first closure date" (blocks new submissions) and a "final closure date" (blocks all updates). If this is resolved by overloading one field or by using `endDate` as the final closure, the enforcement logic will be ambiguous and each developer will implement it differently.
-
-**Warning signs:**
-- `closureDate` mapped to "first closure" in one route, "final closure" in another
-- `endDate` used as the final closure date without explicit documentation
-- Two different helpers computing closure state from the same field with different semantics
-
-**Prevention:**
-Before writing any closure-gated code, add a migration to add `finalClosureDate DateTime? @map("final_closure_date")` to `AcademicYear` and update the admin UI. Document explicitly: `closureDate` = first closure (blocks new submissions); `finalClosureDate` = final closure (blocks all edits and comments). The shared helper returns both flags.
-
-**Phase:** Schema migration — must be the first task in this milestone. All subsequent features depend on getting this right.
-
----
-
-### 6.5 No Audit Trail for High-Value Coordinator Actions
-
-**What goes wrong:** Coordinators selecting/deselecting submissions and adding comments are consequential editorial decisions. With no audit log, there is no way to reconstruct "who selected submission X and when" — which matters for disputes, the Marketing Manager's ZIP, and the exception reports.
-
-**Warning signs:**
-- `selectedAt` / `selectedBy` fields absent from the schema
-- Comments have no `editedAt` or deletion record
-- `updatedAt` on Submission is overwritten by the coordinator's action with no history
-
-**Prevention:**
-At minimum, store `selectedAt DateTime?` and `selectedById String?` on the `Submission` model. For comments, make deletion soft (add `deletedAt DateTime?`) rather than hard-deleting rows. This is low-cost at schema design time and very expensive to retrofit.
-
-**Phase:** Schema migration (alongside the dual closure date fix above).
-
----
-
-*Document created: 2026-02-25*
-*Research type: Project Research — Pitfalls dimension*
+*Document created: 2026-03-09*
+*Research type: Project Research -- Pitfalls for v1.1 features*

@@ -331,7 +331,7 @@ async function main() {
     },
     {
       yearLabel: "2025-2026",
-      isActive: false,
+      isActive: true,
       firstClosureDate: new Date("2026-03-15T23:59:59Z"),
       finalClosureDate: new Date("2026-04-15T23:59:59Z"),
       startDate: new Date("2025-09-01"),
@@ -353,7 +353,7 @@ async function main() {
       yearIds[ay.yearLabel] = record.id;
     }
   }
-  console.log("✓ 2 academic years seeded (none active — admin must set up via Closure Dates)");
+  console.log("✓ 2 academic years seeded (2025-2026 active)");
 
   // ── 3. Admin user ─────────────────────────────────────────────────────────
 
@@ -400,7 +400,28 @@ async function main() {
     await ensureUser(g.email, g.name, "GUEST", fac[g.faculty]);
   }
 
-  console.log("✓ Staff: 2 admins, 1 manager, 5 coordinators, 5 guests");
+  // Self-registered guests (simulating /register flow — mustChangePassword: false)
+  const selfRegisteredGuests = [
+    { email: "kate.miller@gmail.com", name: "Kate Miller", faculty: "Faculty of Engineering" },
+    { email: "ryan.nguyen@gmail.com", name: "Ryan Nguyen", faculty: "Faculty of Engineering" },
+    { email: "sophia.chen@yahoo.com", name: "Sophia Chen", faculty: "Faculty of Business" },
+    { email: "liam.brooks@gmail.com", name: "Liam Brooks", faculty: "Faculty of Arts and Humanities" },
+    { email: "emma.davis@outlook.com", name: "Emma Davis", faculty: "Faculty of Science" },
+    { email: "noah.wilson@gmail.com", name: "Noah Wilson", faculty: "Faculty of Science" },
+    { email: "olivia.taylor@gmail.com", name: "Olivia Taylor", faculty: "Faculty of Medicine" },
+    { email: "james.anderson@yahoo.com", name: "James Anderson", faculty: "Faculty of Medicine" },
+  ];
+  for (const g of selfRegisteredGuests) {
+    await ensureUser(g.email, g.name, "GUEST", fac[g.faculty]);
+  }
+
+  console.log(`✓ Staff: 2 admins, 1 manager, 5 coordinators, ${5 + selfRegisteredGuests.length} guests (5 admin-created + ${selfRegisteredGuests.length} self-registered)`);
+
+  // Set mustChangePassword for admin-created guests (simulates admin-created accounts)
+  await prisma.user.update({
+    where: { email: "guest.eng@uog.com" },
+    data: { mustChangePassword: true },
+  });
 
   // ── 5. Students — 20 per faculty ──────────────────────────────────────────
 
@@ -451,6 +472,13 @@ async function main() {
   }
 
   console.log(`✓ ${allStudents.length} students seeded (${STUDENTS_PER_FACULTY} per faculty)`);
+
+  // Set mustChangePassword for a student (simulates admin-created account)
+  await prisma.user.update({
+    where: { email: "charlie.brown@uog.com" },
+    data: { mustChangePassword: true },
+  });
+  console.log("  (mustChangePassword: guest.eng@uog.com, charlie.brown@uog.com)");
 
   // Group students by faculty for easy access
   const studentsByFaculty: Record<string, typeof allStudents> = {};
@@ -613,18 +641,284 @@ async function main() {
   }
   console.log(`  ✓ 2024-2025: ${submissionCount - prevCount} new submissions`);
 
-  // ── 8. Summary ────────────────────────────────────────────────────────────
+  // ── 8. Audit log sample entries ──────────────────────────────────────────
+  const selectedSubmissions = await prisma.submission.findMany({
+    where: { isSelected: true, academicYearId: y2425 },
+    take: 10,
+    include: { user: { select: { name: true } } },
+  });
 
+  let auditCount = 0;
+  for (const sub of selectedSubmissions) {
+    const coord = coordinators[
+      Object.keys(coordinators).find(
+        (f) => fac[f] === sub.facultyId
+      ) ?? FACULTY_NAMES[0]
+    ];
+    await prisma.auditLog.create({
+      data: {
+        action: "SELECTION_CHANGE",
+        entityType: "SUBMISSION",
+        entityId: sub.id,
+        actorId: coord.id,
+        oldValue: "false",
+        newValue: "true",
+        metadata: {
+          submissionTitle: sub.title,
+          facultyName: Object.keys(fac).find((k) => fac[k] === sub.facultyId) ?? "Unknown",
+          studentName: sub.user.name,
+        },
+        createdAt: sub.selectedAt ?? new Date(),
+      },
+    });
+    auditCount++;
+  }
+  console.log(`✓ ${auditCount} audit log entries (2024-2025 selections)`);
+
+  // ── 8b. Current year submissions (2025-2026) ──────────────────────────────
+  // Active year — mix of DRAFT and SUBMITTED, some selected, some with comments
+
+  console.log("\nSeeding 2025-2026 submissions...");
+  const currentYearPrevCount = submissionCount;
+  const y2526 = yearIds["2025-2026"];
+  const submissionWindow2526 = { start: new Date("2026-01-15"), end: new Date("2026-03-08") };
+
+  for (const facultyName of FACULTY_NAMES) {
+    const students = studentsByFaculty[facultyName];
+    const coord = coordinators[facultyName];
+    const titles = [...TITLES[facultyName]];
+
+    // 60% submit, some still drafts
+    const submittingCount = Math.floor(students.length * 0.6);
+    const draftCount = Math.floor(students.length * 0.15);
+
+    // Create submitted entries
+    for (let i = 0; i < submittingCount; i++) {
+      const student = students[i];
+      const title = titles[i % titles.length];
+      const submittedAt = randomDate(submissionWindow2526.start, submissionWindow2526.end);
+      const isSelected = Math.random() < 0.3; // 30% selected so far (year still open)
+
+      const hasComment = Math.random() < 0.6;
+      const comments = hasComment
+        ? [
+            {
+              authorId: coord.id,
+              authorRole: "MARKETING_COORDINATOR",
+              body: COORD_COMMENTS[i % COORD_COMMENTS.length],
+              createdAt: new Date(submittedAt.getTime() + faker.number.int({ min: 1, max: 5 }) * 24 * 60 * 60 * 1000),
+              replies: Math.random() < 0.4
+                ? [
+                    {
+                      authorId: student.id,
+                      authorRole: "STUDENT",
+                      body: STUDENT_REPLIES[i % STUDENT_REPLIES.length],
+                      createdAt: new Date(submittedAt.getTime() + faker.number.int({ min: 6, max: 12 }) * 24 * 60 * 60 * 1000),
+                    },
+                  ]
+                : undefined,
+            },
+          ]
+        : undefined;
+
+      await createSubmission({
+        userId: student.id,
+        facultyId: student.facultyId,
+        academicYearId: y2526,
+        title,
+        status: "SUBMITTED",
+        submittedAt,
+        isSelected,
+        selectedById: manager.id,
+        notes: isSelected ? faker.lorem.sentence() : undefined,
+        fileCount: faker.number.int({ min: 1, max: 3 }),
+        comments,
+      });
+    }
+
+    // Create draft entries (students who started but haven't submitted)
+    for (let i = 0; i < draftCount; i++) {
+      const student = students[submittingCount + i];
+      if (!student) break;
+      const title = titles[(submittingCount + i) % titles.length];
+
+      await createSubmission({
+        userId: student.id,
+        facultyId: student.facultyId,
+        academicYearId: y2526,
+        title,
+        status: "DRAFT",
+        fileCount: 1,
+      });
+    }
+  }
+  console.log(`  ✓ 2025-2026: ${submissionCount - currentYearPrevCount} new submissions`);
+
+  // ── 9. Session records for analytics dashboard ────────────────────────────
+  // Creates sessions with realistic userAgent strings so the analytics
+  // dashboard shows active users chart and browser pie chart data.
+
+  const USER_AGENTS = [
+    // Chrome (desktop)
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    // Firefox
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:134.0) Gecko/20100101 Firefox/134.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:134.0) Gecko/20100101 Firefox/134.0",
+    // Safari
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.2 Safari/605.1.15",
+    // Edge
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0",
+    // Chrome (mobile)
+    "Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36",
+    // Safari (mobile)
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 18_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.2 Mobile/15E148 Safari/604.1",
+  ];
+
+  console.log("\nSeeding session records for analytics...");
+  const allUsers = await prisma.user.findMany({ select: { id: true } });
+  let sessionCount = 0;
+
+  // Generate sessions spread across the last 30 days
+  const now = new Date();
+  for (let dayOffset = 0; dayOffset < 30; dayOffset++) {
+    // More recent days get more sessions (simulates growing usage)
+    const sessionsForDay = Math.floor(Math.random() * 8) + 3 + Math.floor(dayOffset / 5);
+    const dayDate = new Date(now);
+    dayDate.setUTCDate(dayDate.getUTCDate() - (29 - dayOffset));
+    dayDate.setUTCHours(8, 0, 0, 0);
+
+    for (let s = 0; s < sessionsForDay; s++) {
+      const user = allUsers[Math.floor(Math.random() * allUsers.length)];
+      const ua = USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
+      const sessionTime = new Date(dayDate.getTime() + Math.floor(Math.random() * 14 * 60 * 60 * 1000)); // Random hour 8-22
+      const expiresAt = new Date(sessionTime.getTime() + 7 * 24 * 60 * 60 * 1000); // Expires in 7 days
+
+      await prisma.session.create({
+        data: {
+          id: `seed-session-${dayOffset}-${s}`,
+          token: `seed-token-${dayOffset}-${s}-${Date.now()}`,
+          userId: user.id,
+          userAgent: ua,
+          ipAddress: `192.168.1.${Math.floor(Math.random() * 254) + 1}`,
+          createdAt: sessionTime,
+          updatedAt: sessionTime,
+          expiresAt,
+        },
+      });
+      sessionCount++;
+    }
+  }
+  console.log(`✓ ${sessionCount} session records seeded (last 30 days)`);
+
+  // ── 10. Recent audit log entries ──────────────────────────────────────────
+  // Add audit entries within last 30 days for the audit log page
+
+  console.log("\nSeeding recent audit log entries...");
+  const recentAuditStart = auditCount;
+
+  // Audit: current year selection changes
+  const currentSelectedSubs = await prisma.submission.findMany({
+    where: { isSelected: true, academicYearId: y2526 },
+    take: 15,
+    include: { user: { select: { name: true } } },
+  });
+
+  for (const sub of currentSelectedSubs) {
+    const coord = coordinators[
+      Object.keys(coordinators).find((f) => fac[f] === sub.facultyId) ?? FACULTY_NAMES[0]
+    ];
+    await prisma.auditLog.create({
+      data: {
+        action: "SELECTION_CHANGE",
+        entityType: "SUBMISSION",
+        entityId: sub.id,
+        actorId: coord.id,
+        oldValue: "false",
+        newValue: "true",
+        metadata: {
+          submissionTitle: sub.title,
+          facultyName: Object.keys(fac).find((k) => fac[k] === sub.facultyId) ?? "Unknown",
+          studentName: sub.user.name,
+        },
+        createdAt: sub.selectedAt ?? new Date(),
+      },
+    });
+    auditCount++;
+  }
+
+  // Audit: user role changes (admin actions)
+  const adminUser = await prisma.user.findUnique({ where: { email: "sarah.johnson@uog.com" } });
+  if (adminUser) {
+    const roleChangeTargets = selfRegisteredGuests.slice(0, 3);
+    for (let i = 0; i < roleChangeTargets.length; i++) {
+      const target = await prisma.user.findUnique({ where: { email: roleChangeTargets[i].email } });
+      if (!target) continue;
+      const changeDate = new Date(now);
+      changeDate.setUTCDate(changeDate.getUTCDate() - (20 - i * 5));
+      await prisma.auditLog.create({
+        data: {
+          action: "ROLE_CHANGE",
+          entityType: "USER",
+          entityId: target.id,
+          actorId: adminUser.id,
+          oldValue: "STUDENT",
+          newValue: "GUEST",
+          metadata: { userName: target.name, email: target.email },
+          createdAt: changeDate,
+        },
+      });
+      auditCount++;
+    }
+
+    // Audit: academic year config changes
+    await prisma.auditLog.create({
+      data: {
+        action: "ACADEMIC_YEAR_UPDATE",
+        entityType: "ACADEMIC_YEAR",
+        entityId: y2526,
+        actorId: adminUser.id,
+        oldValue: JSON.stringify({ isActive: false }),
+        newValue: JSON.stringify({ isActive: true }),
+        metadata: { yearLabel: "2025-2026" },
+        createdAt: new Date("2026-02-01T10:00:00Z"),
+      },
+    });
+    auditCount++;
+
+    // Audit: closure date updates
+    await prisma.auditLog.create({
+      data: {
+        action: "CLOSURE_DATE_UPDATE",
+        entityType: "ACADEMIC_YEAR",
+        entityId: y2526,
+        actorId: adminUser.id,
+        oldValue: null,
+        newValue: JSON.stringify({ firstClosureDate: "2026-03-15", finalClosureDate: "2026-04-15" }),
+        metadata: { yearLabel: "2025-2026" },
+        createdAt: new Date("2026-02-01T10:15:00Z"),
+      },
+    });
+    auditCount++;
+  }
+
+  console.log(`✓ ${auditCount - recentAuditStart} recent audit log entries seeded`);
+
+  // ── 11. Summary ───────────────────────────────────────────────────────────
+
+  const totalGuests = 5 + selfRegisteredGuests.length;
   console.log("\n" + "═".repeat(60));
   console.log("  SEED COMPLETE");
   console.log("═".repeat(60));
-  console.log(`  Academic Years: 2 (none active — set up via /admin/closure-dates)`);
+  console.log(`  Academic Years: 2 (2025-2026 active)`);
   console.log(`  Faculties:      ${FACULTY_NAMES.length}`);
   console.log(`  Students:       ${allStudents.length}`);
-  console.log(`  Staff:          2 admins, 1 manager, 5 coordinators, 5 guests`);
-  console.log(`  Total Users:    ${allStudents.length + 13}`);
+  console.log(`  Staff:          2 admins, 1 manager, 5 coordinators, ${totalGuests} guests`);
+  console.log(`  Total Users:    ${allStudents.length + 8 + totalGuests}`);
   console.log(`  Submissions:    ${submissionCount}`);
   console.log(`  Comments:       ${commentCount}`);
+  console.log(`  Sessions:       ${sessionCount}`);
+  console.log(`  Audit Logs:     ${auditCount}`);
   console.log("═".repeat(60));
   console.log("\n  Login credentials (all passwords: 'password'):");
   console.log("  ─────────────────────────────────────────────");
@@ -635,9 +929,10 @@ async function main() {
   console.log("  Coord (Arts):   lisa.nguyen@uog.com");
   console.log("  Coord (Sci):    jessica.williams@uog.com");
   console.log("  Coord (Med):    anna.patel@uog.com");
-  console.log("  Guest (Eng):    guest.eng@uog.com");
-  console.log("  Guest (Med):    priya.shah@uog.com");
+  console.log("  Guest (admin):  guest.eng@uog.com  (mustChangePassword)");
+  console.log("  Guest (self):   kate.miller@gmail.com");
   console.log("  Student (Eng):  david.park@uog.com");
+  console.log("  Student (Eng):  charlie.brown@uog.com  (mustChangePassword)");
   console.log("  Student (Sci):  alice.wong@uog.com");
   console.log("  Student (Arts): emily.rodriguez@uog.com");
   console.log("  Student (Biz):  diana.lee@uog.com");
