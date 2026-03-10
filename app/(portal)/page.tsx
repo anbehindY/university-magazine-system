@@ -544,7 +544,7 @@ export default function DashboardPage() {
   if (!session?.user) return <LoadingScreen />;
 
   const { user } = session;
-  const lastLoginAt = (user as any)?.lastLoginAt as string | null;
+  const lastLoginAt = user?.lastLoginAt as string | null;
   const desc = ROLE_DESCRIPTIONS[role] ?? ROLE_DESCRIPTIONS.STUDENT;
 
   return (

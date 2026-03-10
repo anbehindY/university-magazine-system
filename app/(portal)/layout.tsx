@@ -14,7 +14,7 @@ export default async function Layout({
 }) {
   const user = await getCurrentUser();
 
-  if ((user as any)?.mustChangePassword) {
+  if (user?.mustChangePassword) {
     redirect("/change-password");
   }
 
