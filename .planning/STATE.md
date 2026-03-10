@@ -5,7 +5,7 @@ milestone_name: Security, Audit & Guest Self-Registration
 status: milestone_complete
 stopped_at: Milestone v1.1 archived
 last_updated: "2026-03-10T13:30:00.000Z"
-last_activity: 2026-03-10 -- Completed quick task 22: Remove admin guest creation
+last_activity: 2026-03-10 -- Completed quick task 23: Add profile settings page
 progress:
   total_phases: 5
   completed_phases: 5
@@ -71,9 +71,10 @@ None.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 22 | Remove admin guest creation — all guests must self-register | 2026-03-10 | afc8158 | [22-remove-admin-guest-creation-all-guests-m](./quick/22-remove-admin-guest-creation-all-guests-m/) |
+| 23 | Add profile settings page with name update and password change | 2026-03-10 | fb3eb00 | [23-add-profile-settings-page-with-name-upda](./quick/23-add-profile-settings-page-with-name-upda/) |
 
 ## Session Continuity
 
 Last session: 2026-03-10
-Stopped at: Completed quick-22
+Stopped at: Completed quick-23
 Next step: `/gsd:new-milestone` for next milestone
