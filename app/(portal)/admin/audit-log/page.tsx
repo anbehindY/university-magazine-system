@@ -2,7 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { LoadingScreen } from "@/components/ui/loading-screen";
 import { PaginationControls } from "@/components/ui/pagination-controls";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -59,8 +59,8 @@ export default function AuditLogPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [preset, setPreset] = useState<string>("30d");
-  const [fromDate, setFromDate] = useState<string>("");
-  const [toDate, setToDate] = useState<string>("");
+  const [fromDate, setFromDate] = useState<Date | undefined>();
+  const [toDate, setToDate] = useState<Date | undefined>();
 
   const allowedRoles = ["ADMINISTRATOR", "MARKETING_MANAGER"];
 
@@ -91,8 +91,8 @@ export default function AuditLogPage() {
           params.set("to", range.to);
         }
       } else {
-        if (fromDate) params.set("from", fromDate);
-        if (toDate) params.set("to", toDate);
+        if (fromDate) params.set("from", fromDate.toISOString().split("T")[0]);
+        if (toDate) params.set("to", toDate.toISOString().split("T")[0]);
       }
 
       const res = await fetch(`/api/admin/audit-log?${params.toString()}`);
@@ -127,18 +127,18 @@ export default function AuditLogPage() {
 
   function handlePresetClick(value: string) {
     setPreset(value);
-    setFromDate("");
-    setToDate("");
+    setFromDate(undefined);
+    setToDate(undefined);
     setPage(1);
   }
 
-  function handleFromDateChange(value: string) {
+  function handleFromDateChange(value: Date | undefined) {
     setFromDate(value);
     setPreset("");
     setPage(1);
   }
 
-  function handleToDateChange(value: string) {
+  function handleToDateChange(value: Date | undefined) {
     setToDate(value);
     setPreset("");
     setPage(1);
@@ -199,18 +199,18 @@ export default function AuditLogPage() {
         ))}
         <div className="flex items-center gap-2 ml-auto">
           <span className="text-sm text-slate-500">From</span>
-          <Input
-            type="date"
+          <DatePicker
             value={fromDate}
-            onChange={(e) => handleFromDateChange(e.target.value)}
-            className="w-40 bg-white border-slate-200 text-slate-900"
+            onChange={handleFromDateChange}
+            placeholder="Start date"
+            className="w-40"
           />
           <span className="text-sm text-slate-500">To</span>
-          <Input
-            type="date"
+          <DatePicker
             value={toDate}
-            onChange={(e) => handleToDateChange(e.target.value)}
-            className="w-40 bg-white border-slate-200 text-slate-900"
+            onChange={handleToDateChange}
+            placeholder="End date"
+            className="w-40"
           />
         </div>
       </div>
