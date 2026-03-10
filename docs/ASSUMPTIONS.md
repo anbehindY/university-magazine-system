@@ -23,4 +23,5 @@
 - The analytics requirement for "which pages are most viewed" is satisfied by active user counts and browser usage charts derived from existing session data, rather than implementing a separate page-view tracking system.
 - The audit log for coordinator selection changes is append-only, meaning entries cannot be edited or deleted after creation.
 - Guest self-registration hardcodes the GUEST role on the server side and never reads the role from the request body, preventing privilege escalation.
+- Users can update their own display name and change their password through a self-service profile page; email, role, and faculty are read-only and can only be changed by an administrator.
 - The database is seeded with sample data including multiple students, coordinators, a manager, an administrator, and guest accounts across five faculties, along with sample academic years, submissions, comments, and audit log entries to support testing and demonstration.

@@ -62,6 +62,7 @@ Students can submit and manage their contributions, and coordinators can review,
 - ✓ Coordinator email notification on guest registration — v1.1
 - ✓ Coordinator faculty-scoped guest list — v1.1
 - ✓ Admin analytics dashboard (active users, browser usage) via Recharts — v1.1
+- ✓ Self-service profile page (name update, password change) — v1.1
 
 ### Active
 
@@ -87,6 +88,7 @@ Students can submit and manage their contributions, and coordinators can review,
 | Audit log entry deletion or editing | Immutable by design for accountability |
 | Real-time analytics dashboard | WebSocket/SSE out of scope per constraints |
 | Guest approval workflow | Auto-approve with admin ban fallback is sufficient |
+| User self-service email change | Email is the login identifier; admin-only change prevents account confusion |
 
 ## Context
 
@@ -114,6 +116,7 @@ v1.1: 5 phases (7 plans) in 1 day. 19/19 requirements satisfied. All UAT passed.
 6. Reports are role-scoped (coordinator/guest see their faculty; manager/admin see all)
 7. Exception "14 days" measures from student's submittedAt to finalClosureDate
 8. Guest accounts created by administrator or via self-registration (GUEST role)
+9. Users can self-service their display name and password; email, role, and faculty are read-only (admin-managed)
 
 ## Key Decisions
 
@@ -145,6 +148,8 @@ v1.1: 5 phases (7 plans) in 1 day. 19/19 requirements satisfied. All UAT passed.
 | UAParser named import | Turbopack ESM compatibility (default import fails at build) | ✓ Good |
 | Cumulative daily count in-memory | Single session query, no N+1; computed in-memory | ✓ Good |
 | additionalFields with input:false | Prevents client-side manipulation of mustChangePassword/lastLoginAt | ✓ Good |
+| Profile: name-only self-service, email read-only | Email is the login identifier; name is safe to self-service | ✓ Good |
+| Current password required for profile password change | Prevents changes on unattended sessions | ✓ Good |
 
 ---
 *Last updated: 2026-03-10 after v1.1 milestone*
