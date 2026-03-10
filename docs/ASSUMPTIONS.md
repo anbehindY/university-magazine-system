@@ -4,9 +4,10 @@
 
 - The system has five fixed roles: Administrator, Marketing Manager, Marketing Coordinator, Student, and Guest.
 - Each user belongs to exactly one faculty, except the Administrator and Marketing Manager who operate across all faculties.
-- The Administrator creates all user accounts (students, coordinators, managers, guests) before the system is used, so the database is pre-seeded with existing accounts that are already assigned to their respective faculties.
+- The Administrator creates all user accounts (students, coordinators, managers) before the system is used, so the database is pre-seeded with existing accounts that are already assigned to their respective faculties.
 - Guest users can also self-register through a public registration page, choosing their own faculty and password.
 - Guest accounts are immediately active after registration and do not require an approval step; the Administrator can ban accounts if needed.
+- The Administrator cannot create guest accounts; the GUEST role is exclusively assigned through self-registration.
 - Only admin-created users are required to change their temporary password on first login; self-registered guests chose their own password and skip this step.
 - When a coordinator "edits" a contribution, this means editing metadata such as notes and title only, not replacing the student's uploaded files.
 - Comments are two-way threads at the submission level, not attached to individual files within a submission.
