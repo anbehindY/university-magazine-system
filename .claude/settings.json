@@ -3,7 +3,11 @@
     "allow": [
       "Bash(node /home/alfie/.claude/get-shit-done/bin/gsd-tools.cjs verify plan-structure \".planning/phases/06-critical-fixes/06-05-PLAN.md\")",
       "Bash(python3 -c \":*)",
-      "Bash(ls -la /home/alfie/next-prisma/app/\\\\\\(auth\\\\\\)/)"
+      "Bash(ls -la /home/alfie/next-prisma/app/\\\\\\(auth\\\\\\)/)",
+      "WebSearch",
+      "WebFetch(domain:www.better-auth.com)",
+      "Bash(node \"./.claude/get-shit-done/bin/gsd-tools.cjs\" roadmap get-phase 11)",
+      "Bash(ls /home/alfie/next-prisma/.planning/milestones/v1.1-phases/11-security-hardening/*-PLAN.md)"
     ]
   }
 }
