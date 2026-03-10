@@ -25,7 +25,7 @@
 ### v1.1 Security, Audit & Guest Self-Registration
 
 - [x] **Phase 10: Schema Migration** -- AuditLog model + User fields (mustChangePassword, lastLoginAt) in a single migration
-- [x] **Phase 11: Security Hardening** -- First-login password change gate + login tracking with welcome message
+- [ ] **Phase 11: Security Hardening** -- First-login password change gate + login tracking with welcome message (gap closure in progress)
 - [x] **Phase 12: Audit Logging** -- Fire-and-forget audit writes on selection changes + admin audit viewer
 - [x] **Phase 13: Guest Registration & Guest List** -- Public guest self-registration + coordinator notification + faculty-scoped guest list
 - [x] **Phase 14: Admin Analytics Dashboard** -- Session-based active users + browser usage charts with Recharts
@@ -54,9 +54,10 @@ Plans:
   2. The password change gate is enforced in portal layout, guest layout, and the API route helper (three enforcement points, no bypass via direct URL)
   3. After successful login, the user sees a welcome message showing their last login timestamp (or "first login" if none)
   4. Last login timestamp is recorded only on successful session creation -- banned or blocked attempts do not update it
-**Plans:** 1/1 plans complete
+**Plans:** 2 plans (1 complete, 1 gap closure)
 Plans:
 - [x] 11-01-PLAN.md -- Password change gate, login tracking, welcome card (5 tasks)
+- [ ] 11-02-PLAN.md -- Gap closure: add user.additionalFields to betterAuth config (2 tasks)
 
 ### Phase 12: Audit Logging
 **Goal**: Coordinator selection changes are permanently recorded and administrators can review the audit trail
@@ -66,9 +67,9 @@ Plans:
   1. When a coordinator selects or deselects a submission, an audit entry is written with the actor, timestamp, submission, old value, and new value
   2. Audit writes are fire-and-forget (do not block or slow down the coordinator's selection toggle response)
   3. Admin can view the audit log page with paginated entries and date filtering
-**Plans:** 0/1 plans complete
+**Plans:** 1/1 plans complete
 Plans:
-- [ ] 12-01-PLAN.md -- Audit write on selection toggle, audit log API + viewer page, sidebar link (4 tasks)
+- [x] 12-01-PLAN.md -- Audit write on selection toggle, audit log API + viewer page, sidebar link (4 tasks)
 
 ### Phase 13: Guest Registration & Guest List
 **Goal**: External users can self-register as guests for a faculty, coordinators are notified and can see who registered
@@ -111,7 +112,7 @@ Plans:
 | 8. Upload Rules Enforcement | v1.0 | 2/2 | Complete | 2026-03-03 |
 | 9. Pagination | v1.0 | 4/4 | Complete | 2026-03-03 |
 | 10. Schema Migration | v1.1 | Complete    | 2026-03-09 | 2026-03-09 |
-| 11. Security Hardening | v1.1 | 1/1 | Complete | 2026-03-09 |
-| 12. Audit Logging | v1.1 | 0/1 | Planned | - |
+| 11. Security Hardening | v1.1 | 1/2 | Gap Closure | — |
+| 12. Audit Logging | v1.1 | 1/1 | Complete | 2026-03-09 |
 | 13. Guest Registration & Guest List | v1.1 | Complete    | 2026-03-09 | 2026-03-09 |
 | 14. Admin Analytics Dashboard | v1.1 | Complete    | 2026-03-09 | 2026-03-09 |
