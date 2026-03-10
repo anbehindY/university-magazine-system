@@ -5,7 +5,7 @@ milestone_name: Security, Audit & Guest Self-Registration
 status: milestone_complete
 stopped_at: Milestone v1.1 archived
 last_updated: "2026-03-10T13:30:00.000Z"
-last_activity: 2026-03-10 -- Milestone v1.1 archived and completed
+last_activity: 2026-03-10 -- Completed quick task 22: Remove admin guest creation
 progress:
   total_phases: 5
   completed_phases: 5
@@ -65,6 +65,12 @@ None.
 ### Blockers/Concerns
 
 None.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 22 | Remove admin guest creation — all guests must self-register | 2026-03-10 | afc8158 | [22-remove-admin-guest-creation-all-guests-m](./quick/22-remove-admin-guest-creation-all-guests-m/) |
 
 ## Session Continuity
 
