@@ -100,6 +100,18 @@ function validateFiles(
   return null;
 }
 
+function mergeSelectedFiles(existingFiles: File[], incomingFiles: File[]) {
+  const seen = new Set(existingFiles.map((file) => `${file.name}:${file.size}:${file.lastModified}`));
+  const merged = [...existingFiles];
+  for (const file of incomingFiles) {
+    const key = `${file.name}:${file.size}:${file.lastModified}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(file);
+  }
+  return merged;
+}
+
 function SubmissionCardSkeleton() {
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
@@ -424,8 +436,10 @@ export default function StudentSubmissionsPage() {
 
   function onFilesChange(event: React.ChangeEvent<HTMLInputElement>) {
     const selected = Array.from(event.target.files ?? []);
+    if (selected.length === 0) return;
+    const merged = mergeSelectedFiles(files, selected);
     const error = validateFiles(
-      selected,
+      merged,
       editingFiles.length + uploadedBlobs.length,
       { maxFilesPerUpload: maxFiles, maxUploadSizeMb: maxSizeMb, allowedFileTypes: allowedExts }
     );
@@ -433,8 +447,7 @@ export default function StudentSubmissionsPage() {
       toast.error(error);
       return;
     }
-    setFiles(selected);
-    setUploadedBlobs([]);
+    setFiles(merged);
   }
 
   function onDropFiles(event: React.DragEvent<HTMLLabelElement>) {
@@ -442,8 +455,9 @@ export default function StudentSubmissionsPage() {
     if (isClosed || isBusy || !uploadsEnabled) return;
     const dropped = Array.from(event.dataTransfer.files ?? []);
     if (dropped.length === 0) return;
+    const merged = mergeSelectedFiles(files, dropped);
     const error = validateFiles(
-      dropped,
+      merged,
       editingFiles.length + uploadedBlobs.length,
       { maxFilesPerUpload: maxFiles, maxUploadSizeMb: maxSizeMb, allowedFileTypes: allowedExts }
     );
@@ -452,8 +466,7 @@ export default function StudentSubmissionsPage() {
       setIsDragging(false);
       return;
     }
-    setFiles(dropped);
-    setUploadedBlobs([]);
+    setFiles(merged);
     setIsDragging(false);
   }
 
