@@ -21,6 +21,10 @@ type DateTimePickerProps = {
   onChange: (value: Date | undefined) => void
   placeholder?: string
   className?: string
+  startMonth?: Date
+  endMonth?: Date
+  disabledDates?: React.ComponentProps<typeof Calendar>["disabled"]
+  disabled?: boolean
 }
 
 const HOURS = Array.from({ length: 12 }, (_, i) => String(i + 1))
@@ -50,6 +54,10 @@ export function DateTimePicker({
   onChange,
   placeholder = "Pick date & time",
   className,
+  startMonth,
+  endMonth,
+  disabledDates,
+  disabled = false,
 }: DateTimePickerProps) {
   const [open, setOpen] = React.useState(false)
   const parts = parseParts(value)
@@ -69,6 +77,10 @@ export function DateTimePicker({
   React.useEffect(() => {
     if (open) setDisplayMonth(value ?? new Date())
   }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  React.useEffect(() => {
+    if (disabled && open) setOpen(false)
+  }, [disabled, open])
 
   function handleDateSelect(date: Date | undefined) {
     if (!date) { onChange(undefined); return }
@@ -96,11 +108,12 @@ export function DateTimePicker({
     : undefined
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={(nextOpen) => !disabled && setOpen(nextOpen)}>
       <PopoverTrigger asChild>
         <Button
           type="button"
           variant="outline"
+          disabled={disabled}
           className={cn(
             "w-full justify-start border-slate-200 bg-white text-left font-normal text-slate-900",
             !value && "text-slate-400",
@@ -118,8 +131,9 @@ export function DateTimePicker({
           onSelect={handleDateSelect}
           month={displayMonth}
           onMonthChange={setDisplayMonth}
-          startMonth={new Date(new Date().getFullYear() - 10, 0)}
-          endMonth={new Date(new Date().getFullYear() + 20, 11)}
+          startMonth={startMonth ?? new Date(new Date().getFullYear() - 10, 0)}
+          endMonth={endMonth ?? new Date(new Date().getFullYear() + 20, 11)}
+          disabled={disabledDates}
           initialFocus
         />
         <Separator className="bg-slate-100" />

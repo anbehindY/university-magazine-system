@@ -51,6 +51,66 @@ function incrementYearLabel(label: string): string {
   return `${Number(match[1]) + 1}-${Number(match[2]) + 1}`;
 }
 
+function getYearRange(label: string) {
+  const match = label.trim().match(/^(\d{4})-(\d{4})$/);
+  if (!match) return null;
+  const startYear = Number(match[1]);
+  const endYear = Number(match[2]);
+  if (endYear !== startYear + 1) return null;
+  return {
+    start: new Date(startYear, 0, 1, 0, 0, 0, 0),
+    end: new Date(endYear, 11, 31, 23, 59, 59, 999),
+  };
+}
+
+function dayAfter(date: Date) {
+  const next = new Date(date);
+  next.setHours(0, 0, 0, 0);
+  next.setDate(next.getDate() + 1);
+  return next;
+}
+
+function monthStart(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), 1, 0, 0, 0, 0);
+}
+
+function isFinalNotAfterFirst(firstDate?: Date, finalDate?: Date) {
+  return !!firstDate && !!finalDate && finalDate.getTime() <= firstDate.getTime();
+}
+
+function validateYearAndClosures(
+  yearLabel: string,
+  firstClosureDate: Date | undefined,
+  finalClosureDate: Date | undefined
+) {
+  const yearRange = getYearRange(yearLabel);
+  if (!yearRange) {
+    return "Year label must use YYYY-YYYY format (e.g. 2025-2026).";
+  }
+  if (!firstClosureDate) {
+    return "First closure date is required.";
+  }
+  if (!finalClosureDate) {
+    return "Final closure date is required.";
+  }
+  if (
+    firstClosureDate.getTime() < yearRange.start.getTime() ||
+    firstClosureDate.getTime() > yearRange.end.getTime()
+  ) {
+    return `First closure date must be within ${yearLabel.trim()}.`;
+  }
+  if (
+    finalClosureDate.getTime() < yearRange.start.getTime() ||
+    finalClosureDate.getTime() > yearRange.end.getTime()
+  ) {
+    return `Final closure date must be within ${yearLabel.trim()}.`;
+  }
+  if (finalClosureDate.getTime() <= firstClosureDate.getTime()) {
+    return "Final closure date must be later than first closure date.";
+  }
+  return null;
+}
+
 export default function AdminPanelPage() {
   const RequiredMark = () => (
     <span className="ml-1 text-rose-600" aria-hidden="true">*</span>
@@ -87,6 +147,44 @@ export default function AdminPanelPage() {
   // ── derived ───────────────────────────────────────────────────────────────
   const activeYear = history.find((y) => y.isActive) ?? null;
   const otherYears = history.filter((y) => !y.isActive);
+  const draftYearRange = getYearRange(draftLabel);
+  const setupYearRange = getYearRange(setupLabel);
+  const rolloverYearRange = getYearRange(rolloverLabel);
+  const draftHasYearLabel = draftLabel.trim().length > 0;
+  const setupHasYearLabel = setupLabel.trim().length > 0;
+  const rolloverHasYearLabel = rolloverLabel.trim().length > 0;
+  const draftFinalDisabled = draftFirst ? { before: dayAfter(draftFirst) } : undefined;
+  const setupFinalDisabled = setupFirst ? { before: dayAfter(setupFirst) } : undefined;
+  const rolloverFinalDisabled = rolloverFirst ? { before: dayAfter(rolloverFirst) } : undefined;
+  const draftFinalStartMonth = draftFirst ? monthStart(draftFirst) : draftYearRange?.start;
+  const setupFinalStartMonth = setupFirst ? monthStart(setupFirst) : setupYearRange?.start;
+  const rolloverFinalStartMonth = rolloverFirst
+    ? monthStart(rolloverFirst)
+    : rolloverYearRange?.start;
+
+  useEffect(() => {
+    if (isFinalNotAfterFirst(draftFirst, draftFinal)) {
+      setDraftFinal(undefined);
+      setSaveStatus("error");
+      setSaveError("Final closure date must be later than first closure date.");
+    }
+  }, [draftFirst, draftFinal]);
+
+  useEffect(() => {
+    if (isFinalNotAfterFirst(setupFirst, setupFinal)) {
+      setSetupFinal(undefined);
+      setSetupStatus("error");
+      setSetupError("Final closure date must be later than first closure date.");
+    }
+  }, [setupFirst, setupFinal]);
+
+  useEffect(() => {
+    if (isFinalNotAfterFirst(rolloverFirst, rolloverFinal)) {
+      setRolloverFinal(undefined);
+      setRolloverStatus("error");
+      setRolloverError("Final closure date must be later than first closure date.");
+    }
+  }, [rolloverFirst, rolloverFinal]);
 
   // Sync inline form whenever the active year changes (e.g. after a save)
   useEffect(() => {
@@ -155,7 +253,13 @@ export default function AdminPanelPage() {
   // ── save active year ──────────────────────────────────────────────────────
   async function saveActive(e: React.FormEvent) {
     e.preventDefault();
-    if (!activeYear || !draftLabel) return;
+    if (!activeYear) return;
+    const validationError = validateYearAndClosures(draftLabel, draftFirst, draftFinal);
+    if (validationError) {
+      setSaveStatus("error");
+      setSaveError(validationError);
+      return;
+    }
     setSaveStatus("saving");
     setSaveError("");
     try {
@@ -186,7 +290,12 @@ export default function AdminPanelPage() {
   // ── first-time setup ──────────────────────────────────────────────────────
   async function handleSetup(e: React.FormEvent) {
     e.preventDefault();
-    if (!setupLabel) return;
+    const validationError = validateYearAndClosures(setupLabel, setupFirst, setupFinal);
+    if (validationError) {
+      setSetupStatus("error");
+      setSetupError(validationError);
+      return;
+    }
     setSetupStatus("saving");
     setSetupError("");
     try {
@@ -228,7 +337,16 @@ export default function AdminPanelPage() {
 
   async function handleRollover(e: React.FormEvent) {
     e.preventDefault();
-    if (!rolloverLabel) return;
+    const validationError = validateYearAndClosures(
+      rolloverLabel,
+      rolloverFirst,
+      rolloverFinal
+    );
+    if (validationError) {
+      setRolloverStatus("error");
+      setRolloverError(validationError);
+      return;
+    }
     setRolloverStatus("saving");
     setRolloverError("");
     try {
@@ -306,21 +424,47 @@ export default function AdminPanelPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-slate-700">First Closure Date</Label>
+                  <Label className="text-slate-700">
+                    First Closure Date<RequiredMark />
+                  </Label>
                   <p className="text-xs text-slate-500">Students can&apos;t submit after this</p>
                   <DateTimePicker
                     value={draftFirst}
-                    onChange={(v) => { setDraftFirst(v); setSaveStatus("idle"); }}
-                    placeholder="Pick date & time"
+                    onChange={(v) => {
+                      setDraftFirst(v);
+                      if (v && draftFinal && draftFinal.getTime() <= v.getTime()) {
+                        setDraftFinal(undefined);
+                      }
+                      setSaveStatus("idle");
+                    }}
+                    placeholder={draftHasYearLabel ? "Pick date & time" : "Enter year label first"}
+                    startMonth={draftYearRange?.start}
+                    endMonth={draftYearRange?.end}
+                    disabled={!draftHasYearLabel}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-slate-700">Final Closure Date</Label>
+                  <Label className="text-slate-700">
+                    Final Closure Date<RequiredMark />
+                  </Label>
                   <p className="text-xs text-slate-500">All edits locked after this</p>
                   <DateTimePicker
                     value={draftFinal}
-                    onChange={(v) => { setDraftFinal(v); setSaveStatus("idle"); }}
-                    placeholder="Pick date & time"
+                    onChange={(v) => {
+                      if (isFinalNotAfterFirst(draftFirst, v)) {
+                        setDraftFinal(undefined);
+                        setSaveStatus("error");
+                        setSaveError("Final closure date must be later than first closure date.");
+                        return;
+                      }
+                      setDraftFinal(v);
+                      setSaveStatus("idle");
+                    }}
+                    placeholder={draftFirst ? "Pick date & time" : "Select first closure date first"}
+                    startMonth={draftFinalStartMonth}
+                    endMonth={draftYearRange?.end}
+                    disabledDates={draftFinalDisabled}
+                    disabled={!draftFirst}
                   />
                 </div>
               </div>
@@ -366,21 +510,47 @@ export default function AdminPanelPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-slate-700">First Closure Date</Label>
+                  <Label className="text-slate-700">
+                    First Closure Date<RequiredMark />
+                  </Label>
                   <p className="text-xs text-slate-500">Students can&apos;t submit after this</p>
                   <DateTimePicker
                     value={setupFirst}
-                    onChange={setSetupFirst}
-                    placeholder="Pick date & time"
+                    onChange={(v) => {
+                      setSetupFirst(v);
+                      if (v && setupFinal && setupFinal.getTime() <= v.getTime()) {
+                        setSetupFinal(undefined);
+                      }
+                      setSetupStatus("idle");
+                    }}
+                    placeholder={setupHasYearLabel ? "Pick date & time" : "Enter year label first"}
+                    startMonth={setupYearRange?.start}
+                    endMonth={setupYearRange?.end}
+                    disabled={!setupHasYearLabel}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-slate-700">Final Closure Date</Label>
+                  <Label className="text-slate-700">
+                    Final Closure Date<RequiredMark />
+                  </Label>
                   <p className="text-xs text-slate-500">All edits locked after this</p>
                   <DateTimePicker
                     value={setupFinal}
-                    onChange={setSetupFinal}
-                    placeholder="Pick date & time"
+                    onChange={(v) => {
+                      if (isFinalNotAfterFirst(setupFirst, v)) {
+                        setSetupFinal(undefined);
+                        setSetupStatus("error");
+                        setSetupError("Final closure date must be later than first closure date.");
+                        return;
+                      }
+                      setSetupFinal(v);
+                      setSetupStatus("idle");
+                    }}
+                    placeholder={setupFirst ? "Pick date & time" : "Select first closure date first"}
+                    startMonth={setupFinalStartMonth}
+                    endMonth={setupYearRange?.end}
+                    disabledDates={setupFinalDisabled}
+                    disabled={!setupFirst}
                   />
                 </div>
               </div>
@@ -389,7 +559,7 @@ export default function AdminPanelPage() {
                 <Button
                   type="submit"
                   className="bg-slate-900 text-white hover:bg-slate-800"
-                  disabled={setupStatus === "saving" || !setupLabel}
+                  disabled={setupStatus === "saving"}
                 >
                   {setupStatus === "saving" ? "Setting up..." : "Set Up & Activate"}
                 </Button>
@@ -492,21 +662,47 @@ export default function AdminPanelPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-700">First Closure Date</Label>
+                <Label className="text-slate-700">
+                  First Closure Date<RequiredMark />
+                </Label>
                 <p className="text-xs text-slate-500">Students can&apos;t submit after this</p>
                 <DateTimePicker
                   value={rolloverFirst}
-                  onChange={setRolloverFirst}
-                  placeholder="Pick date & time"
+                  onChange={(v) => {
+                    setRolloverFirst(v);
+                    if (v && rolloverFinal && rolloverFinal.getTime() <= v.getTime()) {
+                      setRolloverFinal(undefined);
+                    }
+                    setRolloverStatus("idle");
+                  }}
+                  placeholder={rolloverHasYearLabel ? "Pick date & time" : "Enter year label first"}
+                  startMonth={rolloverYearRange?.start}
+                  endMonth={rolloverYearRange?.end}
+                  disabled={!rolloverHasYearLabel}
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-700">Final Closure Date</Label>
+                <Label className="text-slate-700">
+                  Final Closure Date<RequiredMark />
+                </Label>
                 <p className="text-xs text-slate-500">All edits locked after this</p>
                 <DateTimePicker
                   value={rolloverFinal}
-                  onChange={setRolloverFinal}
-                  placeholder="Pick date & time"
+                  onChange={(v) => {
+                    if (isFinalNotAfterFirst(rolloverFirst, v)) {
+                      setRolloverFinal(undefined);
+                      setRolloverStatus("error");
+                      setRolloverError("Final closure date must be later than first closure date.");
+                      return;
+                    }
+                    setRolloverFinal(v);
+                    setRolloverStatus("idle");
+                  }}
+                  placeholder={rolloverFirst ? "Pick date & time" : "Select first closure date first"}
+                  startMonth={rolloverFinalStartMonth}
+                  endMonth={rolloverYearRange?.end}
+                  disabledDates={rolloverFinalDisabled}
+                  disabled={!rolloverFirst}
                 />
               </div>
 
@@ -514,7 +710,7 @@ export default function AdminPanelPage() {
                 <Button
                   type="submit"
                   className="bg-slate-900 text-white hover:bg-slate-800"
-                  disabled={rolloverStatus === "saving" || !rolloverLabel}
+                  disabled={rolloverStatus === "saving"}
                 >
                   {rolloverStatus === "saving"
                     ? "Switching..."

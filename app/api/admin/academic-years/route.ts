@@ -16,17 +16,62 @@ function parseDateTime(value?: string | null) {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
+function parseYearRange(yearLabel: string) {
+  const match = yearLabel.trim().match(/^(\d{4})-(\d{4})$/);
+  if (!match) return null;
+  const startYear = parseInt(match[1], 10);
+  const endYear = parseInt(match[2], 10);
+  if (endYear !== startYear + 1) return null;
+  return {
+    startYear,
+    start: new Date(startYear, 0, 1, 0, 0, 0, 0),
+    end: new Date(endYear, 11, 31, 23, 59, 59, 999),
+  };
+}
+
+function validateClosureDates(
+  yearLabel: string,
+  firstClosureDate: Date | null,
+  finalClosureDate: Date | null
+): string | null {
+  const range = parseYearRange(yearLabel);
+  if (!range) {
+    return "Year label must use YYYY-YYYY format (e.g. 2025-2026).";
+  }
+  if (!firstClosureDate) {
+    return "First closure date is required.";
+  }
+  if (!finalClosureDate) {
+    return "Final closure date is required.";
+  }
+  if (firstClosureDate.getTime() < range.start.getTime()) {
+    return `First closure date cannot be earlier than ${range.startYear}.`;
+  }
+  if (firstClosureDate.getTime() > range.end.getTime()) {
+    return "First closure date must be within the selected academic year range.";
+  }
+  if (finalClosureDate.getTime() < range.start.getTime()) {
+    return `Final closure date cannot be earlier than ${range.startYear}.`;
+  }
+  if (finalClosureDate.getTime() > range.end.getTime()) {
+    return "Final closure date must be within the selected academic year range.";
+  }
+  if (finalClosureDate.getTime() <= firstClosureDate.getTime()) {
+    return "Final closure date must be later than first closure date.";
+  }
+  return null;
+}
+
 /**
  * A year can only be activated if it covers the current or a future calendar year.
  * yearLabel format: "2025-2026" — we parse the start year and compare to current year.
  * e.g. in 2026: "2025-2026" OK, "2026-2027" OK, "2024-2025" rejected.
  */
 function canActivateYear(yearLabel: string): boolean {
-  const match = yearLabel.match(/^(\d{4})-(\d{4})$/);
-  if (!match) return false;
-  const startYear = parseInt(match[1], 10);
+  const range = parseYearRange(yearLabel);
+  if (!range) return false;
   const currentYear = new Date().getFullYear();
-  return startYear >= currentYear - 1;
+  return range.startYear >= currentYear - 1;
 }
 
 export async function GET() {
@@ -89,6 +134,17 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+    const validationError = validateClosureDates(
+      body.yearLabel,
+      firstClosureDate,
+      finalClosureDate
+    );
+    if (validationError) {
+      return NextResponse.json(
+        { error: validationError },
+        { status: 400 }
+      );
+    }
 
     const academicYear = await prisma.academicYear.create({
       data: {
@@ -129,6 +185,17 @@ export async function PUT(req: NextRequest) {
     if (!body.id || !body.yearLabel) {
       return NextResponse.json(
         { error: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+    const validationError = validateClosureDates(
+      body.yearLabel,
+      firstClosureDate,
+      finalClosureDate
+    );
+    if (validationError) {
+      return NextResponse.json(
+        { error: validationError },
         { status: 400 }
       );
     }
