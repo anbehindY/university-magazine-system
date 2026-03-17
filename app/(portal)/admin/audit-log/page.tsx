@@ -6,6 +6,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { LoadingScreen } from "@/components/ui/loading-screen";
 import { PaginationControls } from "@/components/ui/pagination-controls";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSession } from "@/lib/auth-client";
 import { format } from "date-fns";
 import { ScrollText } from "lucide-react";
@@ -29,6 +30,15 @@ type AuditEntry = {
     id: string;
     name: string;
   };
+};
+
+type AccessEntry = {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  activityType: string;
+  createdAt: string;
 };
 
 function getDateRange(preset: string): { from: string; to: string } | null {
@@ -58,6 +68,12 @@ export default function AuditLogPage() {
   const [pageSize, setPageSize] = useState(10);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [accessEntries, setAccessEntries] = useState<AccessEntry[]>([]);
+  const [accessTotal, setAccessTotal] = useState(0);
+  const [accessPage, setAccessPage] = useState(1);
+  const [accessPageSize, setAccessPageSize] = useState(10);
+  const [accessLoading, setAccessLoading] = useState(true);
+  const [accessError, setAccessError] = useState<string | null>(null);
   const [preset, setPreset] = useState<string>("30d");
   const [fromDate, setFromDate] = useState<Date | undefined>();
   const [toDate, setToDate] = useState<Date | undefined>();
@@ -83,7 +99,6 @@ export default function AuditLogPage() {
         pageSize: String(pageSize),
       });
 
-      // Use preset or custom dates
       if (preset) {
         const range = getDateRange(preset);
         if (range) {
@@ -114,6 +129,43 @@ export default function AuditLogPage() {
     }
   }, [page, pageSize, preset, fromDate, toDate]);
 
+  const fetchAccessEntries = useCallback(async () => {
+    setAccessLoading(true);
+    setAccessError(null);
+    try {
+      const params = new URLSearchParams({
+        page: String(accessPage),
+        pageSize: String(accessPageSize),
+      });
+
+      if (preset) {
+        const range = getDateRange(preset);
+        if (range) {
+          params.set("from", range.from);
+          params.set("to", range.to);
+        }
+      } else {
+        if (fromDate) params.set("from", fromDate.toISOString().split("T")[0]);
+        if (toDate) params.set("to", toDate.toISOString().split("T")[0]);
+      }
+
+      const res = await fetch(`/api/admin/access-activities?${params.toString()}`);
+      const data = await res.json();
+      if (!res.ok) {
+        setAccessError(data.error || "Failed to load access activities.");
+        setAccessEntries([]);
+        return;
+      }
+      setAccessEntries(data.entries || []);
+      setAccessTotal(data.total || 0);
+    } catch {
+      setAccessError("Failed to load access activities.");
+      setAccessEntries([]);
+    } finally {
+      setAccessLoading(false);
+    }
+  }, [accessPage, accessPageSize, preset, fromDate, toDate]);
+
   useEffect(() => {
     if (
       isPending ||
@@ -123,30 +175,39 @@ export default function AuditLogPage() {
       return;
     }
     fetchEntries();
-  }, [isPending, session?.user, session?.user?.role, fetchEntries]);
+    fetchAccessEntries();
+  }, [isPending, session?.user, session?.user?.role, fetchEntries, fetchAccessEntries]);
 
   function handlePresetClick(value: string) {
     setPreset(value);
     setFromDate(undefined);
     setToDate(undefined);
     setPage(1);
+    setAccessPage(1);
   }
 
   function handleFromDateChange(value: Date | undefined) {
     setFromDate(value);
     setPreset("");
     setPage(1);
+    setAccessPage(1);
   }
 
   function handleToDateChange(value: Date | undefined) {
     setToDate(value);
     setPreset("");
     setPage(1);
+    setAccessPage(1);
   }
 
-  function handlePageSizeChange(newSize: number) {
+  function handleContributionPageSizeChange(newSize: number) {
     setPageSize(newSize);
     setPage(1);
+  }
+
+  function handleAccessPageSizeChange(newSize: number) {
+    setAccessPageSize(newSize);
+    setAccessPage(1);
   }
 
   if (isPending) {
@@ -215,157 +276,299 @@ export default function AuditLogPage() {
         </div>
       </div>
 
-      {error && (
-        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-red-700">
-          {error}
-        </div>
-      )}
+      <Tabs defaultValue="contribution" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="contribution">Contribution Activities</TabsTrigger>
+          <TabsTrigger value="access">Access Activities</TabsTrigger>
+        </TabsList>
 
-      {loading && !error && (
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-          <table className="min-w-full divide-y divide-slate-200">
-            <thead className="bg-slate-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
-                  Coordinator
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
-                  Action
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
-                  Submission
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
-                  Faculty
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
-                  Student
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
-                  Date
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {[...Array(pageSize)].map((_, i) => (
-                <tr key={i} className="border-t border-slate-200">
-                  <td className="px-4 py-3">
-                    <Skeleton className="h-4 w-28 rounded" />
-                  </td>
-                  <td className="px-4 py-3">
-                    <Skeleton className="h-5 w-20 rounded-sm" />
-                  </td>
-                  <td className="px-4 py-3">
-                    <Skeleton className="h-4 w-36 rounded" />
-                  </td>
-                  <td className="px-4 py-3">
-                    <Skeleton className="h-4 w-24 rounded" />
-                  </td>
-                  <td className="px-4 py-3">
-                    <Skeleton className="h-4 w-24 rounded" />
-                  </td>
-                  <td className="px-4 py-3">
-                    <Skeleton className="h-4 w-32 rounded" />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+        <TabsContent value="contribution" className="space-y-4">
+          {error && (
+            <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+              {error}
+            </div>
+          )}
 
-      {!loading && !error && entries.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-16 text-slate-400">
-          <ScrollText className="h-12 w-12 mb-3" />
-          <p className="text-lg font-medium">No audit entries found</p>
-        </div>
-      )}
-
-      {!loading && !error && entries.length > 0 && (
-        <>
-          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-            <table className="min-w-full divide-y divide-slate-200">
-              <thead className="bg-slate-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
-                    Coordinator
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
-                    Action
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
-                    Submission
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
-                    Faculty
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
-                    Student
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
-                    Date
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {entries.map((entry) => {
-                  const meta = entry.metadata as {
-                    submissionTitle?: string;
-                    facultyName?: string;
-                    studentName?: string;
-                  } | null;
-                  const isSelected = entry.newValue === "true";
-
-                  return (
-                    <tr
-                      key={entry.id}
-                      className="border-t border-slate-200 hover:bg-slate-50"
-                    >
-                      <td className="px-4 py-3 text-sm text-slate-700">
-                        {entry.actor.name}
+          {loading && !error && (
+            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+              <table className="min-w-full divide-y divide-slate-200">
+                <thead className="bg-slate-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                      Coordinator
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                      Action
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                      Submission
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                      Faculty
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                      Student
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                      Date
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...Array(pageSize)].map((_, i) => (
+                    <tr key={i} className="border-t border-slate-200">
+                      <td className="px-4 py-3">
+                        <Skeleton className="h-4 w-28 rounded" />
                       </td>
-                      <td className="px-4 py-3 text-sm">
-                        <Badge
-                          variant="outline"
-                          className={
-                            isSelected
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                              : "bg-red-50 text-red-700 border-red-200"
-                          }
-                        >
-                          {isSelected ? "Selected" : "Deselected"}
-                        </Badge>
+                      <td className="px-4 py-3">
+                        <Skeleton className="h-5 w-20 rounded-sm" />
                       </td>
-                      <td className="px-4 py-3 text-sm text-slate-700">
-                        {meta?.submissionTitle ?? "Untitled"}
+                      <td className="px-4 py-3">
+                        <Skeleton className="h-4 w-36 rounded" />
                       </td>
-                      <td className="px-4 py-3 text-sm text-slate-700">
-                        {meta?.facultyName ?? "Unknown"}
+                      <td className="px-4 py-3">
+                        <Skeleton className="h-4 w-24 rounded" />
                       </td>
-                      <td className="px-4 py-3 text-sm text-slate-700">
-                        {meta?.studentName ?? "Unknown"}
+                      <td className="px-4 py-3">
+                        <Skeleton className="h-4 w-24 rounded" />
                       </td>
-                      <td className="px-4 py-3 text-sm text-slate-700">
-                        {format(
-                          new Date(entry.createdAt),
-                          "d MMM yyyy, h:mm a"
-                        )}
+                      <td className="px-4 py-3">
+                        <Skeleton className="h-4 w-32 rounded" />
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          <PaginationControls
-            page={page}
-            pageSize={pageSize}
-            total={total}
-            onPageChange={setPage}
-            onPageSizeChange={handlePageSizeChange}
-          />
-        </>
-      )}
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {!loading && !error && entries.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+              <ScrollText className="h-12 w-12 mb-3" />
+              <p className="text-lg font-medium">No audit entries found</p>
+            </div>
+          )}
+
+          {!loading && !error && entries.length > 0 && (
+            <>
+              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                <table className="min-w-full divide-y divide-slate-200">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                        Coordinator
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                        Action
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                        Submission
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                        Faculty
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                        Student
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                        Date
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {entries.map((entry) => {
+                      const meta = entry.metadata as {
+                        submissionTitle?: string;
+                        facultyName?: string;
+                        studentName?: string;
+                      } | null;
+                      const isSelected = entry.newValue === "true";
+
+                      return (
+                        <tr
+                          key={entry.id}
+                          className="border-t border-slate-200 hover:bg-slate-50"
+                        >
+                          <td className="px-4 py-3 text-sm text-slate-700">
+                            {entry.actor.name}
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            <Badge
+                              variant="outline"
+                              className={
+                                isSelected
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                  : "bg-red-50 text-red-700 border-red-200"
+                              }
+                            >
+                              {isSelected ? "Selected" : "Deselected"}
+                            </Badge>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-slate-700">
+                            {meta?.submissionTitle ?? "Untitled"}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-slate-700">
+                            {meta?.facultyName ?? "Unknown"}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-slate-700">
+                            {meta?.studentName ?? "Unknown"}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-slate-700">
+                            {format(
+                              new Date(entry.createdAt),
+                              "d MMM yyyy, h:mm a"
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <PaginationControls
+                page={page}
+                pageSize={pageSize}
+                total={total}
+                onPageChange={setPage}
+                onPageSizeChange={handleContributionPageSizeChange}
+              />
+            </>
+          )}
+        </TabsContent>
+
+        <TabsContent value="access" className="space-y-4">
+          {accessError && (
+            <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+              {accessError}
+            </div>
+          )}
+
+          {accessLoading && !accessError && (
+            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+              <table className="min-w-full divide-y divide-slate-200">
+                <thead className="bg-slate-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                      User ID
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                      User Name
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                      User Email
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                      Activity Type
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                      Date
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...Array(accessPageSize)].map((_, i) => (
+                    <tr key={i} className="border-t border-slate-200">
+                      <td className="px-4 py-3">
+                        <Skeleton className="h-4 w-40 rounded" />
+                      </td>
+                      <td className="px-4 py-3">
+                        <Skeleton className="h-4 w-28 rounded" />
+                      </td>
+                      <td className="px-4 py-3">
+                        <Skeleton className="h-4 w-48 rounded" />
+                      </td>
+                      <td className="px-4 py-3">
+                        <Skeleton className="h-5 w-20 rounded-sm" />
+                      </td>
+                      <td className="px-4 py-3">
+                        <Skeleton className="h-4 w-32 rounded" />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {!accessLoading && !accessError && accessEntries.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+              <ScrollText className="h-12 w-12 mb-3" />
+              <p className="text-lg font-medium">No access activities found</p>
+            </div>
+          )}
+
+          {!accessLoading && !accessError && accessEntries.length > 0 && (
+            <>
+              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                <table className="min-w-full divide-y divide-slate-200">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                        User ID
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                        User Name
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                        User Email
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                        Activity Type
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                        Date
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {accessEntries.map((entry) => (
+                      <tr
+                        key={entry.id}
+                        className="border-t border-slate-200 hover:bg-slate-50"
+                      >
+                        <td className="px-4 py-3 text-sm text-slate-700">
+                          {entry.userId}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-700">
+                          {entry.userName}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-700">
+                          {entry.userEmail}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          <Badge
+                            variant="outline"
+                            className={
+                              entry.activityType === "LOGIN"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                : "bg-slate-100 text-slate-700 border-slate-300"
+                            }
+                          >
+                            {entry.activityType}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-700">
+                          {format(
+                            new Date(entry.createdAt),
+                            "d MMM yyyy, h:mm a"
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <PaginationControls
+                page={accessPage}
+                pageSize={accessPageSize}
+                total={accessTotal}
+                onPageChange={setAccessPage}
+                onPageSizeChange={handleAccessPageSizeChange}
+              />
+            </>
+          )}
+        </TabsContent>
+      </Tabs>
     </main>
   );
 }

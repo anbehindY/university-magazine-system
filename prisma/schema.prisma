@@ -59,6 +59,7 @@ model User {
   selectedSubmissions   Submission[]    @relation("SubmissionSelector")
   submissionComments    SubmissionComment[]
   auditLogs             AuditLog[]
+  accessActivities      AccessActivity[]
 
   @@unique([email])
   @@map("user")
@@ -229,4 +230,19 @@ model AuditLog {
   @@index([actorId])
   @@index([entityId])
   @@map("audit_log")
+}
+
+model AccessActivity {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  user         User     @relation(fields: [userId], references: [id])
+  userName     String   @map("user_name")
+  userEmail    String   @map("user_email")
+  activityType String   @map("activity_type")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@index([userId])
+  @@index([activityType])
+  @@map("access_activity")
 }
