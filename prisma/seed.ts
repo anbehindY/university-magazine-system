@@ -308,11 +308,10 @@ async function main() {
   // ── 1. Faculties ──────────────────────────────────────────────────────────
 
   for (const name of FACULTY_NAMES) {
-    await prisma.faculty.upsert({
-      where: { name },
-      update: {},
-      create: { name },
-    });
+    const existing = await prisma.faculty.findFirst({ where: { name } });
+    if (!existing) {
+      await prisma.faculty.create({ data: { name } });
+    }
   }
   const facultyRecords = await prisma.faculty.findMany({ select: { id: true, name: true } });
   const fac = Object.fromEntries(facultyRecords.map((f) => [f.name, f.id])) as Record<string, string>;
@@ -776,7 +775,9 @@ async function main() {
   ];
 
   console.log("\nSeeding session records for analytics...");
-  const allUsers = await prisma.user.findMany({ select: { id: true } });
+  const allUsers = await prisma.user.findMany({
+    select: { id: true, name: true, email: true },
+  });
   let sessionCount = 0;
 
   // Generate sessions spread across the last 30 days
@@ -794,9 +795,20 @@ async function main() {
       const sessionTime = new Date(dayDate.getTime() + Math.floor(Math.random() * 14 * 60 * 60 * 1000)); // Random hour 8-22
       const expiresAt = new Date(sessionTime.getTime() + 7 * 24 * 60 * 60 * 1000); // Expires in 7 days
 
-      await prisma.session.create({
-        data: {
-          id: `seed-session-${dayOffset}-${s}`,
+      const seedSessionId = `seed-session-${dayOffset}-${s}`;
+      await prisma.session.upsert({
+        where: { id: seedSessionId },
+        update: {
+          token: `seed-token-${dayOffset}-${s}-${Date.now()}`,
+          userId: user.id,
+          userAgent: ua,
+          ipAddress: `192.168.1.${Math.floor(Math.random() * 254) + 1}`,
+          createdAt: sessionTime,
+          updatedAt: sessionTime,
+          expiresAt,
+        },
+        create: {
+          id: seedSessionId,
           token: `seed-token-${dayOffset}-${s}-${Date.now()}`,
           userId: user.id,
           userAgent: ua,
@@ -811,7 +823,40 @@ async function main() {
   }
   console.log(`✓ ${sessionCount} session records seeded (last 30 days)`);
 
-  // ── 10. Recent audit log entries ──────────────────────────────────────────
+  // ── 10. Access activities (LOGIN/LOGOUT) ──────────────────────────────────
+  // Uses already-seeded users so activity user fields match existing user data.
+
+  console.log("\nSeeding access activities...");
+  const accessWindowStart = new Date(now);
+  accessWindowStart.setUTCDate(accessWindowStart.getUTCDate() - 29);
+  const accessActivities = allUsers.flatMap((user: { id: string; name: string; email: string }) => {
+    const loginAt = randomDate(accessWindowStart, now);
+    const logoutMinutes = faker.number.int({ min: 5, max: 240 });
+    const logoutAt = new Date(
+      Math.min(now.getTime(), loginAt.getTime() + logoutMinutes * 60 * 1000)
+    );
+    return [
+      {
+        userId: user.id,
+        userName: user.name,
+        userEmail: user.email,
+        activityType: "LOGIN",
+        createdAt: loginAt,
+      },
+      {
+        userId: user.id,
+        userName: user.name,
+        userEmail: user.email,
+        activityType: "LOGOUT",
+        createdAt: logoutAt,
+      },
+    ];
+  });
+  await prisma.accessActivity.createMany({ data: accessActivities });
+  const accessActivityCount = accessActivities.length;
+  console.log(`✓ ${accessActivityCount} access activities seeded (LOGIN/LOGOUT)`);
+
+  // ── 11. Recent audit log entries ──────────────────────────────────────────
   // Add audit entries within last 30 days for the audit log page
 
   console.log("\nSeeding recent audit log entries...");
@@ -904,7 +949,7 @@ async function main() {
 
   console.log(`✓ ${auditCount - recentAuditStart} recent audit log entries seeded`);
 
-  // ── 11. Summary ───────────────────────────────────────────────────────────
+  // ── 12. Summary ───────────────────────────────────────────────────────────
 
   const totalGuests = 5 + selfRegisteredGuests.length;
   console.log("\n" + "═".repeat(60));
@@ -918,6 +963,7 @@ async function main() {
   console.log(`  Submissions:    ${submissionCount}`);
   console.log(`  Comments:       ${commentCount}`);
   console.log(`  Sessions:       ${sessionCount}`);
+  console.log(`  Access Logs:    ${accessActivityCount}`);
   console.log(`  Audit Logs:     ${auditCount}`);
   console.log("═".repeat(60));
   console.log("\n  Login credentials (all passwords: 'password'):");

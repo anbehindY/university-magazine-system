@@ -81,6 +81,11 @@ export function NavUser({
     if (isSigningOut) return;
     setIsSigningOut(true);
     try {
+      await fetch("/api/access-activities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ activityType: "LOGOUT" }),
+      }).catch(() => undefined);
       await signOut({
         fetchOptions: {
           onSuccess: () => {

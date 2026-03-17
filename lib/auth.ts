@@ -40,10 +40,25 @@ export const auth = betterAuth({
         after: async (session) => {
           const userId = session.userId as string | undefined;
           if (!userId) return;
-          prisma.user.update({
-            where: { id: userId },
-            data: { lastLoginAt: new Date() },
-          }).catch(console.error);
+          prisma.user
+            .findUnique({
+              where: { id: userId },
+              select: { id: true, name: true, email: true },
+            })
+            .then((user) => {
+              if (!user) return;
+              return Promise.all([
+                prisma.user.update({
+                  where: { id: userId },
+                  data: { lastLoginAt: new Date() },
+                }),
+                prisma.$executeRaw`
+                  INSERT INTO "access_activity" ("id", "user_id", "user_name", "user_email", "activity_type", "created_at")
+                  VALUES (${crypto.randomUUID()}, ${user.id}, ${user.name}, ${user.email}, ${"LOGIN"}, ${new Date()})
+                `,
+              ]);
+            })
+            .catch(console.error);
         },
       },
     },
