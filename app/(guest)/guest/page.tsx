@@ -393,12 +393,42 @@ export default function GuestMagazinePage() {
           </div>
         ) : (
           <>
+            <div className={`space-y-3 md:hidden transition-opacity duration-200 ${isRefetching ? "opacity-50 pointer-events-none" : ""}`}>
+              {paginatedSubmissions.map((submission) => (
+                <button
+                  key={submission.id}
+                  type="button"
+                  onClick={() => setSelectedSubmission(submission)}
+                  className="w-full rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition-colors hover:bg-slate-50"
+                >
+                  <p className="text-sm font-semibold text-slate-900">
+                    {submission.title ?? <span className="italic text-slate-400">Untitled</span>}
+                  </p>
+                  <div className="mt-3 grid gap-2 text-xs text-slate-600">
+                    <div className="flex items-center justify-between">
+                      <span>Author</span>
+                      <span className="font-medium text-slate-700">{submission.studentName}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Submitted</span>
+                      <span className="font-medium text-slate-700">{formatDate(submission.submittedAt)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Files</span>
+                      <span className="font-medium text-slate-700">
+                        {submission.fileCount} {submission.fileCount === 1 ? "file" : "files"}
+                      </span>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
             <div
-              className={`overflow-hidden rounded-xl border border-slate-200 bg-white transition-opacity duration-200 ${
+              className={`hidden overflow-x-auto rounded-xl border border-slate-200 bg-white transition-opacity duration-200 md:block ${
                 isRefetching ? "opacity-50 pointer-events-none" : ""
               }`}
             >
-              <table className="w-full text-sm">
+              <table className="w-full min-w-[680px] text-sm">
                 <thead className="bg-slate-50 text-slate-600">
                   <tr>
                     <th className="px-4 py-3 text-left font-medium">Title</th>

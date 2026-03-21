@@ -46,12 +46,21 @@ export async function GET(req: NextRequest) {
       const raw = parseInt(searchParams.get("pageSize") ?? "10", 10);
       return [10, 25, 50].includes(raw) ? raw : 10;
     })();
+    const q = searchParams.get("q")?.trim() ?? "";
     const skip = (page - 1) * pageSize;
 
     const where = {
       status: "SUBMITTED" as const,
       facultyId: coordinatorFacultyId,
       ...(activeYear ? { academicYearId: activeYear.id } : {}),
+      ...(q
+        ? {
+            OR: [
+              { title: { contains: q, mode: "insensitive" as const } },
+              { user: { name: { contains: q, mode: "insensitive" as const } } },
+            ],
+          }
+        : {}),
     };
 
     const [total, submissions] = await Promise.all([

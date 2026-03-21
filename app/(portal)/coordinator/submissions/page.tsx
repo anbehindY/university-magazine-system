@@ -8,6 +8,7 @@ import { Download, FileIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import {
   Sheet,
   SheetContent,
@@ -54,7 +55,6 @@ type SubmissionRow = {
   studentName: string | null;
   submittedAt: string | null;
   isSelected: boolean;
-  notes: string | null;
   files: SubmissionFile[];
   fileCount: number;
   commentCount: number;
@@ -133,14 +133,13 @@ export default function CoordinatorSubmissionsPage() {
     string | null
   >(null);
 
-  // Notes editing state
-  const [notesValue, setNotesValue] = useState<string>("");
-  const [notesSaving, setNotesSaving] = useState(false);
   const [reviewStatusSaving, setReviewStatusSaving] = useState(false);
 
   // Filtering & sorting state
   const [filterStatus, setFilterStatus] = useState<"all" | "selected" | "not-selected" | "no-comments">("all");
   const [sortBy, setSortBy] = useState<"date-desc" | "date-asc" | "selected" | "no-comments-priority">("date-desc");
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
 
   // Pagination state
   const [page, setPage] = useState(1);
@@ -176,7 +175,11 @@ export default function CoordinatorSubmissionsPage() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`/api/coordinator/submissions?page=${page}&pageSize=${pageSize}`);
+        const query = search.trim();
+        const url = query
+          ? `/api/coordinator/submissions?page=${page}&pageSize=${pageSize}&q=${encodeURIComponent(query)}`
+          : `/api/coordinator/submissions?page=${page}&pageSize=${pageSize}`;
+        const res = await fetch(url);
         const data = (await res.json()) as {
           submissions?: SubmissionRow[];
           total?: number;
@@ -204,7 +207,15 @@ export default function CoordinatorSubmissionsPage() {
     return () => {
       cancelled = true;
     };
-  }, [page, pageSize]);
+  }, [page, pageSize, search]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setPage(1);
+      setSearch(searchInput);
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
 
   // ---------------------------------------------------------------------------
   // SWR comment thread (polls every 15 s)
@@ -227,13 +238,6 @@ export default function CoordinatorSubmissionsPage() {
   const selectedSubmission = submissions.find(
     (s) => s.id === selectedSubmissionId
   ) ?? null;
-
-  // Sync notes textarea when panel opens/switches submission
-  useEffect(() => {
-    if (selectedSubmission) {
-      setNotesValue(selectedSubmission.notes ?? "");
-    }
-  }, [selectedSubmission?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---------------------------------------------------------------------------
   // isSelected toggle
@@ -267,39 +271,6 @@ export default function CoordinatorSubmissionsPage() {
         prev.map((s) => (s.id === id ? { ...s, isSelected: current } : s))
       );
       toast.error("Failed to update selection.");
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Notes save
-  // ---------------------------------------------------------------------------
-
-  async function handleSaveNotes(id: string) {
-    setNotesSaving(true);
-    try {
-      const res = await fetch(`/api/coordinator/submissions/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ notes: notesValue }),
-      });
-      if (!res.ok) {
-        const data = (await res.json().catch(() => null)) as {
-          error?: string;
-        } | null;
-        toast.error(data?.error ?? "Failed to save notes.");
-        return;
-      }
-      // Update local state
-      setSubmissions((prev) =>
-        prev.map((s) =>
-          s.id === id ? { ...s, notes: notesValue } : s
-        )
-      );
-      toast.success("Notes saved.");
-    } catch {
-      toast.error("Failed to save notes.");
-    } finally {
-      setNotesSaving(false);
     }
   }
 
@@ -505,8 +476,16 @@ export default function CoordinatorSubmissionsPage() {
       <Separator className="bg-slate-200" />
 
       {/* Filters & sort */}
-      {!loading && !error && submissions.length > 0 && (
+      {!error && (submissions.length > 0 || searchInput.trim().length > 0) && (
         <div className="flex flex-wrap items-center gap-3">
+          <Input
+            value={searchInput}
+            onChange={(e) => {
+              setSearchInput(e.target.value);
+            }}
+            placeholder="Search by student or title..."
+            className="w-full max-w-sm border-slate-200 bg-white text-slate-900 placeholder:text-slate-400"
+          />
           <Select
             value={filterStatus}
             onValueChange={(v) => { setFilterStatus(v as typeof filterStatus); setPage(1); }}
@@ -588,7 +567,9 @@ export default function CoordinatorSubmissionsPage() {
       {!loading && !error && submissions.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <p className="text-slate-500">
-            No submitted work from your faculty yet.
+            {search.trim()
+              ? "No submissions match your search."
+              : "No submitted work from your faculty yet."}
           </p>
         </div>
       )}
@@ -598,7 +579,7 @@ export default function CoordinatorSubmissionsPage() {
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
           {filteredSubmissions.length === 0 ? (
             <div className="px-6 py-12 text-center">
-              <p className="text-slate-500">No submissions match the current filter.</p>
+              <p className="text-slate-500">No submissions match the current search/filter.</p>
             </div>
           ) : (
           <table className="w-full text-left">
@@ -765,33 +746,6 @@ export default function CoordinatorSubmissionsPage() {
                   )}
                 </div>
 
-                {/* Notes textarea */}
-                <div className="space-y-2 px-5 pb-5">
-                  <Label
-                    htmlFor="notes-field"
-                    className="text-sm font-medium text-slate-700"
-                  >
-                    Notes
-                  </Label>
-                  <textarea
-                    id="notes-field"
-                    rows={3}
-                    value={notesValue}
-                    onChange={(e) => setNotesValue(e.target.value)}
-                    placeholder="Add internal notes about this submission..."
-                    className="w-full resize-none rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
-                  />
-                  <div className="flex justify-end">
-                    <button
-                      type="button"
-                      disabled={notesSaving}
-                      onClick={() => handleSaveNotes(selectedSubmission.id)}
-                      className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-50"
-                    >
-                      {notesSaving ? "Saving..." : "Save Notes"}
-                    </button>
-                  </div>
-                </div>
               </div>
 
               {/* Uploaded files */}

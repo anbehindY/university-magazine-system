@@ -321,6 +321,46 @@ async function main() {
 
   const academicYears = [
     {
+      yearLabel: "2019-2020",
+      isActive: false,
+      firstClosureDate: new Date("2020-03-15T23:59:59Z"),
+      finalClosureDate: new Date("2020-04-15T23:59:59Z"),
+      startDate: new Date("2019-09-01"),
+      endDate: new Date("2020-08-31"),
+    },
+    {
+      yearLabel: "2020-2021",
+      isActive: false,
+      firstClosureDate: new Date("2021-03-15T23:59:59Z"),
+      finalClosureDate: new Date("2021-04-15T23:59:59Z"),
+      startDate: new Date("2020-09-01"),
+      endDate: new Date("2021-08-31"),
+    },
+    {
+      yearLabel: "2021-2022",
+      isActive: false,
+      firstClosureDate: new Date("2022-03-15T23:59:59Z"),
+      finalClosureDate: new Date("2022-04-15T23:59:59Z"),
+      startDate: new Date("2021-09-01"),
+      endDate: new Date("2022-08-31"),
+    },
+    {
+      yearLabel: "2022-2023",
+      isActive: false,
+      firstClosureDate: new Date("2023-03-15T23:59:59Z"),
+      finalClosureDate: new Date("2023-04-15T23:59:59Z"),
+      startDate: new Date("2022-09-01"),
+      endDate: new Date("2023-08-31"),
+    },
+    {
+      yearLabel: "2023-2024",
+      isActive: false,
+      firstClosureDate: new Date("2024-03-15T23:59:59Z"),
+      finalClosureDate: new Date("2024-04-15T23:59:59Z"),
+      startDate: new Date("2023-09-01"),
+      endDate: new Date("2024-08-31"),
+    },
+    {
       yearLabel: "2024-2025",
       isActive: false,
       firstClosureDate: new Date("2025-03-15T23:59:59Z"),
@@ -352,7 +392,7 @@ async function main() {
       yearIds[ay.yearLabel] = record.id;
     }
   }
-  console.log("✓ 2 academic years seeded (2025-2026 active)");
+  console.log(`✓ ${academicYears.length} academic years seeded (2025-2026 active)`);
 
   // ── 3. Admin user ─────────────────────────────────────────────────────────
 
@@ -581,64 +621,137 @@ async function main() {
     return submission;
   }
 
-  // ── 7. Past year submissions (2024-2025) ──────────────────────────────────
-  // All closed. ~70% submit. More comments, more selections.
+  // ── 7. Closed year submissions (2019-2020 to 2024-2025) ───────────────────
+  // All closed years. Higher submission/comment/selection rates than active year.
 
-  console.log("\nSeeding 2024-2025 submissions...");
-  const prevCount = submissionCount;
-  const y2425 = yearIds["2024-2025"];
-  const submissionWindow2425 = { start: new Date("2025-01-10"), end: new Date("2025-03-14") };
+  async function seedClosedYearSubmissions(opts: {
+    yearLabel: string;
+    windowStart: Date;
+    windowEnd: Date;
+    submitRatio: number;
+    selectedRatio: number;
+    commentRatio: number;
+    titleOffset: number;
+  }) {
+    console.log(`\nSeeding ${opts.yearLabel} submissions...`);
+    const prevCount = submissionCount;
+    const academicYearId = yearIds[opts.yearLabel];
+    if (!academicYearId) return;
 
-  for (const facultyName of FACULTY_NAMES) {
-    const students = studentsByFaculty[facultyName];
-    const coord = coordinators[facultyName];
-    const titles = [...TITLES[facultyName]];
-    const submittingStudents = students.slice(0, Math.floor(students.length * 0.7)); // 70% submit
+    for (const facultyName of FACULTY_NAMES) {
+      const students = studentsByFaculty[facultyName];
+      const coord = coordinators[facultyName];
+      const titles = [...TITLES[facultyName]];
+      const submittingStudents = students.slice(0, Math.floor(students.length * opts.submitRatio));
 
-    for (let i = 0; i < submittingStudents.length; i++) {
-      const student = submittingStudents[i];
-      const title = titles[(i + 5) % titles.length]; // Offset titles for variety
-      const submittedAt = randomDate(submissionWindow2425.start, submissionWindow2425.end);
-      const isSelected = Math.random() < 0.55; // 55% selected
+      for (let i = 0; i < submittingStudents.length; i++) {
+        const student = submittingStudents[i];
+        const title = titles[(i + opts.titleOffset) % titles.length];
+        const submittedAt = randomDate(opts.windowStart, opts.windowEnd);
+        const isSelected = Math.random() < opts.selectedRatio;
+        const hasComment = Math.random() < opts.commentRatio;
 
-      const hasComment = Math.random() < 0.75;
-      const comments = hasComment
-        ? [
-            {
-              authorId: coord.id,
-              authorRole: "MARKETING_COORDINATOR",
-              body: COORD_COMMENTS[(i + 3) % COORD_COMMENTS.length],
-              createdAt: new Date(submittedAt.getTime() + faker.number.int({ min: 1, max: 8 }) * 24 * 60 * 60 * 1000),
-              replies: Math.random() < 0.5
-                ? [
-                    {
-                      authorId: student.id,
-                      authorRole: "STUDENT",
-                      body: STUDENT_REPLIES[(i + 2) % STUDENT_REPLIES.length],
-                      createdAt: new Date(submittedAt.getTime() + faker.number.int({ min: 9, max: 18 }) * 24 * 60 * 60 * 1000),
-                    },
-                  ]
-                : undefined,
-            },
-          ]
-        : undefined;
+        const comments = hasComment
+          ? [
+              {
+                authorId: coord.id,
+                authorRole: "MARKETING_COORDINATOR",
+                body: COORD_COMMENTS[(i + opts.titleOffset) % COORD_COMMENTS.length],
+                createdAt: new Date(submittedAt.getTime() + faker.number.int({ min: 1, max: 8 }) * 24 * 60 * 60 * 1000),
+                replies: Math.random() < 0.45
+                  ? [
+                      {
+                        authorId: student.id,
+                        authorRole: "STUDENT",
+                        body: STUDENT_REPLIES[(i + opts.titleOffset) % STUDENT_REPLIES.length],
+                        createdAt: new Date(submittedAt.getTime() + faker.number.int({ min: 9, max: 18 }) * 24 * 60 * 60 * 1000),
+                      },
+                    ]
+                  : undefined,
+              },
+            ]
+          : undefined;
 
-      await createSubmission({
-        userId: student.id,
-        facultyId: student.facultyId,
-        academicYearId: y2425,
-        title: `${title}`,
-        status: "SUBMITTED",
-        submittedAt,
-        isSelected,
-        selectedById: manager.id,
-        notes: isSelected ? faker.lorem.sentence() : undefined,
-        fileCount: faker.number.int({ min: 1, max: 3 }),
-        comments,
-      });
+        await createSubmission({
+          userId: student.id,
+          facultyId: student.facultyId,
+          academicYearId,
+          title,
+          status: "SUBMITTED",
+          submittedAt,
+          isSelected,
+          selectedById: manager.id,
+          notes: isSelected ? faker.lorem.sentence() : undefined,
+          fileCount: faker.number.int({ min: 1, max: 3 }),
+          comments,
+        });
+      }
     }
+    console.log(`  ✓ ${opts.yearLabel}: ${submissionCount - prevCount} new submissions`);
   }
-  console.log(`  ✓ 2024-2025: ${submissionCount - prevCount} new submissions`);
+
+  const closedYearConfigs = [
+    {
+      yearLabel: "2019-2020",
+      windowStart: new Date("2020-01-10"),
+      windowEnd: new Date("2020-03-14"),
+      submitRatio: 0.62,
+      selectedRatio: 0.46,
+      commentRatio: 0.6,
+      titleOffset: 11,
+    },
+    {
+      yearLabel: "2020-2021",
+      windowStart: new Date("2021-01-10"),
+      windowEnd: new Date("2021-03-14"),
+      submitRatio: 0.64,
+      selectedRatio: 0.48,
+      commentRatio: 0.62,
+      titleOffset: 9,
+    },
+    {
+      yearLabel: "2021-2022",
+      windowStart: new Date("2022-01-10"),
+      windowEnd: new Date("2022-03-14"),
+      submitRatio: 0.66,
+      selectedRatio: 0.5,
+      commentRatio: 0.66,
+      titleOffset: 7,
+    },
+    {
+      yearLabel: "2022-2023",
+      windowStart: new Date("2023-01-10"),
+      windowEnd: new Date("2023-03-14"),
+      submitRatio: 0.68,
+      selectedRatio: 0.52,
+      commentRatio: 0.7,
+      titleOffset: 6,
+    },
+    {
+      yearLabel: "2023-2024",
+      windowStart: new Date("2024-01-10"),
+      windowEnd: new Date("2024-03-14"),
+      submitRatio: 0.7,
+      selectedRatio: 0.54,
+      commentRatio: 0.72,
+      titleOffset: 5,
+    },
+    {
+      yearLabel: "2024-2025",
+      windowStart: new Date("2025-01-10"),
+      windowEnd: new Date("2025-03-14"),
+      submitRatio: 0.7,
+      selectedRatio: 0.55,
+      commentRatio: 0.75,
+      titleOffset: 5,
+    },
+  ];
+
+  for (const config of closedYearConfigs) {
+    await seedClosedYearSubmissions(config);
+  }
+
+  const y2425 = yearIds["2024-2025"];
 
   // ── 8. Audit log sample entries ──────────────────────────────────────────
   const selectedSubmissions = await prisma.submission.findMany({
@@ -955,7 +1068,7 @@ async function main() {
   console.log("\n" + "═".repeat(60));
   console.log("  SEED COMPLETE");
   console.log("═".repeat(60));
-  console.log(`  Academic Years: 2 (2025-2026 active)`);
+  console.log(`  Academic Years: ${academicYears.length} (2025-2026 active)`);
   console.log(`  Faculties:      ${FACULTY_NAMES.length}`);
   console.log(`  Students:       ${allStudents.length}`);
   console.log(`  Staff:          2 admins, 1 manager, 5 coordinators, ${totalGuests} guests`);
