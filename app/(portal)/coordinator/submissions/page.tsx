@@ -136,6 +136,7 @@ export default function CoordinatorSubmissionsPage() {
   // Notes editing state
   const [notesValue, setNotesValue] = useState<string>("");
   const [notesSaving, setNotesSaving] = useState(false);
+  const [reviewStatusSaving, setReviewStatusSaving] = useState(false);
 
   // Filtering & sorting state
   const [filterStatus, setFilterStatus] = useState<"all" | "selected" | "not-selected" | "no-comments">("all");
@@ -302,6 +303,37 @@ export default function CoordinatorSubmissionsPage() {
     }
   }
 
+  async function handleSaveReviewStatus(
+    id: string,
+    currentStatus: string,
+    nextStatus: "REVIEWING"
+  ) {
+    if (currentStatus !== "PENDING") return;
+    setReviewStatusSaving(true);
+    try {
+      const res = await fetch(`/api/coordinator/submissions/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reviewStatus: nextStatus }),
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        toast.error(data?.error ?? "Failed to update review status.");
+        return;
+      }
+      setSubmissions((prev) =>
+        prev.map((s) => (s.id === id ? { ...s, reviewStatus: nextStatus } : s))
+      );
+      toast.success("Review status updated.");
+    } catch {
+      toast.error("Failed to update review status.");
+    } finally {
+      setReviewStatusSaving(false);
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // Post comment
   // ---------------------------------------------------------------------------
@@ -371,30 +403,11 @@ export default function CoordinatorSubmissionsPage() {
   }
 
   // ---------------------------------------------------------------------------
-  // Open panel + auto-transition PENDING -> REVIEWING
+  // Open panel
   // ---------------------------------------------------------------------------
 
   function handleOpenPanel(submission: SubmissionRow) {
     setSelectedSubmissionId(submission.id);
-    if (submission.reviewStatus === "PENDING") {
-      fetch(`/api/coordinator/submissions/${submission.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reviewStatus: "REVIEWING" }),
-      })
-        .then((res) => {
-          if (res.ok) {
-            setSubmissions((prev) =>
-              prev.map((s) =>
-                s.id === submission.id
-                  ? { ...s, reviewStatus: "REVIEWING" }
-                  : s
-              )
-            );
-          }
-        })
-        .catch(console.error);
-    }
   }
 
   // ---------------------------------------------------------------------------
@@ -408,6 +421,9 @@ export default function CoordinatorSubmissionsPage() {
   ) {
     try {
       const res = await fetch(fileUrl);
+      if (!res.ok) {
+        throw new Error(`Failed to download file: ${res.status}`);
+      }
       const blob = await res.blob();
       const objectUrl = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
@@ -701,14 +717,16 @@ export default function CoordinatorSubmissionsPage() {
                   <Switch
                     id="is-selected-toggle"
                     checked={selectedSubmission.isSelected}
-                    onCheckedChange={() =>
+                    disabled={selectedSubmission.reviewStatus === "PENDING"}
+                    onCheckedChange={() => {
+                      if (selectedSubmission.reviewStatus === "PENDING") return;
                       setConfirmDialog({
                         open: true,
                         submissionId: selectedSubmission.id,
                         currentSelected: selectedSubmission.isSelected,
                         title: selectedSubmission.title,
-                      })
-                    }
+                      });
+                    }}
                   />
                   <Label
                     htmlFor="is-selected-toggle"
@@ -716,6 +734,35 @@ export default function CoordinatorSubmissionsPage() {
                   >
                     Selected for Publication
                   </Label>
+                </div>
+
+                <div className="space-y-2 px-5 pb-4">
+                  <Label className="text-sm font-medium text-slate-700">
+                    Status
+                  </Label>
+                  <p className="text-sm text-slate-500">
+                    {selectedSubmission.reviewStatus === "PENDING"
+                      ? "Pending"
+                      : selectedSubmission.reviewStatus === "REVIEWING"
+                        ? "Reviewing"
+                        : "Commented"}
+                  </p>
+                  {selectedSubmission.reviewStatus === "PENDING" && (
+                    <button
+                      type="button"
+                      disabled={reviewStatusSaving}
+                      onClick={() =>
+                        handleSaveReviewStatus(
+                          selectedSubmission.id,
+                          selectedSubmission.reviewStatus,
+                          "REVIEWING"
+                        )
+                      }
+                      className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-50"
+                    >
+                      {reviewStatusSaving ? "Updating..." : "Mark as Reviewing"}
+                    </button>
+                  )}
                 </div>
 
                 {/* Notes textarea */}

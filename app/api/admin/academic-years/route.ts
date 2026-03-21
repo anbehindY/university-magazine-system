@@ -29,10 +29,18 @@ function parseYearRange(yearLabel: string) {
   };
 }
 
+function getStartOfNextDay(baseDate: Date) {
+  const nextDay = new Date(baseDate);
+  nextDay.setHours(0, 0, 0, 0);
+  nextDay.setDate(nextDay.getDate() + 1);
+  return nextDay;
+}
+
 function validateClosureDates(
   yearLabel: string,
   firstClosureDate: Date | null,
-  finalClosureDate: Date | null
+  finalClosureDate: Date | null,
+  minFirstClosureDate?: Date
 ): string | null {
   const range = parseYearRange(yearLabel);
   if (!range) {
@@ -49,6 +57,12 @@ function validateClosureDates(
   }
   if (firstClosureDate.getTime() > range.end.getTime()) {
     return "First closure date must be within the selected academic year range.";
+  }
+  if (
+    minFirstClosureDate &&
+    firstClosureDate.getTime() < minFirstClosureDate.getTime()
+  ) {
+    return "First closure date must be at least tomorrow.";
   }
   if (finalClosureDate.getTime() < range.start.getTime()) {
     return `Final closure date cannot be earlier than ${range.startYear}.`;
@@ -134,10 +148,13 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+    const normalizedYearLabel = body.yearLabel.trim();
+    const minFirstClosureDate = getStartOfNextDay(new Date());
     const validationError = validateClosureDates(
-      body.yearLabel,
+      normalizedYearLabel,
       firstClosureDate,
-      finalClosureDate
+      finalClosureDate,
+      minFirstClosureDate
     );
     if (validationError) {
       return NextResponse.json(
@@ -145,10 +162,20 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+    const existingYear = await prisma.academicYear.findFirst({
+      where: { yearLabel: normalizedYearLabel },
+      select: { id: true },
+    });
+    if (existingYear) {
+      return NextResponse.json(
+        { error: `Academic year ${normalizedYearLabel} already exists.` },
+        { status: 400 }
+      );
+    }
 
     const academicYear = await prisma.academicYear.create({
       data: {
-        yearLabel: body.yearLabel,
+        yearLabel: normalizedYearLabel,
         firstClosureDate,
         finalClosureDate,
         updatedById: session.user.id,
@@ -188,10 +215,23 @@ export async function PUT(req: NextRequest) {
         { status: 400 }
       );
     }
+    const normalizedYearLabel = body.yearLabel.trim();
+    const existingRecord = await prisma.academicYear.findUnique({
+      where: { id: body.id },
+      select: { id: true },
+    });
+    if (!existingRecord) {
+      return NextResponse.json(
+        { error: "Academic year not found." },
+        { status: 404 }
+      );
+    }
+    const minFirstClosureDate = getStartOfNextDay(new Date());
     const validationError = validateClosureDates(
-      body.yearLabel,
+      normalizedYearLabel,
       firstClosureDate,
-      finalClosureDate
+      finalClosureDate,
+      minFirstClosureDate
     );
     if (validationError) {
       return NextResponse.json(
@@ -199,11 +239,24 @@ export async function PUT(req: NextRequest) {
         { status: 400 }
       );
     }
+    const duplicateYear = await prisma.academicYear.findFirst({
+      where: {
+        yearLabel: normalizedYearLabel,
+        id: { not: body.id },
+      },
+      select: { id: true },
+    });
+    if (duplicateYear) {
+      return NextResponse.json(
+        { error: `Academic year ${normalizedYearLabel} already exists.` },
+        { status: 400 }
+      );
+    }
 
     let academicYear;
 
     if (body.isActive) {
-      if (!canActivateYear(body.yearLabel)) {
+      if (!canActivateYear(normalizedYearLabel)) {
         return NextResponse.json(
           { error: "Cannot activate a past academic year. Only current or upcoming years can be set as active." },
           { status: 400 }
@@ -219,7 +272,7 @@ export async function PUT(req: NextRequest) {
         prisma.academicYear.update({
           where: { id: body.id },
           data: {
-            yearLabel: body.yearLabel,
+            yearLabel: normalizedYearLabel,
             firstClosureDate,
             finalClosureDate,
             isActive: true,
@@ -231,7 +284,7 @@ export async function PUT(req: NextRequest) {
       academicYear = await prisma.academicYear.update({
         where: { id: body.id },
         data: {
-          yearLabel: body.yearLabel,
+          yearLabel: normalizedYearLabel,
           firstClosureDate,
           finalClosureDate,
           isActive: false,

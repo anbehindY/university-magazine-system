@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,9 @@ type AcademicYearItem = {
   isActive: boolean;
   createdAt: string;
 };
+
+type PreviousSortColumn = "yearLabel" | "firstClosureDate" | "finalClosureDate";
+type PreviousSortDir = "asc" | "desc";
 
 function formatDatetime(value: string | null) {
   if (!value) return "—";
@@ -81,7 +85,8 @@ function isFinalNotAfterFirst(firstDate?: Date, finalDate?: Date) {
 function validateYearAndClosures(
   yearLabel: string,
   firstClosureDate: Date | undefined,
-  finalClosureDate: Date | undefined
+  finalClosureDate: Date | undefined,
+  minFirstClosureDate?: Date
 ) {
   const yearRange = getYearRange(yearLabel);
   if (!yearRange) {
@@ -100,6 +105,12 @@ function validateYearAndClosures(
     return `First closure date must be within ${yearLabel.trim()}.`;
   }
   if (
+    minFirstClosureDate &&
+    firstClosureDate.getTime() < minFirstClosureDate.getTime()
+  ) {
+    return "First closure date must be at least tomorrow.";
+  }
+  if (
     finalClosureDate.getTime() < yearRange.start.getTime() ||
     finalClosureDate.getTime() > yearRange.end.getTime()
   ) {
@@ -109,6 +120,23 @@ function validateYearAndClosures(
     return "Final closure date must be later than first closure date.";
   }
   return null;
+}
+
+function PreviousSortIcon({
+  column,
+  sortColumn,
+  sortDir,
+}: {
+  column: PreviousSortColumn;
+  sortColumn: PreviousSortColumn;
+  sortDir: PreviousSortDir;
+}) {
+  if (column !== sortColumn) {
+    return <ChevronsUpDown className="inline h-3 w-3 ml-1 opacity-40" />;
+  }
+  return sortDir === "asc"
+    ? <ChevronUp className="inline h-3 w-3 ml-1" />
+    : <ChevronDown className="inline h-3 w-3 ml-1" />;
 }
 
 export default function AdminPanelPage() {
@@ -142,17 +170,45 @@ export default function AdminPanelPage() {
   const [rolloverFinal, setRolloverFinal] = useState<Date | undefined>();
   const [rolloverStatus, setRolloverStatus] = useState<"idle" | "saving" | "error">("idle");
   const [rolloverError, setRolloverError] = useState("");
+  const [previousSortColumn, setPreviousSortColumn] = useState<PreviousSortColumn>("yearLabel");
+  const [previousSortDir, setPreviousSortDir] = useState<PreviousSortDir>("desc");
+  const [isPreviousEditOpen, setIsPreviousEditOpen] = useState(false);
+  const [previousEditId, setPreviousEditId] = useState("");
+  const [previousEditLabel, setPreviousEditLabel] = useState("");
+  const [previousEditFirst, setPreviousEditFirst] = useState<Date | undefined>();
+  const [previousEditFinal, setPreviousEditFinal] = useState<Date | undefined>();
+  const [previousEditIsActive, setPreviousEditIsActive] = useState(false);
+  const [previousEditStatus, setPreviousEditStatus] = useState<"idle" | "saving" | "error">("idle");
+  const [previousEditError, setPreviousEditError] = useState("");
 
 
   // ── derived ───────────────────────────────────────────────────────────────
   const activeYear = history.find((y) => y.isActive) ?? null;
-  const otherYears = history.filter((y) => !y.isActive);
   const draftYearRange = getYearRange(draftLabel);
   const setupYearRange = getYearRange(setupLabel);
   const rolloverYearRange = getYearRange(rolloverLabel);
+  const nextCreationDay = dayAfter(new Date());
+  const draftFirstMinDate = draftYearRange
+    ? nextCreationDay.getTime() > draftYearRange.start.getTime()
+      ? nextCreationDay
+      : draftYearRange.start
+    : nextCreationDay;
+  const setupFirstMinDate = setupYearRange
+    ? nextCreationDay.getTime() > setupYearRange.start.getTime()
+      ? nextCreationDay
+      : setupYearRange.start
+    : nextCreationDay;
+  const rolloverFirstMinDate = rolloverYearRange
+    ? nextCreationDay.getTime() > rolloverYearRange.start.getTime()
+      ? nextCreationDay
+      : rolloverYearRange.start
+    : nextCreationDay;
   const draftHasYearLabel = draftLabel.trim().length > 0;
   const setupHasYearLabel = setupLabel.trim().length > 0;
   const rolloverHasYearLabel = rolloverLabel.trim().length > 0;
+  const draftFirstDisabled = draftFirstMinDate ? { before: draftFirstMinDate } : undefined;
+  const setupFirstDisabled = setupFirstMinDate ? { before: setupFirstMinDate } : undefined;
+  const rolloverFirstDisabled = rolloverFirstMinDate ? { before: rolloverFirstMinDate } : undefined;
   const draftFinalDisabled = draftFirst ? { before: dayAfter(draftFirst) } : undefined;
   const setupFinalDisabled = setupFirst ? { before: dayAfter(setupFirst) } : undefined;
   const rolloverFinalDisabled = rolloverFirst ? { before: dayAfter(rolloverFirst) } : undefined;
@@ -161,6 +217,42 @@ export default function AdminPanelPage() {
   const rolloverFinalStartMonth = rolloverFirst
     ? monthStart(rolloverFirst)
     : rolloverYearRange?.start;
+  const previousEditYearRange = getYearRange(previousEditLabel);
+  const previousEditHasYearLabel = previousEditLabel.trim().length > 0;
+  const previousEditFirstMinDate = previousEditYearRange
+    ? nextCreationDay.getTime() > previousEditYearRange.start.getTime()
+      ? nextCreationDay
+      : previousEditYearRange.start
+    : nextCreationDay;
+  const previousEditFirstDisabled = { before: previousEditFirstMinDate };
+  const previousEditFinalDisabled = previousEditFirst
+    ? { before: dayAfter(previousEditFirst) }
+    : undefined;
+  const previousEditFinalStartMonth = previousEditFirst
+    ? monthStart(previousEditFirst)
+    : previousEditYearRange?.start;
+  const normalizeYearLabel = (value: string) => value.trim();
+  const isDuplicateYearLabel = (label: string, excludeId?: string) => {
+    const normalizedLabel = normalizeYearLabel(label);
+    return history.some(
+      (item) =>
+        item.id !== excludeId &&
+        normalizeYearLabel(item.yearLabel) === normalizedLabel
+    );
+  };
+  const sortedAcademicYears = useMemo(() => {
+    const dateValue = (value: string | null) => (value ? new Date(value).getTime() : 0);
+    const direction = previousSortDir === "asc" ? 1 : -1;
+    return [...history].sort((a, b) => {
+      if (previousSortColumn === "yearLabel") {
+        return a.yearLabel.localeCompare(b.yearLabel, undefined, { numeric: true }) * direction;
+      }
+      if (previousSortColumn === "firstClosureDate") {
+        return (dateValue(a.firstClosureDate) - dateValue(b.firstClosureDate)) * direction;
+      }
+      return (dateValue(a.finalClosureDate) - dateValue(b.finalClosureDate)) * direction;
+    });
+  }, [history, previousSortColumn, previousSortDir]);
 
   useEffect(() => {
     if (isFinalNotAfterFirst(draftFirst, draftFinal)) {
@@ -254,10 +346,20 @@ export default function AdminPanelPage() {
   async function saveActive(e: React.FormEvent) {
     e.preventDefault();
     if (!activeYear) return;
-    const validationError = validateYearAndClosures(draftLabel, draftFirst, draftFinal);
+    const validationError = validateYearAndClosures(
+      draftLabel,
+      draftFirst,
+      draftFinal,
+      nextCreationDay
+    );
     if (validationError) {
       setSaveStatus("error");
       setSaveError(validationError);
+      return;
+    }
+    if (isDuplicateYearLabel(draftLabel, activeYear.id)) {
+      setSaveStatus("error");
+      setSaveError(`Academic year ${normalizeYearLabel(draftLabel)} already exists.`);
       return;
     }
     setSaveStatus("saving");
@@ -268,7 +370,7 @@ export default function AdminPanelPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: activeYear.id,
-          yearLabel: draftLabel,
+          yearLabel: normalizeYearLabel(draftLabel),
           firstClosureDate: draftFirst?.toISOString() ?? null,
           finalClosureDate: draftFinal?.toISOString() ?? null,
           isActive: true, // keep it active
@@ -290,10 +392,20 @@ export default function AdminPanelPage() {
   // ── first-time setup ──────────────────────────────────────────────────────
   async function handleSetup(e: React.FormEvent) {
     e.preventDefault();
-    const validationError = validateYearAndClosures(setupLabel, setupFirst, setupFinal);
+    const validationError = validateYearAndClosures(
+      setupLabel,
+      setupFirst,
+      setupFinal,
+      nextCreationDay
+    );
     if (validationError) {
       setSetupStatus("error");
       setSetupError(validationError);
+      return;
+    }
+    if (isDuplicateYearLabel(setupLabel)) {
+      setSetupStatus("error");
+      setSetupError(`Academic year ${normalizeYearLabel(setupLabel)} already exists.`);
       return;
     }
     setSetupStatus("saving");
@@ -303,7 +415,7 @@ export default function AdminPanelPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          yearLabel: setupLabel,
+          yearLabel: normalizeYearLabel(setupLabel),
           firstClosureDate: setupFirst?.toISOString() ?? null,
           finalClosureDate: setupFinal?.toISOString() ?? null,
         }),
@@ -340,11 +452,17 @@ export default function AdminPanelPage() {
     const validationError = validateYearAndClosures(
       rolloverLabel,
       rolloverFirst,
-      rolloverFinal
+      rolloverFinal,
+      nextCreationDay
     );
     if (validationError) {
       setRolloverStatus("error");
       setRolloverError(validationError);
+      return;
+    }
+    if (isDuplicateYearLabel(rolloverLabel)) {
+      setRolloverStatus("error");
+      setRolloverError(`Academic year ${normalizeYearLabel(rolloverLabel)} already exists.`);
       return;
     }
     setRolloverStatus("saving");
@@ -354,7 +472,7 @@ export default function AdminPanelPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          yearLabel: rolloverLabel,
+          yearLabel: normalizeYearLabel(rolloverLabel),
           firstClosureDate: rolloverFirst?.toISOString() ?? null,
           finalClosureDate: rolloverFinal?.toISOString() ?? null,
         }),
@@ -370,6 +488,74 @@ export default function AdminPanelPage() {
     } catch (error) {
       setRolloverStatus("error");
       setRolloverError(error instanceof Error ? error.message : "Failed to roll over.");
+    }
+  }
+  function handlePreviousSort(column: PreviousSortColumn) {
+    if (previousSortColumn === column) {
+      setPreviousSortDir((current) => (current === "asc" ? "desc" : "asc"));
+      return;
+    }
+    setPreviousSortColumn(column);
+    setPreviousSortDir("asc");
+  }
+
+  function openPreviousEdit(item: AcademicYearItem) {
+    setPreviousEditId(item.id);
+    setPreviousEditLabel(item.yearLabel);
+    setPreviousEditFirst(item.firstClosureDate ? new Date(item.firstClosureDate) : undefined);
+    setPreviousEditFinal(item.finalClosureDate ? new Date(item.finalClosureDate) : undefined);
+    setPreviousEditIsActive(item.isActive);
+    setPreviousEditStatus("idle");
+    setPreviousEditError("");
+    setIsPreviousEditOpen(true);
+  }
+
+  async function handlePreviousEditSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!previousEditId) return;
+    const validationError = validateYearAndClosures(
+      previousEditLabel,
+      previousEditFirst,
+      previousEditFinal,
+      nextCreationDay
+    );
+    if (validationError) {
+      setPreviousEditStatus("error");
+      setPreviousEditError(validationError);
+      return;
+    }
+    if (isDuplicateYearLabel(previousEditLabel, previousEditId)) {
+      setPreviousEditStatus("error");
+      setPreviousEditError(`Academic year ${normalizeYearLabel(previousEditLabel)} already exists.`);
+      return;
+    }
+    setPreviousEditStatus("saving");
+    setPreviousEditError("");
+    try {
+      const res = await fetch("/api/admin/academic-years", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: previousEditId,
+          yearLabel: normalizeYearLabel(previousEditLabel),
+          firstClosureDate: previousEditFirst?.toISOString() ?? null,
+          finalClosureDate: previousEditFinal?.toISOString() ?? null,
+          isActive: previousEditIsActive,
+        }),
+      });
+      if (!res.ok) {
+        const payload = (await res.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(payload?.error ?? "Failed to update previous year.");
+      }
+      await loadHistory();
+      setPreviousEditStatus("idle");
+      setIsPreviousEditOpen(false);
+      toast.success("Academic year updated successfully.");
+    } catch (error) {
+      setPreviousEditStatus("error");
+      setPreviousEditError(
+        error instanceof Error ? error.message : "Failed to update previous year."
+      );
     }
   }
 
@@ -440,6 +626,7 @@ export default function AdminPanelPage() {
                     placeholder={draftHasYearLabel ? "Pick date & time" : "Enter year label first"}
                     startMonth={draftYearRange?.start}
                     endMonth={draftYearRange?.end}
+                    disabledDates={draftFirstDisabled}
                     disabled={!draftHasYearLabel}
                   />
                 </div>
@@ -526,6 +713,7 @@ export default function AdminPanelPage() {
                     placeholder={setupHasYearLabel ? "Pick date & time" : "Enter year label first"}
                     startMonth={setupYearRange?.start}
                     endMonth={setupYearRange?.end}
+                    disabledDates={setupFirstDisabled}
                     disabled={!setupHasYearLabel}
                   />
                 </div>
@@ -572,13 +760,13 @@ export default function AdminPanelPage() {
         </CardContent>
       </Card>
 
-      {/* ── Previous Years ── (only rendered when there are entries) */}
-      {!historyLoading && otherYears.length > 0 && (
+      {/* ── Academic Years ── (only rendered when there are entries) */}
+      {!historyLoading && history.length > 0 && (
         <Card className="w-full border-slate-200 bg-white">
           <CardHeader>
-            <CardTitle>Previous Years</CardTitle>
+            <CardTitle>Academic Years</CardTitle>
             <CardDescription className="text-slate-500">
-              Historical record of past academic years.
+              List of all academic years in the database.
             </CardDescription>
           </CardHeader>
           <CardContent className="px-4 sm:px-6">
@@ -587,17 +775,76 @@ export default function AdminPanelPage() {
               <table className="w-full border-collapse text-sm">
                 <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
                   <tr>
-                    <th className="px-4 py-3">Year</th>
-                    <th className="px-4 py-3">First Closure</th>
-                    <th className="px-4 py-3">Final Closure</th>
+                    <th className="px-4 py-3">
+                      <button
+                        type="button"
+                        className="cursor-pointer select-none text-left hover:text-slate-700"
+                        onClick={() => handlePreviousSort("yearLabel")}
+                      >
+                        Year
+                        <PreviousSortIcon
+                          column="yearLabel"
+                          sortColumn={previousSortColumn}
+                          sortDir={previousSortDir}
+                        />
+                      </button>
+                    </th>
+                    <th className="px-4 py-3">
+                      <button
+                        type="button"
+                        className="cursor-pointer select-none text-left hover:text-slate-700"
+                        onClick={() => handlePreviousSort("firstClosureDate")}
+                      >
+                        First Closure
+                        <PreviousSortIcon
+                          column="firstClosureDate"
+                          sortColumn={previousSortColumn}
+                          sortDir={previousSortDir}
+                        />
+                      </button>
+                    </th>
+                    <th className="px-4 py-3">
+                      <button
+                        type="button"
+                        className="cursor-pointer select-none text-left hover:text-slate-700"
+                        onClick={() => handlePreviousSort("finalClosureDate")}
+                      >
+                        Final Closure
+                        <PreviousSortIcon
+                          column="finalClosureDate"
+                          sortColumn={previousSortColumn}
+                          sortDir={previousSortDir}
+                        />
+                      </button>
+                    </th>
+                    <th className="px-4 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
-                  {otherYears.map((item) => (
+                  {sortedAcademicYears.map((item) => (
                     <tr key={item.id} className="bg-white">
-                      <td className="px-4 py-3 font-medium text-slate-900">{item.yearLabel}</td>
+                      <td className="px-4 py-3 font-medium text-slate-900">
+                        <div className="flex items-center gap-2">
+                          <span>{item.yearLabel}</span>
+                          {item.isActive && (
+                            <Badge className="border-emerald-200 bg-emerald-100 text-emerald-800">
+                              Active
+                            </Badge>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-4 py-3 text-slate-700">{formatDatetime(item.firstClosureDate)}</td>
                       <td className="px-4 py-3 text-slate-700">{formatDatetime(item.finalClosureDate)}</td>
+                      <td className="px-4 py-3 text-right">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="border-slate-200 text-slate-700"
+                          onClick={() => openPreviousEdit(item)}
+                        >
+                          Edit
+                        </Button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -606,12 +853,29 @@ export default function AdminPanelPage() {
 
             {/* Mobile cards */}
             <div className="space-y-4 lg:hidden">
-              {otherYears.map((item) => (
+              {sortedAcademicYears.map((item) => (
                 <div
                   key={item.id}
                   className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
                 >
-                  <p className="text-base font-semibold text-slate-900">{item.yearLabel}</p>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <p className="text-base font-semibold text-slate-900">{item.yearLabel}</p>
+                      {item.isActive && (
+                        <Badge className="border-emerald-200 bg-emerald-100 text-emerald-800">
+                          Active
+                        </Badge>
+                      )}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="border-slate-200 text-slate-700"
+                      onClick={() => openPreviousEdit(item)}
+                    >
+                      Edit
+                    </Button>
+                  </div>
                   <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
                     <div>
                       <dt className="text-xs uppercase tracking-wide text-slate-500">First Closure</dt>
@@ -628,6 +892,110 @@ export default function AdminPanelPage() {
           </CardContent>
         </Card>
       )}
+
+      <Dialog
+        open={isPreviousEditOpen}
+        onOpenChange={(open) => {
+          setIsPreviousEditOpen(open);
+          if (!open) {
+            setPreviousEditStatus("idle");
+            setPreviousEditError("");
+          }
+        }}
+      >
+        <DialogContent className="w-[min(100vw-2rem,36rem)] max-h-[90vh] overflow-y-auto p-0">
+          <div className="flex min-h-0 flex-col">
+            <DialogHeader className="sticky top-0 z-10 space-y-2 border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
+              <DialogTitle>Edit Academic Year</DialogTitle>
+              <DialogDescription>
+                Update year label and closure dates for this record.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handlePreviousEditSave} className="space-y-6 px-4 py-4 sm:px-6">
+              <div className="space-y-2">
+                <Label htmlFor="previousEditLabel" className="text-slate-700">
+                  Year Label<RequiredMark />
+                </Label>
+                <p className="text-xs text-slate-500">Format: YYYY-YYYY</p>
+                <Input
+                  id="previousEditLabel"
+                  className="border-slate-200 bg-white text-slate-900"
+                  value={previousEditLabel}
+                  onChange={(e) => {
+                    setPreviousEditLabel(e.target.value);
+                    setPreviousEditStatus("idle");
+                  }}
+                  placeholder="e.g. 2025-2026"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-slate-700">
+                  First Closure Date<RequiredMark />
+                </Label>
+                <p className="text-xs text-slate-500">Students can&apos;t submit after this</p>
+                <DateTimePicker
+                  value={previousEditFirst}
+                  onChange={(v) => {
+                    setPreviousEditFirst(v);
+                    if (v && previousEditFinal && previousEditFinal.getTime() <= v.getTime()) {
+                      setPreviousEditFinal(undefined);
+                    }
+                    setPreviousEditStatus("idle");
+                  }}
+                  placeholder={previousEditHasYearLabel ? "Pick date & time" : "Enter year label first"}
+                  startMonth={previousEditYearRange?.start}
+                  endMonth={previousEditYearRange?.end}
+                  disabledDates={previousEditFirstDisabled}
+                  disabled={!previousEditHasYearLabel}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-slate-700">
+                  Final Closure Date<RequiredMark />
+                </Label>
+                <p className="text-xs text-slate-500">All edits locked after this</p>
+                <DateTimePicker
+                  value={previousEditFinal}
+                  onChange={(v) => {
+                    if (isFinalNotAfterFirst(previousEditFirst, v)) {
+                      setPreviousEditFinal(undefined);
+                      setPreviousEditStatus("error");
+                      setPreviousEditError("Final closure date must be later than first closure date.");
+                      return;
+                    }
+                    setPreviousEditFinal(v);
+                    setPreviousEditStatus("idle");
+                  }}
+                  placeholder={previousEditFirst ? "Pick date & time" : "Select first closure date first"}
+                  startMonth={previousEditFinalStartMonth}
+                  endMonth={previousEditYearRange?.end}
+                  disabledDates={previousEditFinalDisabled}
+                  disabled={!previousEditFirst}
+                />
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <Button
+                  type="submit"
+                  className="bg-slate-900 text-white hover:bg-slate-800"
+                  disabled={previousEditStatus === "saving"}
+                >
+                  {previousEditStatus === "saving" ? "Saving..." : "Save Changes"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsPreviousEditOpen(false)}
+                >
+                  Cancel
+                </Button>
+              </div>
+              {previousEditStatus === "error" && (
+                <p className="text-sm text-rose-600">{previousEditError}</p>
+              )}
+            </form>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* ── Roll Over Dialog ── */}
       <Dialog
@@ -678,6 +1046,7 @@ export default function AdminPanelPage() {
                   placeholder={rolloverHasYearLabel ? "Pick date & time" : "Enter year label first"}
                   startMonth={rolloverYearRange?.start}
                   endMonth={rolloverYearRange?.end}
+                  disabledDates={rolloverFirstDisabled}
                   disabled={!rolloverHasYearLabel}
                 />
               </div>

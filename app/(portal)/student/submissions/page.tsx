@@ -1072,7 +1072,7 @@ export default function StudentSubmissionsPage() {
                     )}
 
                   <div className="space-y-2">
-                    <Label htmlFor="submission-notes">Draft notes</Label>
+                    <Label htmlFor="submission-notes">Notes</Label>
                     <textarea
                       id="submission-notes"
                       className="min-h-[120px] w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"

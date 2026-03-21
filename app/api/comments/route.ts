@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { isPastFinalClosure } from "@/lib/closure-guard";
+import { sendMail } from "@/lib/mailer";
 import prisma from "@/lib/prisma";
 import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
@@ -54,7 +55,12 @@ export async function POST(req: NextRequest) {
 
     const submission = await prisma.submission.findUnique({
       where: { id: submissionId },
-      select: { userId: true, facultyId: true },
+      select: {
+        userId: true,
+        facultyId: true,
+        title: true,
+        user: { select: { email: true, name: true } },
+      },
     });
 
     if (!submission) {
@@ -126,6 +132,17 @@ export async function POST(req: NextRequest) {
         where: { id: submissionId },
         data: { reviewStatus: "COMMENTED" },
       });
+
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:5000";
+      const submissionTitle = submission.title ?? "Untitled";
+      const coordinatorName = session.user.name;
+      sendMail({
+        to: submission.user.email,
+        subject: `New comment on your submission: ${submissionTitle}`,
+        html: `<p><strong>${coordinatorName}</strong> commented on your contribution: <em>${submissionTitle}</em>.</p>
+               <p><a href="${appUrl}/submissions">View your submission</a></p>`,
+        text: `${coordinatorName} commented on your contribution "${submissionTitle}". View it at ${appUrl}/submissions.`,
+      }).catch(console.error);
     }
 
     return NextResponse.json({ comment }, { status: 201 });

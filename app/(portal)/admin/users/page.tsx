@@ -53,11 +53,27 @@ type Role =
   | "MARKETING_COORDINATOR"
   | "STUDENT"
   | "ADMINISTRATOR";
+type EditRole = Role | "GUEST";
 
 type Faculty = {
   id: string;
   name: string;
 };
+
+type UserSortOption =
+  | "LAST_ACTIVE_DESC"
+  | "LAST_ACTIVE_ASC"
+  | "NAME_ASC"
+  | "NAME_DESC"
+  | "EMAIL_ASC"
+  | "EMAIL_DESC"
+  | "ROLE_ASC"
+  | "ROLE_DESC"
+  | "STATUS_ASC"
+  | "STATUS_DESC";
+
+type RoleFilterOption = "ALL" | EditRole;
+type StatusFilterOption = "ALL" | "ACTIVE" | "PENDING" | "INACTIVE";
 
 function formatRole(role: string | null) {
   if (!role) return "User";
@@ -100,6 +116,10 @@ export default function UsersPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
+  const [emailSearch, setEmailSearch] = useState("");
+  const [sortBy, setSortBy] = useState<UserSortOption>("LAST_ACTIVE_DESC");
+  const [roleFilter, setRoleFilter] = useState<RoleFilterOption>("ALL");
+  const [statusFilter, setStatusFilter] = useState<StatusFilterOption>("ALL");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [formLoading, setFormLoading] = useState(false);
@@ -115,7 +135,7 @@ export default function UsersPage() {
   const [facultyId, setFacultyId] = useState("");
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
-  const [editRole, setEditRole] = useState<Role | "">("");
+  const [editRole, setEditRole] = useState<EditRole | "">("");
   const [editFacultyId, setEditFacultyId] = useState("");
   const [faculties, setFaculties] = useState<Faculty[]>([]);
 
@@ -124,6 +144,25 @@ export default function UsersPage() {
       router.push("/dashboard");
     }
   }, [isPending, session, router]);
+
+  function buildUsersQuery() {
+    const params = new URLSearchParams({
+      page: String(page),
+      pageSize: String(pageSize),
+      sortBy,
+    });
+    const normalizedEmailSearch = emailSearch.trim();
+    if (normalizedEmailSearch) {
+      params.set("search", normalizedEmailSearch);
+    }
+    if (roleFilter !== "ALL") {
+      params.set("role", roleFilter);
+    }
+    if (statusFilter !== "ALL") {
+      params.set("status", statusFilter);
+    }
+    return params.toString();
+  }
 
   useEffect(() => {
     if (isPending || !session?.user || session.user.role !== "ADMINISTRATOR") {
@@ -137,7 +176,7 @@ export default function UsersPage() {
       setError(null);
 
       try {
-        const res = await fetch(`/api/admin/users?page=${page}&pageSize=${pageSize}`);
+        const res = await fetch(`/api/admin/users?${buildUsersQuery()}`);
         const data = await res.json();
 
         if (cancelled) return;
@@ -167,7 +206,11 @@ export default function UsersPage() {
     return () => {
       cancelled = true;
     };
-  }, [isPending, session?.user, session?.user?.role, page, pageSize]);
+  }, [isPending, session?.user, session?.user?.role, page, pageSize, sortBy, emailSearch, roleFilter, statusFilter]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [emailSearch, sortBy, roleFilter, statusFilter]);
 
   useEffect(() => {
     if (!dialogOpen && !editDialogOpen) return;
@@ -192,7 +235,7 @@ export default function UsersPage() {
 
   async function refreshUsers() {
     try {
-      const res = await fetch(`/api/admin/users?page=${page}&pageSize=${pageSize}`);
+      const res = await fetch(`/api/admin/users?${buildUsersQuery()}`);
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "Failed to load users.");
@@ -218,12 +261,13 @@ export default function UsersPage() {
   const requiresEditFaculty =
     editRole === "MARKETING_COORDINATOR" ||
     editRole === "STUDENT";
+  const isEditingGuest = editRole === "GUEST";
 
   function openEditDialog(user: UserRow) {
     setEditingUserId(user.id);
     setEditName(user.name);
     setEditEmail(user.email);
-    setEditRole((user.role as Role) || "STUDENT");
+    setEditRole((user.role as EditRole) || "STUDENT");
     setEditFacultyId(user.faculty?.id || "");
     setEditError(null);
     setEditDialogOpen(true);
@@ -283,7 +327,11 @@ export default function UsersPage() {
           name: editName,
           email: editEmail,
           role: editRole,
-          facultyId: requiresEditFaculty ? editFacultyId : null,
+          facultyId: isEditingGuest
+            ? editFacultyId || null
+            : requiresEditFaculty
+              ? editFacultyId
+              : null,
         }),
       });
 
@@ -623,39 +671,44 @@ export default function UsersPage() {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="edit-role" className="text-slate-700">
-                    Role
-                  </Label>
-                  <Select
-                    value={editRole}
-                    onValueChange={(value) => setEditRole(value as Role)}
-                  >
-                    <SelectTrigger className="bg-white border-slate-200 text-slate-900">
-                      <SelectValue placeholder="Select a role" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white border-slate-200">
-                      <SelectItem value="STUDENT" className="text-slate-900">
-                        Student
-                      </SelectItem>
-                      <SelectItem
-                        value="MARKETING_COORDINATOR"
-                        className="text-slate-900"
-                      >
-                        Marketing Coordinator
-                      </SelectItem>
-                      <SelectItem
-                        value="MARKETING_MANAGER"
-                        className="text-slate-900"
-                      >
-                        Marketing Manager
-                      </SelectItem>
-                      <SelectItem value="ADMINISTRATOR" className="text-slate-900">
-                        Administrator
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                {!isEditingGuest && (
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-role" className="text-slate-700">
+                      Role
+                    </Label>
+                    <Select
+                      value={editRole}
+                      onValueChange={(value) => setEditRole(value as EditRole)}
+                    >
+                      <SelectTrigger className="bg-white border-slate-200 text-slate-900">
+                        <SelectValue placeholder="Select a role" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border-slate-200">
+                        <SelectItem value="STUDENT" className="text-slate-900">
+                          Student
+                        </SelectItem>
+                        <SelectItem
+                          value="MARKETING_COORDINATOR"
+                          className="text-slate-900"
+                        >
+                          Marketing Coordinator
+                        </SelectItem>
+                        <SelectItem
+                          value="MARKETING_MANAGER"
+                          className="text-slate-900"
+                        >
+                          Marketing Manager
+                        </SelectItem>
+                        <SelectItem value="ADMINISTRATOR" className="text-slate-900">
+                          Administrator
+                        </SelectItem>
+                        <SelectItem value="GUEST" className="text-slate-900">
+                          Guest
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 {requiresEditFaculty && (
                   <div className="space-y-2">
@@ -711,6 +764,63 @@ export default function UsersPage() {
               </form>
             </DialogContent>
           </Dialog>
+        </div>
+
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <Input
+            type="email"
+            value={emailSearch}
+            onChange={(e) => setEmailSearch(e.target.value)}
+            placeholder="Find by email"
+            className="h-9 w-full border-slate-200 bg-white text-sm text-slate-700 placeholder:text-slate-400 sm:w-72"
+          />
+          <Select value={sortBy} onValueChange={(value) => setSortBy(value as UserSortOption)}>
+            <SelectTrigger className="h-9 w-full border-slate-200 text-sm text-slate-700 sm:w-64">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="LAST_ACTIVE_DESC">Last Active (Newest)</SelectItem>
+              <SelectItem value="LAST_ACTIVE_ASC">Last Active (Oldest)</SelectItem>
+              <SelectItem value="NAME_ASC">Name (A-Z)</SelectItem>
+              <SelectItem value="NAME_DESC">Name (Z-A)</SelectItem>
+              <SelectItem value="EMAIL_ASC">Email (A-Z)</SelectItem>
+              <SelectItem value="EMAIL_DESC">Email (Z-A)</SelectItem>
+              <SelectItem value="ROLE_ASC">Role (A-Z)</SelectItem>
+              <SelectItem value="ROLE_DESC">Role (Z-A)</SelectItem>
+              <SelectItem value="STATUS_ASC">Status (Active-Pending-Inactive)</SelectItem>
+              <SelectItem value="STATUS_DESC">Status (Inactive-Pending-Active)</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select
+            value={roleFilter}
+            onValueChange={(value) => setRoleFilter(value as RoleFilterOption)}
+          >
+            <SelectTrigger className="h-9 w-full border-slate-200 text-sm text-slate-700 sm:w-52">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Role: All</SelectItem>
+              <SelectItem value="ADMINISTRATOR">Role: Administrator</SelectItem>
+              <SelectItem value="MARKETING_MANAGER">Role: Marketing Manager</SelectItem>
+              <SelectItem value="MARKETING_COORDINATOR">Role: Marketing Coordinator</SelectItem>
+              <SelectItem value="STUDENT">Role: Student</SelectItem>
+              <SelectItem value="GUEST">Role: Guest</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select
+            value={statusFilter}
+            onValueChange={(value) => setStatusFilter(value as StatusFilterOption)}
+          >
+            <SelectTrigger className="h-9 w-full border-slate-200 text-sm text-slate-700 sm:w-44">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Status: All</SelectItem>
+              <SelectItem value="ACTIVE">Status: Active</SelectItem>
+              <SelectItem value="PENDING">Status: Pending</SelectItem>
+              <SelectItem value="INACTIVE">Status: Inactive</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {error && (

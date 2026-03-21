@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -8,9 +9,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { PaginationControls } from "@/components/ui/pagination-controls";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSession } from "@/lib/auth-client";
 import { LoadingScreen } from "@/components/ui/loading-screen";
+import { format } from "date-fns";
 import {
   AlertTriangle,
   ArrowRight,
@@ -35,6 +38,15 @@ type DashboardData = {
   academicYear?: { yearLabel: string; firstClosureDate: string | null; finalClosureDate: string | null } | null;
   userStats?: { total: number; active: number; byRole: Record<string, number> };
   academicYears?: { id: string; yearLabel: string; isActive: boolean }[];
+};
+
+type AccessEntry = {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  activityType: string;
+  createdAt: string;
 };
 
 function daysUntil(dateStr: string | null | undefined): number | null {
@@ -437,10 +449,17 @@ const ROLE_DESCRIPTIONS: Record<string, { headline: string; subhead: string }> =
 // ─── Main page ──────────────────────────────────────────────────────
 
 export default function DashboardPage() {
+  const activityPageSize = 5;
   const router = useRouter();
   const { data: session, isPending } = useSession();
   const [data, setData] = useState<DashboardData>({});
   const [loading, setLoading] = useState(true);
+  const [activityEntries, setActivityEntries] = useState<AccessEntry[]>([]);
+  const [activityTotal, setActivityTotal] = useState(0);
+  const [activityPage, setActivityPage] = useState(1);
+  const [activityLoading, setActivityLoading] = useState(true);
+  const [activityError, setActivityError] = useState<string | null>(null);
+  const [previousLoginAt, setPreviousLoginAt] = useState<string | null>(null);
 
   const role = session?.user?.role ?? "STUDENT";
 
@@ -534,6 +553,53 @@ export default function DashboardPage() {
   }, [session?.user]);
 
   useEffect(() => {
+    if (!session?.user) return;
+    if ((session.user.role ?? "STUDENT") === "GUEST") return;
+
+    let cancelled = false;
+
+    async function fetchActivity() {
+      setActivityLoading(true);
+      setActivityError(null);
+      try {
+        const params = new URLSearchParams({
+          page: String(activityPage),
+          pageSize: String(activityPageSize),
+        });
+        const res = await fetch(`/api/access-activities?${params.toString()}`);
+        const result = (await res.json()) as {
+          entries?: AccessEntry[];
+          total?: number;
+          previousLoginAt?: string | null;
+          error?: string;
+        };
+        if (cancelled) return;
+        if (!res.ok) {
+          setActivityError(result.error ?? "Failed to load activity log.");
+          setActivityEntries([]);
+          return;
+        }
+        setActivityEntries(result.entries ?? []);
+        setActivityTotal(result.total ?? 0);
+        setPreviousLoginAt(result.previousLoginAt ?? null);
+      } catch {
+        if (!cancelled) {
+          setActivityError("Failed to load activity log.");
+          setActivityEntries([]);
+        }
+      } finally {
+        if (!cancelled) setActivityLoading(false);
+      }
+    }
+
+    fetchActivity();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.user, activityPage, activityPageSize]);
+
+  useEffect(() => {
     if (!isPending && !session?.user) {
       router.push("/sign-in");
     }
@@ -544,6 +610,9 @@ export default function DashboardPage() {
 
   const { user } = session;
   const desc = ROLE_DESCRIPTIONS[role] ?? ROLE_DESCRIPTIONS.STUDENT;
+  const previousLoginText = previousLoginAt
+    ? `Previous login: ${format(new Date(previousLoginAt), "d MMM yyyy, h:mm a")}`
+    : "Previous login: This is your first login.";
 
   return (
     <main className="space-y-6 text-slate-900">
@@ -558,6 +627,7 @@ export default function DashboardPage() {
           </h1>
           <p className="text-slate-500">{desc.headline}</p>
           <p className="text-sm text-slate-400">{desc.subhead}</p>
+          <p className="text-sm text-slate-500">{previousLoginText}</p>
         </div>
       </section>
 
@@ -577,6 +647,107 @@ export default function DashboardPage() {
           {role === "GUEST" && <GuestDashboard data={data} router={router} />}
           {role === "ADMINISTRATOR" && <AdminDashboard data={data} router={router} />}
         </>
+      )}
+
+      {role !== "GUEST" && (
+        <section className="space-y-4">
+          <div className="space-y-1">
+            <h2 className="text-xl font-semibold text-slate-900">My Activity Log</h2>
+            <p className="text-sm text-slate-500">Your recent login and logout activity</p>
+          </div>
+
+          {activityLoading && (
+            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+              <table className="min-w-full divide-y divide-slate-200">
+                <thead className="bg-slate-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                      Activity Type
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                      Date
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...Array(activityPageSize)].map((_, i) => (
+                    <tr key={i} className="border-t border-slate-200">
+                      <td className="px-4 py-3">
+                        <Skeleton className="h-5 w-20 rounded-sm" />
+                      </td>
+                      <td className="px-4 py-3">
+                        <Skeleton className="h-4 w-32 rounded" />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {!activityLoading && activityError && (
+            <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {activityError}
+            </div>
+          )}
+
+          {!activityLoading && !activityError && activityEntries.length === 0 && (
+            <div className="rounded-xl border border-slate-200 bg-white px-6 py-12 text-center text-slate-500">
+              No activity records yet.
+            </div>
+          )}
+
+          {!activityLoading && !activityError && activityEntries.length > 0 && (
+            <>
+              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                <table className="min-w-full divide-y divide-slate-200">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                        Activity Type
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                        Date
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {activityEntries.map((entry) => (
+                      <tr
+                        key={entry.id}
+                        className="border-t border-slate-200 hover:bg-slate-50"
+                      >
+                        <td className="px-4 py-3 text-sm">
+                          <Badge
+                            variant="outline"
+                            className={
+                              entry.activityType === "LOGIN"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                : "bg-slate-100 text-slate-700 border-slate-300"
+                            }
+                          >
+                            {entry.activityType}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-700">
+                          {format(new Date(entry.createdAt), "d MMM yyyy, h:mm a")}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <PaginationControls
+                page={activityPage}
+                pageSize={activityPageSize}
+                total={activityTotal}
+                onPageChange={setActivityPage}
+                onPageSizeChange={() => {}}
+                pageSizeOptions={[5]}
+              />
+            </>
+          )}
+        </section>
       )}
     </main>
   );
