@@ -55,6 +55,7 @@ type SubmissionRow = {
   studentName: string | null;
   submittedAt: string | null;
   isSelected: boolean;
+  notes: string | null;
   files: SubmissionFile[];
   fileCount: number;
   commentCount: number;
@@ -163,6 +164,11 @@ export default function CoordinatorSubmissionsPage() {
     currentSelected: boolean;
     title: string | null;
   }>({ open: false, submissionId: "", currentSelected: false, title: null });
+  const [reviewConfirmDialog, setReviewConfirmDialog] = useState<{
+    open: boolean;
+    submissionId: string;
+    currentStatus: string;
+  }>({ open: false, submissionId: "", currentStatus: "" });
 
   // ---------------------------------------------------------------------------
   // Load submissions on mount
@@ -733,17 +739,26 @@ export default function CoordinatorSubmissionsPage() {
                       type="button"
                       disabled={reviewStatusSaving}
                       onClick={() =>
-                        handleSaveReviewStatus(
-                          selectedSubmission.id,
-                          selectedSubmission.reviewStatus,
-                          "REVIEWING"
-                        )
+                        setReviewConfirmDialog({
+                          open: true,
+                          submissionId: selectedSubmission.id,
+                          currentStatus: selectedSubmission.reviewStatus,
+                        })
                       }
                       className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-50"
                     >
                       {reviewStatusSaving ? "Updating..." : "Mark as Reviewing"}
                     </button>
                   )}
+                </div>
+
+                <div className="space-y-2 px-5 pb-5">
+                  <Label className="text-sm font-medium text-slate-700">
+                    Notes
+                  </Label>
+                  <div className="min-h-20 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 whitespace-pre-wrap">
+                    {selectedSubmission.notes?.trim() || "No notes available."}
+                  </div>
                 </div>
 
               </div>
@@ -953,6 +968,48 @@ export default function CoordinatorSubmissionsPage() {
               }}
             >
               {confirmDialog.currentSelected ? "Remove" : "Confirm Selection"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={reviewConfirmDialog.open}
+        onOpenChange={(open) => {
+          if (!open) {
+            setReviewConfirmDialog((prev) => ({ ...prev, open: false }));
+          }
+        }}
+      >
+        <DialogContent showCloseButton={false} className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Update Review Status</DialogTitle>
+            <DialogDescription className="text-slate-600">
+              Do you want to update the status?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-3 sm:gap-3">
+            <Button
+              variant="outline"
+              onClick={() =>
+                setReviewConfirmDialog((prev) => ({ ...prev, open: false }))
+              }
+              disabled={reviewStatusSaving}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-slate-900 text-white hover:bg-slate-800"
+              disabled={reviewStatusSaving}
+              onClick={() => {
+                handleSaveReviewStatus(
+                  reviewConfirmDialog.submissionId,
+                  reviewConfirmDialog.currentStatus,
+                  "REVIEWING"
+                );
+                setReviewConfirmDialog((prev) => ({ ...prev, open: false }));
+              }}
+            >
+              {reviewStatusSaving ? "Updating..." : "Mark as Reviewing"}
             </Button>
           </DialogFooter>
         </DialogContent>
