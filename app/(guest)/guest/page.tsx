@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import {
   Card,
   CardHeader,
   CardContent,
-  CardFooter,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -17,8 +16,7 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Separator } from "@/components/ui/separator";
-import { Button } from "@/components/ui/button";
+import { PaginationControls } from "@/components/ui/pagination-controls";
 import {
   Select,
   SelectContent,
@@ -29,21 +27,10 @@ import {
 import {
   BookOpen,
   FileText,
-  ImageIcon,
-  File,
   CalendarDays,
   User,
   Users,
-  Download,
 } from "lucide-react";
-
-type FileItem = {
-  id: string;
-  url: string;
-  pathname: string;
-  contentType: string | null;
-  size: number;
-};
 
 type SubmissionRow = {
   id: string;
@@ -52,7 +39,6 @@ type SubmissionRow = {
   submittedAt: string | null;
   fileCount: number;
   description: string | null;
-  files: FileItem[];
 };
 
 type AvailableYear = {
@@ -60,23 +46,6 @@ type AvailableYear = {
   yearLabel: string;
   isActive: boolean;
 };
-
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function getFileIcon(contentType: string | null) {
-  if (contentType?.startsWith("image")) return ImageIcon;
-  if (
-    contentType?.includes("pdf") ||
-    contentType?.includes("document") ||
-    contentType?.includes("text")
-  )
-    return FileText;
-  return File;
-}
 
 function formatDate(value: string | null) {
   if (!value) return "-";
@@ -102,6 +71,12 @@ export default function GuestMagazinePage() {
   }>({ totalSubmissions: 0, percentageOfTotal: 0, distinctContributors: 0 });
   const [selectedSubmission, setSelectedSubmission] =
     useState<SubmissionRow | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState<
+    "SUBMITTED_DESC" | "SUBMITTED_ASC" | "TITLE_ASC" | "AUTHOR_ASC"
+  >("SUBMITTED_DESC");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   // Track whether the initial load has completed to avoid double-fetch
   const initialLoadDone = useRef(false);
@@ -181,6 +156,42 @@ export default function GuestMagazinePage() {
 
   // Derived state: are we refetching after initial load (year switch)?
   const isRefetching = loading && availableYears.length > 0;
+  const visibleSubmissions = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
+    const filtered = submissions.filter((submission) => {
+      if (!query) return true;
+      const title = (submission.title ?? "").toLowerCase();
+      const author = (submission.studentName ?? "").toLowerCase();
+      return title.includes(query) || author.includes(query);
+    });
+
+    return [...filtered].sort((a, b) => {
+      if (sortBy === "TITLE_ASC") {
+        return (a.title ?? "Untitled").localeCompare(b.title ?? "Untitled");
+      }
+      if (sortBy === "AUTHOR_ASC") {
+        return a.studentName.localeCompare(b.studentName);
+      }
+      const aTime = a.submittedAt ? new Date(a.submittedAt).getTime() : 0;
+      const bTime = b.submittedAt ? new Date(b.submittedAt).getTime() : 0;
+      return sortBy === "SUBMITTED_ASC" ? aTime - bTime : bTime - aTime;
+    });
+  }, [submissions, searchTerm, sortBy]);
+  const paginatedSubmissions = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return visibleSubmissions.slice(start, start + pageSize);
+  }, [visibleSubmissions, page, pageSize]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, sortBy, selectedYearId]);
+
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(visibleSubmissions.length / pageSize));
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [visibleSubmissions.length, page, pageSize]);
 
   // ---- Loading state (initial load only) ----
   if (loading && !isRefetching) {
@@ -189,23 +200,39 @@ export default function GuestMagazinePage() {
         {/* Hero skeleton */}
         <div className="mx-4 sm:mx-6 lg:mx-8 mt-6 rounded-2xl animate-pulse bg-slate-200 h-48 sm:h-56" />
 
-        {/* Grid skeleton */}
+        {/* Overview skeleton */}
         <div className="px-4 sm:px-6 lg:px-8 pt-8 pb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {Array.from({ length: 6 }).map((_, i) => (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {Array.from({ length: 3 }).map((_, i) => (
               <Card key={i} className="border-slate-200 bg-white">
                 <CardHeader>
-                  <Skeleton className="h-5 w-3/4" />
-                  <Skeleton className="h-4 w-1/2 mt-2" />
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <Skeleton className="h-4 w-32" />
                   <Skeleton className="h-4 w-24" />
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Skeleton className="h-8 w-16" />
+                  <Skeleton className="h-3 w-28" />
                 </CardContent>
-                <CardFooter>
-                  <Skeleton className="h-5 w-16 rounded-full" />
-                </CardFooter>
               </Card>
+            ))}
+          </div>
+
+          <div className="mt-8 overflow-hidden rounded-xl border border-slate-200 bg-white">
+            <div className="grid grid-cols-4 border-b border-slate-100 bg-slate-50 px-4 py-3">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-14" />
+            </div>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={`row-${i}`}
+                className="grid grid-cols-4 border-b border-slate-100 px-4 py-3 last:border-b-0"
+              >
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-12" />
+              </div>
             ))}
           </div>
         </div>
@@ -315,62 +342,135 @@ export default function GuestMagazinePage() {
         </div>
       </div>
 
-      {/* Articles grid */}
+      {/* Publications table */}
       <div className="px-4 sm:px-6 lg:px-8 pt-8 pb-8">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-3">Selected Publications</h2>
-        {submissions.length === 0 && !isRefetching ? (
+        <div className="mb-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500">Selected Publications</h2>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Find by title or author"
+              className="h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 sm:w-64"
+            />
+            <Select
+              value={sortBy}
+              onValueChange={(value) =>
+                setSortBy(
+                  value as
+                    | "SUBMITTED_DESC"
+                    | "SUBMITTED_ASC"
+                    | "TITLE_ASC"
+                    | "AUTHOR_ASC"
+                )
+              }
+            >
+              <SelectTrigger className="h-9 w-full border-slate-200 text-sm text-slate-700 sm:w-56">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="SUBMITTED_DESC">Submitted Date (Newest)</SelectItem>
+                <SelectItem value="SUBMITTED_ASC">Submitted Date (Oldest)</SelectItem>
+                <SelectItem value="TITLE_ASC">Title (A-Z)</SelectItem>
+                <SelectItem value="AUTHOR_ASC">Author (A-Z)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        {visibleSubmissions.length === 0 && !isRefetching ? (
           /* Empty state */
           <div className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center">
             <BookOpen className="h-16 w-16 text-slate-300 mb-4" />
             <h2 className="text-xl font-semibold text-slate-700">
-              No Articles Yet
+              {submissions.length === 0 ? "No Articles Yet" : "No Matching Results"}
             </h2>
             <p className="mt-2 max-w-md text-slate-500">
-              No articles have been selected for publication in your faculty
-              yet. Check back later for new content.
+              {submissions.length === 0
+                ? "No articles have been selected for publication in your faculty yet. Check back later for new content."
+                : "Try another title, author name, or sorting option."}
             </p>
           </div>
         ) : (
-          <div
-            className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 transition-opacity duration-200 ${
-              isRefetching ? "opacity-50 pointer-events-none" : ""
-            }`}
-          >
-            {submissions.map((submission) => (
-              <Card
-                key={submission.id}
-                className="cursor-pointer border-slate-200 bg-white hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
-                onClick={() => setSelectedSubmission(submission)}
-              >
-                <CardHeader className="pb-2">
-                  <h3 className="font-semibold text-sm line-clamp-2">
-                    {submission.title ?? (
-                      <span className="italic text-slate-400">Untitled</span>
-                    )}
-                  </h3>
-                </CardHeader>
-                <CardContent className="space-y-1 pb-2">
-                  <div className="flex items-center gap-2 text-xs text-slate-600">
-                    <User className="h-3.5 w-3.5 shrink-0" />
-                    <span>{submission.studentName}</span>
+          <>
+            <div className={`space-y-3 md:hidden transition-opacity duration-200 ${isRefetching ? "opacity-50 pointer-events-none" : ""}`}>
+              {paginatedSubmissions.map((submission) => (
+                <button
+                  key={submission.id}
+                  type="button"
+                  onClick={() => setSelectedSubmission(submission)}
+                  className="w-full rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition-colors hover:bg-slate-50"
+                >
+                  <p className="text-sm font-semibold text-slate-900">
+                    {submission.title ?? <span className="italic text-slate-400">Untitled</span>}
+                  </p>
+                  <div className="mt-3 grid gap-2 text-xs text-slate-600">
+                    <div className="flex items-center justify-between">
+                      <span>Author</span>
+                      <span className="font-medium text-slate-700">{submission.studentName}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Submitted</span>
+                      <span className="font-medium text-slate-700">{formatDate(submission.submittedAt)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Files</span>
+                      <span className="font-medium text-slate-700">
+                        {submission.fileCount} {submission.fileCount === 1 ? "file" : "files"}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-slate-500">
-                    <CalendarDays className="h-3.5 w-3.5 shrink-0" />
-                    <span>{formatDate(submission.submittedAt)}</span>
-                  </div>
-                </CardContent>
-                <CardFooter className="pt-0">
-                  <Badge
-                    variant="secondary"
-                    className="bg-slate-100 text-slate-600 border-slate-200 text-xs"
-                  >
-                    {submission.fileCount}{" "}
-                    {submission.fileCount === 1 ? "file" : "files"}
-                  </Badge>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
+                </button>
+              ))}
+            </div>
+            <div
+              className={`hidden overflow-x-auto rounded-xl border border-slate-200 bg-white transition-opacity duration-200 md:block ${
+                isRefetching ? "opacity-50 pointer-events-none" : ""
+              }`}
+            >
+              <table className="w-full min-w-[680px] text-sm">
+                <thead className="bg-slate-50 text-slate-600">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-medium">Title</th>
+                    <th className="px-4 py-3 text-left font-medium">Author</th>
+                    <th className="px-4 py-3 text-left font-medium">Submitted</th>
+                    <th className="px-4 py-3 text-left font-medium">Files</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedSubmissions.map((submission) => (
+                    <tr
+                      key={submission.id}
+                      className="cursor-pointer border-t border-slate-100 hover:bg-slate-50"
+                      onClick={() => setSelectedSubmission(submission)}
+                    >
+                      <td className="px-4 py-3 text-slate-900">
+                        {submission.title ?? (
+                          <span className="italic text-slate-400">Untitled</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-slate-700">{submission.studentName}</td>
+                      <td className="px-4 py-3 text-slate-600">{formatDate(submission.submittedAt)}</td>
+                      <td className="px-4 py-3 text-slate-600">
+                        {submission.fileCount} {submission.fileCount === 1 ? "file" : "files"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <PaginationControls
+              page={page}
+              pageSize={pageSize}
+              total={visibleSubmissions.length}
+              onPageChange={setPage}
+              onPageSizeChange={(nextPageSize) => {
+                setPageSize(nextPageSize);
+                setPage(1);
+              }}
+              pageSizeOptions={[5, 10, 25]}
+            />
+          </>
         )}
       </div>
 
@@ -413,56 +513,9 @@ export default function GuestMagazinePage() {
                     </p>
                   </div>
                 )}
-
-                <Separator />
-
-                {/* Files section */}
-                <div className="space-y-3">
-                  <h4 className="text-sm font-medium text-slate-700">
-                    Files ({selectedSubmission.files.length})
-                  </h4>
-
-                  {selectedSubmission.files.length === 0 ? (
-                    <p className="text-sm text-slate-500">
-                      No files attached.
-                    </p>
-                  ) : (
-                    <div className="space-y-2">
-                      {selectedSubmission.files.map((file) => {
-                        const Icon = getFileIcon(file.contentType);
-                        const filename =
-                          file.pathname?.split("/").pop() ?? "file";
-
-                        return (
-                          <div
-                            key={file.id}
-                            className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5"
-                          >
-                            <Icon className="h-5 w-5 shrink-0 text-slate-500" />
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-medium text-slate-700 truncate">
-                                {filename}
-                              </p>
-                              <p className="text-xs text-slate-400">
-                                {formatFileSize(file.size)}
-                              </p>
-                            </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="shrink-0"
-                              onClick={() =>
-                                window.open(file.url, "_blank")
-                              }
-                            >
-                              <Download className="h-4 w-4 mr-1" />
-                              Download
-                            </Button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+                  Attached files: {selectedSubmission.fileCount}{" "}
+                  {selectedSubmission.fileCount === 1 ? "file" : "files"}
                 </div>
               </div>
             </>

@@ -8,6 +8,7 @@ import { Download, FileIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import {
   Sheet,
   SheetContent,
@@ -133,13 +134,13 @@ export default function CoordinatorSubmissionsPage() {
     string | null
   >(null);
 
-  // Notes editing state
-  const [notesValue, setNotesValue] = useState<string>("");
-  const [notesSaving, setNotesSaving] = useState(false);
+  const [reviewStatusSaving, setReviewStatusSaving] = useState(false);
 
   // Filtering & sorting state
   const [filterStatus, setFilterStatus] = useState<"all" | "selected" | "not-selected" | "no-comments">("all");
   const [sortBy, setSortBy] = useState<"date-desc" | "date-asc" | "selected" | "no-comments-priority">("date-desc");
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
 
   // Pagination state
   const [page, setPage] = useState(1);
@@ -163,6 +164,11 @@ export default function CoordinatorSubmissionsPage() {
     currentSelected: boolean;
     title: string | null;
   }>({ open: false, submissionId: "", currentSelected: false, title: null });
+  const [reviewConfirmDialog, setReviewConfirmDialog] = useState<{
+    open: boolean;
+    submissionId: string;
+    currentStatus: string;
+  }>({ open: false, submissionId: "", currentStatus: "" });
 
   // ---------------------------------------------------------------------------
   // Load submissions on mount
@@ -175,7 +181,11 @@ export default function CoordinatorSubmissionsPage() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`/api/coordinator/submissions?page=${page}&pageSize=${pageSize}`);
+        const query = search.trim();
+        const url = query
+          ? `/api/coordinator/submissions?page=${page}&pageSize=${pageSize}&q=${encodeURIComponent(query)}`
+          : `/api/coordinator/submissions?page=${page}&pageSize=${pageSize}`;
+        const res = await fetch(url);
         const data = (await res.json()) as {
           submissions?: SubmissionRow[];
           total?: number;
@@ -203,7 +213,15 @@ export default function CoordinatorSubmissionsPage() {
     return () => {
       cancelled = true;
     };
-  }, [page, pageSize]);
+  }, [page, pageSize, search]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setPage(1);
+      setSearch(searchInput);
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
 
   // ---------------------------------------------------------------------------
   // SWR comment thread (polls every 15 s)
@@ -226,13 +244,6 @@ export default function CoordinatorSubmissionsPage() {
   const selectedSubmission = submissions.find(
     (s) => s.id === selectedSubmissionId
   ) ?? null;
-
-  // Sync notes textarea when panel opens/switches submission
-  useEffect(() => {
-    if (selectedSubmission) {
-      setNotesValue(selectedSubmission.notes ?? "");
-    }
-  }, [selectedSubmission?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---------------------------------------------------------------------------
   // isSelected toggle
@@ -269,36 +280,34 @@ export default function CoordinatorSubmissionsPage() {
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // Notes save
-  // ---------------------------------------------------------------------------
-
-  async function handleSaveNotes(id: string) {
-    setNotesSaving(true);
+  async function handleSaveReviewStatus(
+    id: string,
+    currentStatus: string,
+    nextStatus: "REVIEWING"
+  ) {
+    if (currentStatus !== "PENDING") return;
+    setReviewStatusSaving(true);
     try {
       const res = await fetch(`/api/coordinator/submissions/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ notes: notesValue }),
+        body: JSON.stringify({ reviewStatus: nextStatus }),
       });
       if (!res.ok) {
         const data = (await res.json().catch(() => null)) as {
           error?: string;
         } | null;
-        toast.error(data?.error ?? "Failed to save notes.");
+        toast.error(data?.error ?? "Failed to update review status.");
         return;
       }
-      // Update local state
       setSubmissions((prev) =>
-        prev.map((s) =>
-          s.id === id ? { ...s, notes: notesValue } : s
-        )
+        prev.map((s) => (s.id === id ? { ...s, reviewStatus: nextStatus } : s))
       );
-      toast.success("Notes saved.");
+      toast.success("Review status updated.");
     } catch {
-      toast.error("Failed to save notes.");
+      toast.error("Failed to update review status.");
     } finally {
-      setNotesSaving(false);
+      setReviewStatusSaving(false);
     }
   }
 
@@ -371,30 +380,11 @@ export default function CoordinatorSubmissionsPage() {
   }
 
   // ---------------------------------------------------------------------------
-  // Open panel + auto-transition PENDING -> REVIEWING
+  // Open panel
   // ---------------------------------------------------------------------------
 
   function handleOpenPanel(submission: SubmissionRow) {
     setSelectedSubmissionId(submission.id);
-    if (submission.reviewStatus === "PENDING") {
-      fetch(`/api/coordinator/submissions/${submission.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reviewStatus: "REVIEWING" }),
-      })
-        .then((res) => {
-          if (res.ok) {
-            setSubmissions((prev) =>
-              prev.map((s) =>
-                s.id === submission.id
-                  ? { ...s, reviewStatus: "REVIEWING" }
-                  : s
-              )
-            );
-          }
-        })
-        .catch(console.error);
-    }
   }
 
   // ---------------------------------------------------------------------------
@@ -408,6 +398,9 @@ export default function CoordinatorSubmissionsPage() {
   ) {
     try {
       const res = await fetch(fileUrl);
+      if (!res.ok) {
+        throw new Error(`Failed to download file: ${res.status}`);
+      }
       const blob = await res.blob();
       const objectUrl = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
@@ -489,8 +482,16 @@ export default function CoordinatorSubmissionsPage() {
       <Separator className="bg-slate-200" />
 
       {/* Filters & sort */}
-      {!loading && !error && submissions.length > 0 && (
+      {!error && (submissions.length > 0 || searchInput.trim().length > 0) && (
         <div className="flex flex-wrap items-center gap-3">
+          <Input
+            value={searchInput}
+            onChange={(e) => {
+              setSearchInput(e.target.value);
+            }}
+            placeholder="Search by student or title..."
+            className="w-full max-w-sm border-slate-200 bg-white text-slate-900 placeholder:text-slate-400"
+          />
           <Select
             value={filterStatus}
             onValueChange={(v) => { setFilterStatus(v as typeof filterStatus); setPage(1); }}
@@ -572,7 +573,9 @@ export default function CoordinatorSubmissionsPage() {
       {!loading && !error && submissions.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <p className="text-slate-500">
-            No submitted work from your faculty yet.
+            {search.trim()
+              ? "No submissions match your search."
+              : "No submitted work from your faculty yet."}
           </p>
         </div>
       )}
@@ -582,7 +585,7 @@ export default function CoordinatorSubmissionsPage() {
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
           {filteredSubmissions.length === 0 ? (
             <div className="px-6 py-12 text-center">
-              <p className="text-slate-500">No submissions match the current filter.</p>
+              <p className="text-slate-500">No submissions match the current search/filter.</p>
             </div>
           ) : (
           <table className="w-full text-left">
@@ -701,14 +704,16 @@ export default function CoordinatorSubmissionsPage() {
                   <Switch
                     id="is-selected-toggle"
                     checked={selectedSubmission.isSelected}
-                    onCheckedChange={() =>
+                    disabled={selectedSubmission.reviewStatus === "PENDING"}
+                    onCheckedChange={() => {
+                      if (selectedSubmission.reviewStatus === "PENDING") return;
                       setConfirmDialog({
                         open: true,
                         submissionId: selectedSubmission.id,
                         currentSelected: selectedSubmission.isSelected,
                         title: selectedSubmission.title,
-                      })
-                    }
+                      });
+                    }}
                   />
                   <Label
                     htmlFor="is-selected-toggle"
@@ -718,33 +723,44 @@ export default function CoordinatorSubmissionsPage() {
                   </Label>
                 </div>
 
-                {/* Notes textarea */}
-                <div className="space-y-2 px-5 pb-5">
-                  <Label
-                    htmlFor="notes-field"
-                    className="text-sm font-medium text-slate-700"
-                  >
-                    Notes
+                <div className="space-y-2 px-5 pb-4">
+                  <Label className="text-sm font-medium text-slate-700">
+                    Status
                   </Label>
-                  <textarea
-                    id="notes-field"
-                    rows={3}
-                    value={notesValue}
-                    onChange={(e) => setNotesValue(e.target.value)}
-                    placeholder="Add internal notes about this submission..."
-                    className="w-full resize-none rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
-                  />
-                  <div className="flex justify-end">
+                  <p className="text-sm text-slate-500">
+                    {selectedSubmission.reviewStatus === "PENDING"
+                      ? "Pending"
+                      : selectedSubmission.reviewStatus === "REVIEWING"
+                        ? "Reviewing"
+                        : "Commented"}
+                  </p>
+                  {selectedSubmission.reviewStatus === "PENDING" && (
                     <button
                       type="button"
-                      disabled={notesSaving}
-                      onClick={() => handleSaveNotes(selectedSubmission.id)}
-                      className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+                      disabled={reviewStatusSaving}
+                      onClick={() =>
+                        setReviewConfirmDialog({
+                          open: true,
+                          submissionId: selectedSubmission.id,
+                          currentStatus: selectedSubmission.reviewStatus,
+                        })
+                      }
+                      className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-50"
                     >
-                      {notesSaving ? "Saving..." : "Save Notes"}
+                      {reviewStatusSaving ? "Updating..." : "Mark as Reviewing"}
                     </button>
+                  )}
+                </div>
+
+                <div className="space-y-2 px-5 pb-5">
+                  <Label className="text-sm font-medium text-slate-700">
+                    Notes
+                  </Label>
+                  <div className="min-h-20 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 whitespace-pre-wrap">
+                    {selectedSubmission.notes?.trim() || "No notes available."}
                   </div>
                 </div>
+
               </div>
 
               {/* Uploaded files */}
@@ -952,6 +968,48 @@ export default function CoordinatorSubmissionsPage() {
               }}
             >
               {confirmDialog.currentSelected ? "Remove" : "Confirm Selection"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={reviewConfirmDialog.open}
+        onOpenChange={(open) => {
+          if (!open) {
+            setReviewConfirmDialog((prev) => ({ ...prev, open: false }));
+          }
+        }}
+      >
+        <DialogContent showCloseButton={false} className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Update Review Status</DialogTitle>
+            <DialogDescription className="text-slate-600">
+              Do you want to update the status?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-3 sm:gap-3">
+            <Button
+              variant="outline"
+              onClick={() =>
+                setReviewConfirmDialog((prev) => ({ ...prev, open: false }))
+              }
+              disabled={reviewStatusSaving}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-slate-900 text-white hover:bg-slate-800"
+              disabled={reviewStatusSaving}
+              onClick={() => {
+                handleSaveReviewStatus(
+                  reviewConfirmDialog.submissionId,
+                  reviewConfirmDialog.currentStatus,
+                  "REVIEWING"
+                );
+                setReviewConfirmDialog((prev) => ({ ...prev, open: false }));
+              }}
+            >
+              {reviewStatusSaving ? "Updating..." : "Mark as Reviewing"}
             </Button>
           </DialogFooter>
         </DialogContent>

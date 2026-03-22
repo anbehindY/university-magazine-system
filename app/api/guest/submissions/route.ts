@@ -103,15 +103,6 @@ export async function GET(request: NextRequest) {
           submittedAt: true,
           notes: true,
           user: { select: { name: true } },
-          files: {
-            select: {
-              id: true,
-              url: true,
-              pathname: true,
-              contentType: true,
-              size: true,
-            },
-          },
           _count: { select: { files: true } },
         },
       }),
@@ -147,7 +138,6 @@ export async function GET(request: NextRequest) {
       submittedAt: s.submittedAt,
       fileCount: s._count.files,
       description: s.notes,
-      files: s.files,
     }));
 
     const selectedYear = availableYears.find((y) => y.id === targetYearId);

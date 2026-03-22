@@ -49,6 +49,19 @@ import {
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  CartesianGrid,
+  Cell,
+  Line,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -84,8 +97,17 @@ type ExceptionRow = {
   files?: ExceptionFile[];
 };
 
+type YearTrendRow = {
+  academicYearId: string;
+  yearLabel: string;
+  submissions: number;
+  contributors: number;
+};
+
 type SortColumn = "facultyName" | "submissionCount" | "percentageOfTotal" | "distinctContributors";
 type SortDir = "asc" | "desc";
+
+const CHART_COLORS = ["#0f172a", "#2563eb", "#10b981", "#f59e0b", "#8b5cf6", "#ef4444", "#64748b"];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -148,6 +170,8 @@ export default function ReportsPage() {
   const [statsData, setStatsData] = useState<StatRow[]>([]);
   const [statsLoading, setStatsLoading] = useState(false);
   const [statsError, setStatsError] = useState<string | null>(null);
+  const [yearTrendData, setYearTrendData] = useState<YearTrendRow[]>([]);
+  const [yearTrendLoading, setYearTrendLoading] = useState(false);
 
   // Sorting state for statistics table
   const [sortCol, setSortCol] = useState<SortColumn>("facultyName");
@@ -245,10 +269,60 @@ export default function ReportsPage() {
     }
   }, []);
 
+  // ── Fetch contributions trend across academic years ────────────────────────
+  const fetchYearTrend = useCallback(async (years: AcademicYear[]) => {
+    if (years.length === 0) {
+      setYearTrendData([]);
+      return;
+    }
+    setYearTrendLoading(true);
+    try {
+      const trend = await Promise.all(
+        years.map(async (year) => {
+          try {
+            const res = await fetch(
+              `/api/reports?type=submissions&academicYearId=${encodeURIComponent(year.id)}`
+            );
+            if (!res.ok) {
+              return {
+                academicYearId: year.id,
+                yearLabel: year.yearLabel,
+                submissions: 0,
+                contributors: 0,
+              };
+            }
+            const payload = (await res.json()) as { data?: StatRow[] };
+            const rows = payload.data ?? [];
+            return {
+              academicYearId: year.id,
+              yearLabel: year.yearLabel,
+              submissions: rows.reduce((sum, row) => sum + row.submissionCount, 0),
+              contributors: rows.reduce((sum, row) => sum + row.distinctContributors, 0),
+            };
+          } catch {
+            return {
+              academicYearId: year.id,
+              yearLabel: year.yearLabel,
+              submissions: 0,
+              contributors: 0,
+            };
+          }
+        })
+      );
+      trend.sort((a, b) =>
+        a.yearLabel.localeCompare(b.yearLabel, undefined, { numeric: true })
+      );
+      setYearTrendData(trend);
+    } finally {
+      setYearTrendLoading(false);
+    }
+  }, []);
+
   // Re-fetch when year changes
   useEffect(() => {
     if (!selectedYearId) return;
     fetchStats(selectedYearId);
+    fetchYearTrend(allYears);
     if (activeTab === "exceptions") {
       fetchExceptions(selectedYearId, overdueOnly);
     }
@@ -297,6 +371,10 @@ export default function ReportsPage() {
   const totalSubmissions = statsData.reduce((s, r) => s + r.submissionCount, 0);
   const totalContributors = statsData.reduce((s, r) => s + r.distinctContributors, 0);
   const totalFaculties = statsData.length;
+  const facultyChartData = sortedStats.map((row, index) => ({
+    ...row,
+    color: CHART_COLORS[index % CHART_COLORS.length],
+  }));
 
   // Year label for exported filenames
   const yearLabel = allYears.find((y) => y.id === selectedYearId)?.yearLabel ?? "report";
@@ -493,6 +571,54 @@ export default function ReportsPage() {
                       </CardContent>
                     </Card>
                   </div>
+
+                  <Card className="border-slate-200 bg-white">
+                    <CardHeader>
+                      <CardTitle className="text-base text-slate-900">Contributions per Academic Year</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-[280px] w-full">
+                        {yearTrendLoading ? (
+                          <Skeleton className="h-full w-full rounded-lg" />
+                        ) : (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={yearTrendData} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
+                              <defs>
+                                <linearGradient id="submissionsGradient" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor="#0f172a" stopOpacity={0.35} />
+                                  <stop offset="95%" stopColor="#0f172a" stopOpacity={0.04} />
+                                </linearGradient>
+                              </defs>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                              <XAxis dataKey="yearLabel" tick={{ fill: "#64748b", fontSize: 12 }} />
+                              <YAxis allowDecimals={false} tick={{ fill: "#64748b", fontSize: 12 }} />
+                              <Tooltip
+                                contentStyle={{
+                                  borderRadius: "0.5rem",
+                                  borderColor: "#e2e8f0",
+                                  backgroundColor: "#ffffff",
+                                }}
+                              />
+                              <Area
+                                type="monotone"
+                                dataKey="submissions"
+                                stroke="#0f172a"
+                                strokeWidth={2}
+                                fill="url(#submissionsGradient)"
+                              />
+                              <Line
+                                type="monotone"
+                                dataKey="contributors"
+                                stroke="#10b981"
+                                strokeWidth={2}
+                                dot={{ r: 3 }}
+                              />
+                            </AreaChart>
+                          </ResponsiveContainer>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
               );
             })()
@@ -590,6 +716,99 @@ export default function ReportsPage() {
                   </CardContent>
                 </Card>
               </div>
+
+              <Card className="border-slate-200 bg-white">
+                <CardHeader>
+                  <CardTitle className="text-base text-slate-900">Submission Distribution by Faculty</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div
+                    className="w-full"
+                    style={{ height: Math.max(300, facultyChartData.length * 52) }}
+                  >
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={facultyChartData}
+                        layout="vertical"
+                        margin={{ top: 8, right: 24, left: 12, bottom: 8 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                        <XAxis type="number" allowDecimals={false} tick={{ fill: "#64748b", fontSize: 12 }} />
+                        <YAxis
+                          type="category"
+                          dataKey="facultyName"
+                          width={170}
+                          tick={{ fill: "#334155", fontSize: 12 }}
+                        />
+                        <Tooltip
+                          formatter={(value, _name, payload) => [
+                            `${Number(value ?? 0)} submissions`,
+                            (payload as { payload?: { facultyName?: string } })?.payload?.facultyName ?? "Faculty",
+                          ]}
+                          contentStyle={{
+                            borderRadius: "0.5rem",
+                            borderColor: "#e2e8f0",
+                            backgroundColor: "#ffffff",
+                          }}
+                        />
+                        <Bar dataKey="submissionCount" radius={[0, 6, 6, 0]}>
+                          {facultyChartData.map((entry) => (
+                            <Cell key={entry.facultyId} fill={entry.color} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-slate-200 bg-white">
+                <CardHeader>
+                  <CardTitle className="text-base text-slate-900">Contributions per Academic Year</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[300px] w-full">
+                    {yearTrendLoading ? (
+                      <Skeleton className="h-full w-full rounded-lg" />
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={yearTrendData} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
+                          <defs>
+                            <linearGradient id="yearSubmissionsGradient" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#2563eb" stopOpacity={0.35} />
+                              <stop offset="95%" stopColor="#2563eb" stopOpacity={0.06} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                          <XAxis dataKey="yearLabel" tick={{ fill: "#64748b", fontSize: 12 }} />
+                          <YAxis allowDecimals={false} tick={{ fill: "#64748b", fontSize: 12 }} />
+                          <Tooltip
+                            contentStyle={{
+                              borderRadius: "0.5rem",
+                              borderColor: "#e2e8f0",
+                              backgroundColor: "#ffffff",
+                            }}
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="submissions"
+                            stroke="#2563eb"
+                            strokeWidth={2}
+                            fill="url(#yearSubmissionsGradient)"
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="contributors"
+                            stroke="#0f172a"
+                            strokeWidth={2}
+                            dot={{ r: 3 }}
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
 
               {/* Per-faculty data table */}
               <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">

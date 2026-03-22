@@ -70,13 +70,9 @@ export function PaginationControls({
     total === 0 ? "No results" : `${startRow}–${endRow} of ${total}`;
 
   return (
-    <div className="flex items-center justify-between gap-4 py-3">
-      {/* Left: row count */}
-      <span className="text-sm text-muted-foreground">{rowCountLabel}</span>
-
-      {/* Right: page size selector + page buttons */}
-      <div className="flex items-center gap-4">
-        {/* Page size selector */}
+    <div className="flex flex-col gap-3 py-3">
+      <div className="flex w-full flex-wrap items-center justify-center gap-3">
+        <span className="text-sm text-muted-foreground whitespace-nowrap">{rowCountLabel}</span>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground whitespace-nowrap">
             Rows per page
@@ -101,21 +97,21 @@ export function PaginationControls({
             </SelectContent>
           </Select>
         </div>
-
-        {/* Pagination buttons */}
-        <div className="flex items-center gap-1">
-          {/* Prev button */}
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page <= 1}
-            onClick={() => onPageChange(page - 1)}
-            className="border-slate-200 text-slate-700 hover:bg-slate-50"
-          >
-            Prev
-          </Button>
-
-          {/* Numbered page buttons */}
+      </div>
+      <div className="flex w-full items-center justify-center gap-1 sm:gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={page <= 1}
+          onClick={() => onPageChange(page - 1)}
+          className="border-slate-200 text-slate-700 hover:bg-slate-50"
+        >
+          Prev
+        </Button>
+        <span className="px-1 text-sm text-muted-foreground md:hidden whitespace-nowrap">
+          {page} / {totalPages}
+        </span>
+        <div className="hidden items-center gap-1 md:flex">
           {pageNumbers.map((p, idx) =>
             p === "..." ? (
               <span
@@ -140,18 +136,16 @@ export function PaginationControls({
               </Button>
             )
           )}
-
-          {/* Next button */}
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page >= totalPages}
-            onClick={() => onPageChange(page + 1)}
-            className="border-slate-200 text-slate-700 hover:bg-slate-50"
-          >
-            Next
-          </Button>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={page >= totalPages}
+          onClick={() => onPageChange(page + 1)}
+          className="border-slate-200 text-slate-700 hover:bg-slate-50"
+        >
+          Next
+        </Button>
       </div>
     </div>
   );
