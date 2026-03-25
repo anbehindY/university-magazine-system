@@ -39,6 +39,10 @@ type SubmissionRow = {
   submittedAt: string | null;
   fileCount: number;
   description: string | null;
+  preview: {
+    overview: string | null;
+    contentTitles: string[];
+  };
 };
 
 type AvailableYear = {
@@ -420,6 +424,11 @@ export default function GuestMagazinePage() {
                       </span>
                     </div>
                   </div>
+                  <div className="mt-3 flex items-center justify-end">
+                    <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
+                      Preview
+                    </span>
+                  </div>
                 </button>
               ))}
             </div>
@@ -435,6 +444,7 @@ export default function GuestMagazinePage() {
                     <th className="px-4 py-3 text-left font-medium">Author</th>
                     <th className="px-4 py-3 text-left font-medium">Submitted</th>
                     <th className="px-4 py-3 text-left font-medium">Files</th>
+                    <th className="px-4 py-3 text-left font-medium">Preview</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -454,6 +464,7 @@ export default function GuestMagazinePage() {
                       <td className="px-4 py-3 text-slate-600">
                         {submission.fileCount} {submission.fileCount === 1 ? "file" : "files"}
                       </td>
+                      <td className="px-4 py-3 text-slate-600">View</td>
                     </tr>
                   ))}
                 </tbody>
@@ -513,6 +524,24 @@ export default function GuestMagazinePage() {
                     </p>
                   </div>
                 )}
+                <div className="space-y-1">
+                  <h4 className="text-sm font-medium text-slate-700">Contribution Overview</h4>
+                  <p className="text-sm text-slate-600 whitespace-pre-wrap">
+                    {selectedSubmission.preview?.overview?.trim() || "No overview provided."}
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-slate-700">Content Titles</h4>
+                  {(selectedSubmission.preview?.contentTitles?.length ?? 0) > 0 ? (
+                    <ul className="list-disc space-y-1 pl-5 text-sm text-slate-600">
+                      {selectedSubmission.preview.contentTitles.map((contentTitle) => (
+                        <li key={contentTitle}>{contentTitle}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-slate-600">No content titles provided.</p>
+                  )}
+                </div>
                 <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
                   Attached files: {selectedSubmission.fileCount}{" "}
                   {selectedSubmission.fileCount === 1 ? "file" : "files"}

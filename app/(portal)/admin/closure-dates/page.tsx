@@ -836,14 +836,18 @@ export default function AdminPanelPage() {
                       <td className="px-4 py-3 text-slate-700">{formatDatetime(item.firstClosureDate)}</td>
                       <td className="px-4 py-3 text-slate-700">{formatDatetime(item.finalClosureDate)}</td>
                       <td className="px-4 py-3 text-right">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="border-slate-200 text-slate-700"
-                          onClick={() => openPreviousEdit(item)}
-                        >
-                          Edit
-                        </Button>
+                        {item.isActive ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="border-slate-200 text-slate-700"
+                            onClick={() => openPreviousEdit(item)}
+                          >
+                            Edit
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-slate-400">—</span>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -867,14 +871,18 @@ export default function AdminPanelPage() {
                         </Badge>
                       )}
                     </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="border-slate-200 text-slate-700"
-                      onClick={() => openPreviousEdit(item)}
-                    >
-                      Edit
-                    </Button>
+                    {item.isActive ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="border-slate-200 text-slate-700"
+                        onClick={() => openPreviousEdit(item)}
+                      >
+                        Edit
+                      </Button>
+                    ) : (
+                      <span className="text-xs text-slate-400">Ended</span>
+                    )}
                   </div>
                   <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
                     <div>

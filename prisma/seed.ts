@@ -300,6 +300,67 @@ const STUDENT_REPLIES = [
   "Thanks for highlighting that. I'll restructure the discussion section accordingly.",
 ];
 
+const DESCRIPTION_OPENERS = [
+  "This submission examines",
+  "This article presents",
+  "This report explores",
+  "This piece analyses",
+];
+
+const DESCRIPTION_FOCUS = [
+  "It outlines the context, key evidence, and the main direction of the work.",
+  "It highlights the problem statement, supporting data, and practical implications.",
+  "It summarises the approach used and explains why the findings matter to the faculty.",
+  "It connects recent literature with real examples to support the central argument.",
+];
+
+const OVERVIEW_OPENERS = [
+  "The contribution gives a concise overview of",
+  "The preview summarises the core contribution on",
+  "This submission contributes practical insight into",
+  "The work provides an evidence-based discussion of",
+];
+
+const OVERVIEW_CLOSERS = [
+  "with emphasis on relevance for student readers.",
+  "with clear takeaways for publication review.",
+  "with balanced coverage of context, method, and outcomes.",
+  "with focus on clarity, usefulness, and publication readiness.",
+];
+
+function buildSubmissionDescription(title: string, status: "DRAFT" | "SUBMITTED") {
+  const opener = faker.helpers.arrayElement(DESCRIPTION_OPENERS);
+  const focus = faker.helpers.arrayElement(DESCRIPTION_FOCUS);
+  const stageLine =
+    status === "SUBMITTED"
+      ? "The manuscript is prepared for editorial evaluation."
+      : "The draft is in progress and will be expanded before final submission.";
+  return `${opener} ${title}. ${focus} ${stageLine}`;
+}
+
+function buildPreviewOverview(title: string, status: "DRAFT" | "SUBMITTED") {
+  const opener = faker.helpers.arrayElement(OVERVIEW_OPENERS);
+  const closer = faker.helpers.arrayElement(OVERVIEW_CLOSERS);
+  const stageLine =
+    status === "SUBMITTED"
+      ? "It is ready for guest preview."
+      : "It is shared as an early-stage preview.";
+  return `${opener} ${title}, ${closer} ${stageLine}`;
+}
+
+function buildPreviewContentTitles(title: string, status: "DRAFT" | "SUBMITTED") {
+  const topic = title.split(":")[0].trim();
+  if (status === "SUBMITTED") {
+    return [
+      `Background and context of ${topic}`,
+      `Method and evidence used in ${topic}`,
+      `Key findings from ${topic}`,
+      `Recommendations and next steps`,
+    ];
+  }
+  return [`Planned scope for ${topic}`, `Draft structure and intended outcomes`];
+}
+
 // ── Main seed function ────────────────────────────────────────────────────────
 
 async function main() {
@@ -567,7 +628,7 @@ async function main() {
         isSelected: opts.isSelected ?? false,
         selectedAt: opts.isSelected ? (opts.submittedAt ? new Date(opts.submittedAt.getTime() + 3 * 24 * 60 * 60 * 1000) : new Date()) : null,
         selectedById: opts.isSelected ? (opts.selectedById ?? manager.id) : null,
-        notes: opts.notes ?? null,
+        notes: opts.notes ?? buildSubmissionDescription(opts.title, opts.status),
       },
     });
 
@@ -865,6 +926,29 @@ async function main() {
     }
   }
   console.log(`  ✓ 2025-2026: ${submissionCount - currentYearPrevCount} new submissions`);
+
+  const submissionsForPreview = await prisma.submission.findMany({
+    select: { id: true, title: true, status: true },
+  });
+
+  let previewCount = 0;
+  for (const submission of submissionsForPreview) {
+    const title = submission.title?.trim() || "Untitled Submission";
+    const contentTitles = buildPreviewContentTitles(title, submission.status);
+    const overview = buildPreviewOverview(title, submission.status);
+
+    await prisma.submissionPreview.upsert({
+      where: { submissionId: submission.id },
+      update: { overview, contentTitles },
+      create: {
+        submissionId: submission.id,
+        overview,
+        contentTitles,
+      },
+    });
+    previewCount++;
+  }
+  console.log(`✓ ${previewCount} submission preview records seeded`);
 
   // ── 9. Session records for analytics dashboard ────────────────────────────
   // Creates sessions with realistic userAgent strings so the analytics

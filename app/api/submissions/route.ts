@@ -14,8 +14,41 @@ type SubmissionPayload = {
   agreed?: boolean;
   title?: string | null;
   notes?: string | null;
+  previewOverview?: string | null;
+  previewContentTitles?: string[];
   status?: "DRAFT" | "SUBMITTED";
 };
+
+type SubmissionPreviewRow = {
+  submissionId: string;
+  overview: string | null;
+  contentTitles: string[] | null;
+};
+
+async function upsertSubmissionPreview(
+  submissionId: string,
+  overview: string | null | undefined,
+  contentTitles: string[] | undefined
+) {
+  if (overview === undefined && contentTitles === undefined) {
+    return;
+  }
+  const normalizedOverview = overview?.trim() ? overview.trim() : null;
+  const normalizedContentTitles = (contentTitles ?? [])
+    .map((title) => title.trim())
+    .filter((title) => title.length > 0);
+
+  await prisma.$executeRaw`
+    INSERT INTO "submission_preview" ("submission_id", "overview", "content_titles", "updated_at")
+    VALUES (${submissionId}, ${normalizedOverview}, ${normalizedContentTitles}, NOW())
+    ON CONFLICT ("submission_id")
+    DO UPDATE
+    SET
+      "overview" = EXCLUDED."overview",
+      "content_titles" = EXCLUDED."content_titles",
+      "updated_at" = NOW()
+  `;
+}
 
 export async function GET() {
   try {
@@ -45,9 +78,39 @@ export async function GET() {
       },
     });
 
+    const previewRows = (
+      await Promise.all(
+        submissions.map(async (submission) => {
+          const rows = await prisma.$queryRaw<SubmissionPreviewRow[]>`
+            SELECT
+              "submission_id"::TEXT AS "submissionId",
+              "overview",
+              "content_titles" AS "contentTitles"
+            FROM "submission_preview"
+            WHERE "submission_id" = ${submission.id}
+            LIMIT 1
+          `;
+          return rows[0] ?? null;
+        })
+      )
+    ).filter((row): row is SubmissionPreviewRow => row !== null);
+    const previewMap = new Map(
+      previewRows.map((preview) => [
+        preview.submissionId,
+        {
+          overview: preview.overview,
+          contentTitles: preview.contentTitles ?? [],
+        },
+      ])
+    );
+
     const mapped = submissions.map((s) => {
       const { _count, ...rest } = s;
-      return { ...rest, commentCount: _count?.comments ?? 0 };
+      return {
+        ...rest,
+        commentCount: _count?.comments ?? 0,
+        preview: previewMap.get(s.id) ?? { overview: null, contentTitles: [] },
+      };
     });
 
     return NextResponse.json({ submissions: mapped }, { status: 200 });
@@ -111,6 +174,11 @@ export async function POST(req: NextRequest) {
         facultyId: dbUser?.facultyId ?? null,
       },
     });
+    await upsertSubmissionPreview(
+      submission.id,
+      body.previewOverview,
+      body.previewContentTitles
+    );
 
     return NextResponse.json({ submission }, { status: 201 });
   } catch (error) {
@@ -210,6 +278,11 @@ export async function PUT(req: NextRequest) {
       where: { id: body.id },
       data: updateData,
     });
+    await upsertSubmissionPreview(
+      submission.id,
+      body.previewOverview,
+      body.previewContentTitles
+    );
 
     // COORD-02: Email notification on first SUBMITTED transition
     // Fire only when submittedAt was null before (first time) and nextStatus is SUBMITTED

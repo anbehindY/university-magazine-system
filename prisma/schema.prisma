@@ -180,8 +180,20 @@ model Submission {
   academicYearId String?          @map("academic_year_id")
   academicYear   AcademicYear?    @relation(fields: [academicYearId], references: [id])
   comments       SubmissionComment[]
+  preview        SubmissionPreview?
 
   @@map("submission")
+}
+
+model SubmissionPreview {
+  submissionId   String      @id @map("submission_id")
+  submission     Submission  @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  overview       String?     @db.Text
+  contentTitles  String[]    @default([]) @map("content_titles")
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+
+  @@map("submission_preview")
 }
 
 model SubmissionComment {
