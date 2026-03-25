@@ -12,6 +12,12 @@ type TotalCountRow = {
   total_count: bigint;
 };
 
+type SubmissionPreviewRow = {
+  submissionId: string;
+  overview: string | null;
+  contentTitles: string[] | null;
+};
+
 export async function GET(request: NextRequest) {
   try {
     const session = await auth.api.getSession({
@@ -88,7 +94,6 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Run submissions query alongside summary stats queries
     const [submissions, facultyStats, totalStats] = await Promise.all([
       prisma.submission.findMany({
         where: {
@@ -131,6 +136,32 @@ export async function GET(request: NextRequest) {
       ? Math.round((facultySubmissionCount / universityTotal) * 1000) / 10
       : 0;
 
+    const previewRows = (
+      await Promise.all(
+        submissions.map(async (submission) => {
+          const rows = await prisma.$queryRaw<SubmissionPreviewRow[]>`
+            SELECT
+              "submission_id"::TEXT AS "submissionId",
+              "overview",
+              "content_titles" AS "contentTitles"
+            FROM "submission_preview"
+            WHERE "submission_id" = ${submission.id}
+            LIMIT 1
+          `;
+          return rows[0] ?? null;
+        })
+      )
+    ).filter((row): row is SubmissionPreviewRow => row !== null);
+    const previewMap = new Map(
+      previewRows.map((preview) => [
+        preview.submissionId,
+        {
+          overview: preview.overview,
+          contentTitles: preview.contentTitles ?? [],
+        },
+      ])
+    );
+
     const result = submissions.map((s) => ({
       id: s.id,
       title: s.title,
@@ -138,6 +169,7 @@ export async function GET(request: NextRequest) {
       submittedAt: s.submittedAt,
       fileCount: s._count.files,
       description: s.notes,
+      preview: previewMap.get(s.id) ?? { overview: null, contentTitles: [] },
     }));
 
     const selectedYear = availableYears.find((y) => y.id === targetYearId);

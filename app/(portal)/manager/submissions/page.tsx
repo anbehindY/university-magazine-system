@@ -6,6 +6,7 @@ import { Download, FileIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -22,6 +23,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -71,6 +73,15 @@ function formatFileSize(bytes: number | null) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function parseAcademicYearRange(value: string) {
+  const matches = value.match(/\d{4}/g);
+  if (!matches || matches.length < 2) return null;
+  const startYear = Number.parseInt(matches[0], 10);
+  const endYear = Number.parseInt(matches[1], 10);
+  if (Number.isNaN(startYear) || Number.isNaN(endYear)) return null;
+  return { startYear, endYear };
+}
+
 // ---------------------------------------------------------------------------
 // Page component
 // ---------------------------------------------------------------------------
@@ -80,6 +91,10 @@ export default function ManagerSubmissionsPage() {
   const [faculties, setFaculties] = useState<Faculty[]>([]);
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
   const [selectedFacultyId, setSelectedFacultyId] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [academicStartYear, setAcademicStartYear] = useState("");
+  const [academicEndYear, setAcademicEndYear] = useState("");
+  const [activeYearId, setActiveYearId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [downloadingYearId, setDownloadingYearId] = useState<string | null>(null);
@@ -165,6 +180,44 @@ export default function ManagerSubmissionsPage() {
     };
   }, [selectedFacultyId]);
 
+  const filteredSubmissions = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    const rawStartYear = academicStartYear.trim();
+    const rawEndYear = academicEndYear.trim();
+    const startYearFilter = /^\d{4}$/.test(rawStartYear)
+      ? Number.parseInt(rawStartYear, 10)
+      : null;
+    const endYearFilter = /^\d{4}$/.test(rawEndYear)
+      ? Number.parseInt(rawEndYear, 10)
+      : null;
+    const yearLabelMap = new Map<string, string>(
+      academicYears.map((year) => [year.id, year.yearLabel])
+    );
+
+    if (!q && startYearFilter === null && endYearFilter === null) return submissions;
+
+    return submissions.filter((sub) => {
+      const student = sub.studentName.toLowerCase();
+      const title = (sub.title ?? "").toLowerCase();
+      const faculty = sub.facultyName.toLowerCase();
+      const matchesQuery =
+        q.length === 0 || student.includes(q) || title.includes(q) || faculty.includes(q);
+      if (!matchesQuery) return false;
+
+      if (startYearFilter === null && endYearFilter === null) return true;
+
+      const yearLabel =
+        sub.academicYearId && yearLabelMap.has(sub.academicYearId)
+          ? yearLabelMap.get(sub.academicYearId)!
+          : "";
+      const parsedAcademicYear = parseAcademicYearRange(yearLabel);
+      if (!parsedAcademicYear) return false;
+      if (startYearFilter !== null && parsedAcademicYear.startYear < startYearFilter) return false;
+      if (endYearFilter !== null && parsedAcademicYear.endYear > endYearFilter) return false;
+      return true;
+    });
+  }, [submissions, searchQuery, academicStartYear, academicEndYear, academicYears]);
+
   // Group submissions by academic year
   const groupedByYear = useMemo(() => {
     const yearMap = new Map<string, { label: string; submissions: SubmissionRow[] }>();
@@ -174,7 +227,7 @@ export default function ManagerSubmissionsPage() {
       academicYears.map((y) => [y.id, y.yearLabel])
     );
 
-    for (const sub of submissions) {
+    for (const sub of filteredSubmissions) {
       const yearId = sub.academicYearId ?? "unknown";
       const yearLabel = yearId === "unknown"
         ? "Unknown Year"
@@ -190,7 +243,18 @@ export default function ManagerSubmissionsPage() {
     return [...yearMap.entries()].sort((a, b) =>
       b[1].label.localeCompare(a[1].label)
     );
-  }, [submissions, academicYears]);
+  }, [filteredSubmissions, academicYears]);
+
+  useEffect(() => {
+    if (groupedByYear.length === 0) {
+      setActiveYearId(null);
+      return;
+    }
+    const hasCurrent = activeYearId !== null && groupedByYear.some(([yearId]) => yearId === activeYearId);
+    if (!hasCurrent) {
+      setActiveYearId(groupedByYear[0][0]);
+    }
+  }, [groupedByYear, activeYearId]);
 
   // Derive selected submission from state
   const selectedSubmission = submissions.find((s) => s.id === selectedSubmissionId) ?? null;
@@ -243,19 +307,19 @@ export default function ManagerSubmissionsPage() {
           <h1 className="text-3xl font-semibold">Selected Submissions</h1>
           {!loading && (
             <Badge className="bg-slate-100 text-slate-700 border-slate-200">
-              {submissions.length} {submissions.length === 1 ? "submission" : "submissions"}
+              {filteredSubmissions.length} {filteredSubmissions.length === 1 ? "submission" : "submissions"}
             </Badge>
           )}
         </div>
         <p className="text-slate-600">
-          All selected submissions across all faculties, grouped by academic year.
+          All selected submissions across all faculties, organised by academic year tabs.
         </p>
       </header>
 
       <Separator className="bg-slate-200" />
 
       {/* Faculty filter */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         {mounted ? (
           <Select
             value={selectedFacultyId}
@@ -283,12 +347,37 @@ export default function ManagerSubmissionsPage() {
           <div className="h-9 w-56 rounded-md border border-slate-200 bg-white" />
         )}
 
+        <Input
+          value={searchQuery}
+          onChange={(event) => setSearchQuery(event.target.value)}
+          placeholder="Filter by student, title, or faculty"
+          className="w-full max-w-md border-slate-200 bg-white"
+        />
+
+        <Input
+          type="number"
+          inputMode="numeric"
+          value={academicStartYear}
+          onChange={(event) => setAcademicStartYear(event.target.value)}
+          placeholder="Academic start year"
+          className="w-32 border-slate-200 bg-white"
+        />
+
+        <Input
+          type="number"
+          inputMode="numeric"
+          value={academicEndYear}
+          onChange={(event) => setAcademicEndYear(event.target.value)}
+          placeholder="Academic end year"
+          className="w-32 border-slate-200 bg-white"
+        />
+
         {selectedFacultyName && !loading && (
           <Badge
             variant="outline"
             className="border-slate-200 bg-slate-50 text-slate-700"
           >
-            {submissions.length} {submissions.length === 1 ? "submission" : "submissions"} in {selectedFacultyName}
+            {filteredSubmissions.length} {filteredSubmissions.length === 1 ? "submission" : "submissions"} in {selectedFacultyName}
           </Badge>
         )}
       </div>
@@ -326,17 +415,31 @@ export default function ManagerSubmissionsPage() {
         <div className="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {error}
         </div>
-      ) : submissions.length === 0 ? (
+      ) : filteredSubmissions.length === 0 ? (
         <div className="rounded-xl border border-slate-200 bg-white px-6 py-12 text-center">
           <p className="text-slate-500">
-            No submissions have been selected for publication yet.
+            No submissions match the selected filters.
           </p>
         </div>
       ) : (
-        <div className="space-y-8">
+        <Tabs
+          value={activeYearId ?? groupedByYear[0][0]}
+          onValueChange={setActiveYearId}
+          className="space-y-4"
+        >
+          <TabsList className="h-auto w-full flex-wrap justify-start gap-2 bg-slate-100 p-2">
+            {groupedByYear.map(([yearId, { label, submissions: yearSubs }]) => (
+              <TabsTrigger key={yearId} value={yearId} className="gap-2">
+                {label}
+                <Badge className="bg-slate-200 text-slate-700 border-slate-300">
+                  {yearSubs.length}
+                </Badge>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
           {groupedByYear.map(([yearId, { label, submissions: yearSubs }]) => (
-            <section key={yearId} className="space-y-3">
-              {/* Year header with download button */}
+            <TabsContent key={yearId} value={yearId} className="space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <h2 className="text-lg font-semibold text-slate-900">{label}</h2>
@@ -364,7 +467,6 @@ export default function ManagerSubmissionsPage() {
                 </Button>
               </div>
 
-              {/* Year table */}
               <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
                 <table className="w-full text-left">
                   <thead className="border-b border-slate-200 bg-slate-50 text-slate-700">
@@ -405,9 +507,9 @@ export default function ManagerSubmissionsPage() {
                   </tbody>
                 </table>
               </div>
-            </section>
+            </TabsContent>
           ))}
-        </div>
+        </Tabs>
       )}
 
       {/* Slide-over panel */}

@@ -138,6 +138,10 @@ export default function StudentSubmissionsPage() {
   const [title, setTitle] = useState("");
   const [titleError, setTitleError] = useState("");
   const [notes, setNotes] = useState("");
+  const [previewOverview, setPreviewOverview] = useState("");
+  const [previewContentTitles, setPreviewContentTitles] = useState<string[]>([]);
+  const [contentTitleInput, setContentTitleInput] = useState("");
+  const [editingContentTitleIndex, setEditingContentTitleIndex] = useState<number | null>(null);
   const [draftFileNames, setDraftFileNames] = useState<string[]>([]);
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
   const [draftSubmissionId, setDraftSubmissionId] = useState<string | null>(null);
@@ -167,6 +171,7 @@ export default function StudentSubmissionsPage() {
       submittedAt: string | null;
       commentCount: number;
       reviewStatus: string;
+      preview: { overview: string | null; contentTitles: string[] };
       academicYearId: string | null;
       academicYear: { id: string; yearLabel: string; isActive: boolean } | null;
       files: { id: string; url: string; pathname: string; createdAt: string }[];
@@ -338,12 +343,27 @@ export default function StudentSubmissionsPage() {
         agreed?: boolean;
         title?: string;
         notes?: string;
+        previewOverview?: string;
+        previewContentTitles?: string[] | string;
         fileNames?: string[];
         savedAt?: string;
         submissionId?: string;
       };
+      const restoredContentTitles = Array.isArray(parsed.previewContentTitles)
+        ? parsed.previewContentTitles
+            .map((item) => item.trim())
+            .filter((item) => item.length > 0)
+        : typeof parsed.previewContentTitles === "string"
+          ? parsed.previewContentTitles
+              .split("\n")
+              .map((item) => item.trim())
+              .filter((item) => item.length > 0)
+          : [];
       setAgreed(Boolean(parsed.agreed));
+      setTitle(parsed.title ?? "");
       setNotes(parsed.notes ?? "");
+      setPreviewOverview(parsed.previewOverview ?? "");
+      setPreviewContentTitles(restoredContentTitles);
       setDraftFileNames(Array.isArray(parsed.fileNames) ? parsed.fileNames : []);
       setDraftSavedAt(parsed.savedAt ?? null);
       setDraftSubmissionId(parsed.submissionId ?? null);
@@ -395,6 +415,10 @@ export default function StudentSubmissionsPage() {
     setFiles([]);
     setTitle("");
     setNotes("");
+    setPreviewOverview("");
+    setPreviewContentTitles([]);
+    setContentTitleInput("");
+    setEditingContentTitleIndex(null);
     setDraftFileNames([]);
     setDraftSavedAt(null);
     setDraftSubmissionId(null);
@@ -411,6 +435,7 @@ export default function StudentSubmissionsPage() {
     status: "DRAFT" | "SUBMITTED";
     title: string | null;
     notes: string | null;
+    preview: { overview: string | null; contentTitles: string[] };
     files: { id: string; url: string; pathname: string; createdAt: string }[];
     updatedAt: string;
   }) {
@@ -419,6 +444,10 @@ export default function StudentSubmissionsPage() {
     setDraftSubmissionId(submission.id);
     setTitle(submission.title ?? "");
     setNotes(submission.notes ?? "");
+    setPreviewOverview(submission.preview?.overview ?? "");
+    setPreviewContentTitles(submission.preview?.contentTitles ?? []);
+    setContentTitleInput("");
+    setEditingContentTitleIndex(null);
     setAgreed(true);
     setFiles([]);
     setDraftFileNames(submission.files.map((file) => file.pathname));
@@ -474,6 +503,46 @@ export default function StudentSubmissionsPage() {
     setFiles((prev) => prev.filter((_, idx) => idx !== index));
   }
 
+  function addOrUpdateContentTitle() {
+    const value = contentTitleInput.trim();
+    if (!value) return;
+    if (editingContentTitleIndex !== null) {
+      setPreviewContentTitles((prev) =>
+        prev.map((item, index) =>
+          index === editingContentTitleIndex ? value : item
+        )
+      );
+      setEditingContentTitleIndex(null);
+      setContentTitleInput("");
+      return;
+    }
+    setPreviewContentTitles((prev) => [...prev, value]);
+    setContentTitleInput("");
+  }
+
+  function editContentTitle(index: number) {
+    setContentTitleInput(previewContentTitles[index] ?? "");
+    setEditingContentTitleIndex(index);
+  }
+
+  function deleteContentTitle(index: number) {
+    setPreviewContentTitles((prev) => prev.filter((_, itemIndex) => itemIndex !== index));
+    if (editingContentTitleIndex === null) return;
+    if (editingContentTitleIndex === index) {
+      setEditingContentTitleIndex(null);
+      setContentTitleInput("");
+      return;
+    }
+    if (editingContentTitleIndex > index) {
+      setEditingContentTitleIndex((prev) => (prev === null ? null : prev - 1));
+    }
+  }
+
+  function cancelContentTitleEdit() {
+    setEditingContentTitleIndex(null);
+    setContentTitleInput("");
+  }
+
   async function loadSubmissions() {
     try {
       setSubmissionsLoading(true);
@@ -488,6 +557,7 @@ export default function StudentSubmissionsPage() {
           status: "DRAFT" | "SUBMITTED";
           title: string | null;
           notes: string | null;
+          preview: { overview: string | null; contentTitles: string[] };
           createdAt: string;
           updatedAt: string;
           submittedAt: string | null;
@@ -529,6 +599,8 @@ export default function StudentSubmissionsPage() {
         agreed,
         title: title || null,
         notes,
+        previewOverview,
+        previewContentTitles,
         status: nextStatus,
       }),
     });
@@ -575,7 +647,10 @@ export default function StudentSubmissionsPage() {
         DRAFT_STORAGE_KEY,
         JSON.stringify({
           agreed,
+          title,
           notes,
+          previewOverview,
+          previewContentTitles,
           fileNames,
           savedAt,
           submissionId,
@@ -1070,6 +1145,92 @@ export default function StudentSubmissionsPage() {
                         </ul>
                       </div>
                     )}
+
+                  <div className="space-y-2">
+                    <Label htmlFor="submission-preview-content-titles">
+                      Content Title List
+                    </Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="submission-preview-content-titles"
+                        value={contentTitleInput}
+                        onChange={(event) => setContentTitleInput(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key !== "Enter") return;
+                          event.preventDefault();
+                          addOrUpdateContentTitle();
+                        }}
+                        placeholder="Enter one content title"
+                        disabled={isClosed || isBusy}
+                      />
+                      <Button
+                        type="button"
+                        onClick={addOrUpdateContentTitle}
+                        disabled={isClosed || isBusy || contentTitleInput.trim().length === 0}
+                      >
+                        {editingContentTitleIndex !== null ? "Update" : "Add"}
+                      </Button>
+                      {editingContentTitleIndex !== null ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={cancelContentTitleEdit}
+                          disabled={isClosed || isBusy}
+                        >
+                          Cancel
+                        </Button>
+                      ) : null}
+                    </div>
+                    {previewContentTitles.length > 0 ? (
+                      <ul className="space-y-2 rounded-md border border-slate-200 bg-slate-50 p-3">
+                        {previewContentTitles.map((item, index) => (
+                          <li
+                            key={`${item}-${index}`}
+                            className="flex items-center justify-between gap-3 rounded-md bg-white px-3 py-2 text-sm"
+                          >
+                            <span className="break-words text-slate-800">{item}</span>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => editContentTitle(index)}
+                                disabled={isClosed || isBusy}
+                              >
+                                Edit
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => deleteContentTitle(index)}
+                                disabled={isClosed || isBusy}
+                              >
+                                Delete
+                              </Button>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                    <p className="text-xs text-slate-500">
+                      These titles appear in guest preview details.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="submission-preview-overview">
+                      Contribution Overview
+                    </Label>
+                    <textarea
+                      id="submission-preview-overview"
+                      className="min-h-[120px] w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                      placeholder="Write a short overview for guests to preview this submission."
+                      value={previewOverview}
+                      onChange={(event) => setPreviewOverview(event.target.value)}
+                      disabled={isClosed || isBusy}
+                    />
+                  </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="submission-notes">Notes</Label>
