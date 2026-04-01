@@ -182,9 +182,16 @@ export default function CoordinatorSubmissionsPage() {
       setError(null);
       try {
         const query = search.trim();
-        const url = query
-          ? `/api/coordinator/submissions?page=${page}&pageSize=${pageSize}&q=${encodeURIComponent(query)}`
-          : `/api/coordinator/submissions?page=${page}&pageSize=${pageSize}`;
+        const params = new URLSearchParams({
+          page: String(page),
+          pageSize: String(pageSize),
+          filter: filterStatus,
+          sort: sortBy,
+        });
+        if (query) {
+          params.set("q", query);
+        }
+        const url = `/api/coordinator/submissions?${params.toString()}`;
         const res = await fetch(url);
         const data = (await res.json()) as {
           submissions?: SubmissionRow[];
@@ -213,7 +220,7 @@ export default function CoordinatorSubmissionsPage() {
     return () => {
       cancelled = true;
     };
-  }, [page, pageSize, search]);
+  }, [page, pageSize, search, filterStatus, sortBy]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -418,34 +425,12 @@ export default function CoordinatorSubmissionsPage() {
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // Filtered & sorted submissions
-  // ---------------------------------------------------------------------------
-
-  const filteredSubmissions = submissions
-    .filter((s) => {
-      if (filterStatus === "selected") return s.isSelected;
-      if (filterStatus === "not-selected") return !s.isSelected;
-      if (filterStatus === "no-comments") return s.commentCount === 0;
-      return true;
-    })
-    .sort((a, b) => {
-      if (sortBy === "no-comments-priority") {
-        const aNoComment = a.commentCount === 0 ? 0 : 1;
-        const bNoComment = b.commentCount === 0 ? 0 : 1;
-        if (aNoComment !== bNoComment) return aNoComment - bNoComment;
-        return new Date(a.submittedAt ?? 0).getTime() - new Date(b.submittedAt ?? 0).getTime();
-      }
-      if (sortBy === "selected") {
-        if (a.isSelected !== b.isSelected) return a.isSelected ? -1 : 1;
-        return new Date(b.submittedAt ?? 0).getTime() - new Date(a.submittedAt ?? 0).getTime();
-      }
-      if (sortBy === "date-asc") {
-        return new Date(a.submittedAt ?? 0).getTime() - new Date(b.submittedAt ?? 0).getTime();
-      }
-      // date-desc (default)
-      return new Date(b.submittedAt ?? 0).getTime() - new Date(a.submittedAt ?? 0).getTime();
-    });
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, pageSize, total]);
 
   // ---------------------------------------------------------------------------
   // Derive hasDownloaded for the currently selected submission
@@ -524,7 +509,7 @@ export default function CoordinatorSubmissionsPage() {
 
           {filterStatus !== "all" && (
             <Badge variant="outline" className="border-slate-200 bg-slate-50 text-slate-700">
-              Showing {filteredSubmissions.length} of {total}
+              Filtered total: {total}
             </Badge>
           )}
         </div>
@@ -583,11 +568,6 @@ export default function CoordinatorSubmissionsPage() {
       {/* Submissions table */}
       {!loading && !error && submissions.length > 0 && (
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-          {filteredSubmissions.length === 0 ? (
-            <div className="px-6 py-12 text-center">
-              <p className="text-slate-500">No submissions match the current search/filter.</p>
-            </div>
-          ) : (
           <table className="w-full text-left">
             <thead className="border-b border-slate-200 bg-slate-50 text-slate-700">
               <tr>
@@ -611,7 +591,7 @@ export default function CoordinatorSubmissionsPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredSubmissions.map((submission) => (
+              {submissions.map((submission) => (
                 <tr
                   key={submission.id}
                   className="cursor-pointer border-t border-slate-200 text-slate-900 hover:bg-slate-50"
@@ -660,7 +640,6 @@ export default function CoordinatorSubmissionsPage() {
               ))}
             </tbody>
           </table>
-          )}
         </div>
       )}
 
