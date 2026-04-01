@@ -29,6 +29,10 @@ function matchesPath(pathname: string, route: string) {
   return pathname === route || pathname.startsWith(`${route}/`);
 }
 
+function matchesAnyPath(pathname: string, routes: string[]) {
+  return routes.some((route) => matchesPath(pathname, route));
+}
+
 function getRoleHome(role?: string | null) {
   if (!role) {
     return "/sign-in";
@@ -41,71 +45,36 @@ function canAccessPath(role: string, pathname: string) {
     return matchesPath(pathname, "/guest");
   }
 
-  if (matchesPath(pathname, "/guest")) {
-    return false;
-  }
-
-  if (matchesPath(pathname, "/profile")) {
-    return true;
-  }
-
-  if (pathname === "/") {
-    return true;
-  }
-
   if (role === "ADMINISTRATOR") {
-    if (
-      matchesPath(pathname, "/student") ||
-      matchesPath(pathname, "/coordinator") ||
-      matchesPath(pathname, "/manager")
-    ) {
-      return false;
-    }
-    return true;
+    return matchesAnyPath(pathname, [
+      "/",
+      "/profile",
+      "/reports",
+      "/admin",
+    ]);
   }
 
   if (role === "MARKETING_MANAGER") {
-    if (
-      matchesPath(pathname, "/student") ||
-      matchesPath(pathname, "/coordinator")
-    ) {
-      return false;
-    }
-    if (matchesPath(pathname, "/admin/analytics")) {
-      return true;
-    }
-    if (matchesPath(pathname, "/admin")) {
-      return false;
-    }
-    if (matchesPath(pathname, "/manager") || matchesPath(pathname, "/reports")) {
-      return true;
-    }
-    return false;
+    return matchesAnyPath(pathname, [
+      "/",
+      "/profile",
+      "/manager",
+      "/reports",
+      "/admin/analytics",
+    ]);
   }
 
   if (role === "MARKETING_COORDINATOR") {
-    if (
-      matchesPath(pathname, "/student") ||
-      matchesPath(pathname, "/manager") ||
-      matchesPath(pathname, "/admin")
-    ) {
-      return false;
-    }
-    if (matchesPath(pathname, "/coordinator") || matchesPath(pathname, "/reports")) {
-      return true;
-    }
-    return false;
+    return matchesAnyPath(pathname, [
+      "/",
+      "/profile",
+      "/coordinator",
+      "/reports",
+    ]);
   }
 
   if (role === "STUDENT") {
-    if (
-      matchesPath(pathname, "/student") ||
-      matchesPath(pathname, "/profile") ||
-      pathname === "/"
-    ) {
-      return true;
-    }
-    return false;
+    return matchesAnyPath(pathname, ["/", "/profile", "/student"]);
   }
 
   return false;
