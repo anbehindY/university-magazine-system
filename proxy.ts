@@ -1,5 +1,4 @@
 import { betterFetch } from "@better-fetch/fetch";
-import type { Session } from "better-auth/types";
 import { NextRequest, NextResponse } from "next/server";
 
 type AppRole =
@@ -8,6 +7,15 @@ type AppRole =
   | "MARKETING_COORDINATOR"
   | "STUDENT"
   | "GUEST";
+
+type SessionUser = {
+  role?: string | null;
+  mustChangePassword?: boolean | null;
+};
+
+type AuthSessionResponse = {
+  user?: SessionUser | null;
+};
 
 const HOME_BY_ROLE: Record<AppRole, string> = {
   ADMINISTRATOR: "/",
@@ -108,7 +116,7 @@ export async function proxy(request: NextRequest) {
   const isAuthPage =
     pathname === "/sign-in" || pathname === "/register" || pathname === "/change-password";
 
-  const { data: session } = await betterFetch<Session>(
+  const { data: sessionData } = await betterFetch<AuthSessionResponse>(
     "/api/auth/get-session",
     {
       baseURL: request.nextUrl.origin,
@@ -118,16 +126,18 @@ export async function proxy(request: NextRequest) {
     },
   );
 
-  if (!session) {
+  const user = sessionData?.user ?? null;
+
+  if (!user) {
     if (isAuthPage) {
       return NextResponse.next();
     }
     return NextResponse.redirect(new URL("/sign-in", request.url));
   }
 
-  const role = session.user?.role;
+  const role = user.role;
   const userHome = getRoleHome(role);
-  const mustChangePassword = Boolean(session.user?.mustChangePassword);
+  const mustChangePassword = Boolean(user.mustChangePassword);
 
   if (mustChangePassword && pathname !== "/change-password") {
     return NextResponse.redirect(new URL("/change-password", request.url));
