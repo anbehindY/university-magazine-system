@@ -13,6 +13,7 @@ import {
   Users,
 } from "lucide-react";
 import * as React from "react";
+import Link from "next/link";
 
 function MagazineLogo({ className }: { className?: string }) {
   return (
@@ -143,7 +144,7 @@ export function AppSidebar({
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <a
+        <Link
           href="/"
           className="flex items-center gap-3 px-3 py-4 transition-[gap,padding] duration-200 ease-linear group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:justify-center"
         >
@@ -158,7 +159,7 @@ export function AppSidebar({
               Contribution System
             </div>
           </div>
-        </a>
+        </Link>
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={buildPages(sessionUser.role)} />

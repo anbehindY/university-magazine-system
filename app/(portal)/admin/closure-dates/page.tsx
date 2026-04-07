@@ -150,13 +150,6 @@ export default function AdminPanelPage() {
   const [historyLoading, setHistoryLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
 
-  // ── active year inline edit form ──────────────────────────────────────────
-  const [draftLabel, setDraftLabel] = useState("");
-  const [draftFirst, setDraftFirst] = useState<Date | undefined>();
-  const [draftFinal, setDraftFinal] = useState<Date | undefined>();
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "error">("idle");
-  const [saveError, setSaveError] = useState("");
-
   // ── setup form (no active year) ───────────────────────────────────────────
   const [setupLabel, setSetupLabel] = useState("");
   const [setupFirst, setSetupFirst] = useState<Date | undefined>();
@@ -187,16 +180,9 @@ export default function AdminPanelPage() {
 
   // ── derived ───────────────────────────────────────────────────────────────
   const activeYear = history.find((y) => y.isActive) ?? null;
-  const draftYearLabelForRange = activeYear ? activeYear.yearLabel : draftLabel;
-  const draftYearRange = getYearRange(draftYearLabelForRange);
   const setupYearRange = getYearRange(setupLabel);
   const rolloverYearRange = getYearRange(rolloverLabel);
   const nextCreationDay = dayAfter(new Date());
-  const draftFirstMinDate = draftYearRange
-    ? nextCreationDay.getTime() > draftYearRange.start.getTime()
-      ? nextCreationDay
-      : draftYearRange.start
-    : nextCreationDay;
   const setupFirstMinDate = setupYearRange
     ? nextCreationDay.getTime() > setupYearRange.start.getTime()
       ? nextCreationDay
@@ -207,16 +193,12 @@ export default function AdminPanelPage() {
       ? nextCreationDay
       : rolloverYearRange.start
     : nextCreationDay;
-  const draftHasYearLabel = draftYearLabelForRange.trim().length > 0;
   const setupHasYearLabel = setupLabel.trim().length > 0;
   const rolloverHasYearLabel = rolloverLabel.trim().length > 0;
-  const draftFirstDisabled = draftFirstMinDate ? { before: draftFirstMinDate } : undefined;
   const setupFirstDisabled = setupFirstMinDate ? { before: setupFirstMinDate } : undefined;
   const rolloverFirstDisabled = rolloverFirstMinDate ? { before: rolloverFirstMinDate } : undefined;
-  const draftFinalDisabled = draftFirst ? { before: dayAfter(draftFirst) } : undefined;
   const setupFinalDisabled = setupFirst ? { before: dayAfter(setupFirst) } : undefined;
   const rolloverFinalDisabled = rolloverFirst ? { before: dayAfter(rolloverFirst) } : undefined;
-  const draftFinalStartMonth = draftFirst ? monthStart(draftFirst) : draftYearRange?.start;
   const setupFinalStartMonth = setupFirst ? monthStart(setupFirst) : setupYearRange?.start;
   const rolloverFinalStartMonth = rolloverFirst
     ? monthStart(rolloverFirst)
@@ -255,7 +237,6 @@ export default function AdminPanelPage() {
     if (!isDuplicateYearLabel(label, excludeId)) return "";
     return `Academic year ${normalizeYearLabel(label)} already exists.`;
   };
-  const draftLabelDuplicateMessage = getDuplicateYearLabelMessage(draftLabel);
   const setupLabelDuplicateMessage = getDuplicateYearLabelMessage(setupLabel);
   const previousEditLabelDuplicateMessage = getDuplicateYearLabelMessage(
     previousEditLabel,
@@ -283,14 +264,6 @@ export default function AdminPanelPage() {
   };
 
   useEffect(() => {
-    if (isFinalNotAfterFirst(draftFirst, draftFinal)) {
-      setDraftFinal(undefined);
-      setSaveStatus("error");
-      setSaveError("Final closure date must be later than first closure date.");
-    }
-  }, [draftFirst, draftFinal]);
-
-  useEffect(() => {
     if (isFinalNotAfterFirst(setupFirst, setupFinal)) {
       setSetupFinal(undefined);
       setSetupStatus("error");
@@ -305,17 +278,6 @@ export default function AdminPanelPage() {
       setRolloverError("Final closure date must be later than first closure date.");
     }
   }, [rolloverFirst, rolloverFinal]);
-
-  // Sync inline form whenever the active year changes (e.g. after a save)
-  useEffect(() => {
-    if (activeYear) {
-      setDraftLabel(activeYear.yearLabel);
-      setDraftFirst(activeYear.firstClosureDate ? new Date(activeYear.firstClosureDate) : undefined);
-      setDraftFinal(activeYear.finalClosureDate ? new Date(activeYear.finalClosureDate) : undefined);
-      setSaveStatus("idle");
-      setSaveError("");
-    }
-  }, [activeYear?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── data fetching ─────────────────────────────────────────────────────────
   async function loadHistory() {
@@ -368,54 +330,6 @@ export default function AdminPanelPage() {
       throw new Error(payload?.error ?? "Failed to activate.");
     }
     await loadHistory();
-  }
-
-  // ── save active year ──────────────────────────────────────────────────────
-  async function saveActive(e: React.FormEvent) {
-    e.preventDefault();
-    if (!activeYear) return;
-    if (draftLabelDuplicateMessage) {
-      setSaveStatus("error");
-      setSaveError(draftLabelDuplicateMessage);
-      return;
-    }
-    const lockedYearLabel = normalizeYearLabel(activeYear.yearLabel);
-    const validationError = validateYearAndClosures(
-      lockedYearLabel,
-      draftFirst,
-      draftFinal,
-      nextCreationDay
-    );
-    if (validationError) {
-      setSaveStatus("error");
-      setSaveError(validationError);
-      return;
-    }
-    setSaveStatus("saving");
-    setSaveError("");
-    try {
-      const res = await fetch("/api/admin/academic-years", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: activeYear.id,
-          yearLabel: lockedYearLabel,
-          firstClosureDate: draftFirst?.toISOString() ?? null,
-          finalClosureDate: draftFinal?.toISOString() ?? null,
-          isActive: true, // keep it active
-        }),
-      });
-      if (!res.ok) {
-        const payload = (await res.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(payload?.error ?? "Failed to save.");
-      }
-      await loadHistory();
-      toast.success("Closure dates saved successfully.");
-      setSaveStatus("idle");
-    } catch (error) {
-      setSaveStatus("error");
-      setSaveError(error instanceof Error ? error.message : "Failed to save.");
-    }
   }
 
   // ── first-time setup ──────────────────────────────────────────────────────

@@ -9,7 +9,7 @@ import {
 import { type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export function NavMain({
   items,
@@ -23,11 +23,6 @@ export function NavMain({
 }) {
   const pathname = usePathname();
   const [pendingUrl, setPendingUrl] = useState<string | null>(null);
-
-  // Clear pending state once navigation completes
-  useEffect(() => {
-    setPendingUrl(null);
-  }, [pathname]);
 
   return (
     <SidebarGroup>
