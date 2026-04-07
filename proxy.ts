@@ -108,11 +108,15 @@ export async function proxy(request: NextRequest) {
   const userHome = getRoleHome(role);
   const mustChangePassword = Boolean(user.mustChangePassword);
 
-  if (mustChangePassword && pathname !== "/change-password") {
-    return NextResponse.redirect(new URL("/change-password", request.url));
+  if (mustChangePassword) {
+    if (pathname !== "/change-password") {
+      return NextResponse.redirect(new URL("/change-password", request.url));
+    }
+    // Allow password-change screen even if role is missing/invalid for first login.
+    return NextResponse.next();
   }
 
-  if (!mustChangePassword && pathname === "/change-password") {
+  if (pathname === "/change-password") {
     return NextResponse.redirect(new URL(userHome, request.url));
   }
 

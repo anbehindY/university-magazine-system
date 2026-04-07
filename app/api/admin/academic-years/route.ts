@@ -17,7 +17,7 @@ function parseDateTime(value?: string | null) {
 }
 
 function parseYearRange(yearLabel: string) {
-  const match = yearLabel.trim().match(/^(\d{4})-(\d{4})$/);
+  const match = yearLabel.trim().match(/^(\d{4})\s*[-‐‑‒–—−]\s*(\d{4})$/);
   if (!match) return null;
   const startYear = parseInt(match[1], 10);
   const endYear = parseInt(match[2], 10);
@@ -27,6 +27,13 @@ function parseYearRange(yearLabel: string) {
     start: new Date(startYear, 0, 1, 0, 0, 0, 0),
     end: new Date(endYear, 11, 31, 23, 59, 59, 999),
   };
+}
+
+function normalizeYearLabel(value: string) {
+  const trimmed = value.trim();
+  const match = trimmed.match(/^(\d{4})\s*[-‐‑‒–—−]\s*(\d{4})$/);
+  if (!match) return trimmed;
+  return `${match[1]}-${match[2]}`;
 }
 
 function getStartOfNextDay(baseDate: Date) {
@@ -148,7 +155,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    const normalizedYearLabel = body.yearLabel.trim();
+    const normalizedYearLabel = normalizeYearLabel(body.yearLabel);
     const minFirstClosureDate = getStartOfNextDay(new Date());
     const validationError = validateClosureDates(
       normalizedYearLabel,
@@ -162,11 +169,13 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    const existingYear = await prisma.academicYear.findFirst({
-      where: { yearLabel: normalizedYearLabel },
-      select: { id: true },
+    const existingYears = await prisma.academicYear.findMany({
+      select: { id: true, yearLabel: true },
     });
-    if (existingYear) {
+    const hasDuplicate = existingYears.some(
+      (row) => normalizeYearLabel(row.yearLabel) === normalizedYearLabel
+    );
+    if (hasDuplicate) {
       return NextResponse.json(
         { error: `Academic year ${normalizedYearLabel} already exists.` },
         { status: 400 }
@@ -215,15 +224,24 @@ export async function PUT(req: NextRequest) {
         { status: 400 }
       );
     }
-    const normalizedYearLabel = body.yearLabel.trim();
+    const normalizedYearLabel = normalizeYearLabel(body.yearLabel);
     const existingRecord = await prisma.academicYear.findUnique({
       where: { id: body.id },
-      select: { id: true },
+      select: { id: true, yearLabel: true, isActive: true },
     });
     if (!existingRecord) {
       return NextResponse.json(
         { error: "Academic year not found." },
         { status: 404 }
+      );
+    }
+    if (
+      existingRecord.isActive &&
+      normalizeYearLabel(existingRecord.yearLabel) !== normalizedYearLabel
+    ) {
+      return NextResponse.json(
+        { error: "Active academic year label cannot be changed." },
+        { status: 400 }
       );
     }
     const minFirstClosureDate = getStartOfNextDay(new Date());
@@ -239,14 +257,14 @@ export async function PUT(req: NextRequest) {
         { status: 400 }
       );
     }
-    const duplicateYear = await prisma.academicYear.findFirst({
-      where: {
-        yearLabel: normalizedYearLabel,
-        id: { not: body.id },
-      },
-      select: { id: true },
+    const otherYears = await prisma.academicYear.findMany({
+      where: { id: { not: body.id } },
+      select: { id: true, yearLabel: true },
     });
-    if (duplicateYear) {
+    const hasDuplicate = otherYears.some(
+      (row) => normalizeYearLabel(row.yearLabel) === normalizedYearLabel
+    );
+    if (hasDuplicate) {
       return NextResponse.json(
         { error: `Academic year ${normalizedYearLabel} already exists.` },
         { status: 400 }
@@ -386,6 +404,23 @@ export async function DELETE(req: NextRequest) {
     if (!body.id) {
       return NextResponse.json(
         { error: "Missing record id" },
+        { status: 400 }
+      );
+    }
+
+    const existingRecord = await prisma.academicYear.findUnique({
+      where: { id: body.id },
+      select: { id: true, isActive: true },
+    });
+    if (!existingRecord) {
+      return NextResponse.json(
+        { error: "Academic year not found." },
+        { status: 404 }
+      );
+    }
+    if (existingRecord.isActive) {
+      return NextResponse.json(
+        { error: "Current active academic year cannot be deleted." },
         { status: 400 }
       );
     }
