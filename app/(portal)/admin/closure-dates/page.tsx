@@ -23,6 +23,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 
 type AcademicYearItem = {
   id: string;
@@ -50,13 +51,13 @@ function isPastYear(item: AcademicYearItem) {
 }
 
 function incrementYearLabel(label: string): string {
-  const match = label.match(/^(\d{4})-(\d{4})$/);
+  const match = label.trim().match(/^(\d{4})\s*[-‐‑‒–—−]\s*(\d{4})$/);
   if (!match) return "";
   return `${Number(match[1]) + 1}-${Number(match[2]) + 1}`;
 }
 
 function getYearRange(label: string) {
-  const match = label.trim().match(/^(\d{4})-(\d{4})$/);
+  const match = label.trim().match(/^(\d{4})\s*[-‐‑‒–—−]\s*(\d{4})$/);
   if (!match) return null;
   const startYear = Number(match[1]);
   const endYear = Number(match[2]);
@@ -180,11 +181,14 @@ export default function AdminPanelPage() {
   const [previousEditIsActive, setPreviousEditIsActive] = useState(false);
   const [previousEditStatus, setPreviousEditStatus] = useState<"idle" | "saving" | "error">("idle");
   const [previousEditError, setPreviousEditError] = useState("");
+  const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
 
   // ── derived ───────────────────────────────────────────────────────────────
   const activeYear = history.find((y) => y.isActive) ?? null;
-  const draftYearRange = getYearRange(draftLabel);
+  const draftYearLabelForRange = activeYear ? activeYear.yearLabel : draftLabel;
+  const draftYearRange = getYearRange(draftYearLabelForRange);
   const setupYearRange = getYearRange(setupLabel);
   const rolloverYearRange = getYearRange(rolloverLabel);
   const nextCreationDay = dayAfter(new Date());
@@ -203,7 +207,7 @@ export default function AdminPanelPage() {
       ? nextCreationDay
       : rolloverYearRange.start
     : nextCreationDay;
-  const draftHasYearLabel = draftLabel.trim().length > 0;
+  const draftHasYearLabel = draftYearLabelForRange.trim().length > 0;
   const setupHasYearLabel = setupLabel.trim().length > 0;
   const rolloverHasYearLabel = rolloverLabel.trim().length > 0;
   const draftFirstDisabled = draftFirstMinDate ? { before: draftFirstMinDate } : undefined;
@@ -231,7 +235,12 @@ export default function AdminPanelPage() {
   const previousEditFinalStartMonth = previousEditFirst
     ? monthStart(previousEditFirst)
     : previousEditYearRange?.start;
-  const normalizeYearLabel = (value: string) => value.trim();
+  const normalizeYearLabel = (value: string) => {
+    const trimmed = value.trim();
+    const match = trimmed.match(/^(\d{4})\s*[-‐‑‒–—−]\s*(\d{4})$/);
+    if (!match) return trimmed;
+    return `${match[1]}-${match[2]}`;
+  };
   const isDuplicateYearLabel = (label: string, excludeId?: string) => {
     const normalizedLabel = normalizeYearLabel(label);
     return history.some(
@@ -240,6 +249,19 @@ export default function AdminPanelPage() {
         normalizeYearLabel(item.yearLabel) === normalizedLabel
     );
   };
+  const getDuplicateYearLabelMessage = (label: string, excludeId?: string) => {
+    if (!label.trim()) return "";
+    if (!getYearRange(label)) return "";
+    if (!isDuplicateYearLabel(label, excludeId)) return "";
+    return `Academic year ${normalizeYearLabel(label)} already exists.`;
+  };
+  const draftLabelDuplicateMessage = getDuplicateYearLabelMessage(draftLabel);
+  const setupLabelDuplicateMessage = getDuplicateYearLabelMessage(setupLabel);
+  const previousEditLabelDuplicateMessage = getDuplicateYearLabelMessage(
+    previousEditLabel,
+    previousEditId
+  );
+  const rolloverLabelDuplicateMessage = getDuplicateYearLabelMessage(rolloverLabel);
   const sortedAcademicYears = useMemo(() => {
     const dateValue = (value: string | null) => (value ? new Date(value).getTime() : 0);
     const direction = previousSortDir === "asc" ? 1 : -1;
@@ -253,6 +275,12 @@ export default function AdminPanelPage() {
       return (dateValue(a.finalClosureDate) - dateValue(b.finalClosureDate)) * direction;
     });
   }, [history, previousSortColumn, previousSortDir]);
+  const canUseStatusSwitch = (yearLabel: string) => {
+    const range = getYearRange(yearLabel);
+    if (!range) return false;
+    const currentYear = new Date().getFullYear();
+    return range.start.getFullYear() >= currentYear - 1;
+  };
 
   useEffect(() => {
     if (isFinalNotAfterFirst(draftFirst, draftFinal)) {
@@ -346,8 +374,14 @@ export default function AdminPanelPage() {
   async function saveActive(e: React.FormEvent) {
     e.preventDefault();
     if (!activeYear) return;
+    if (draftLabelDuplicateMessage) {
+      setSaveStatus("error");
+      setSaveError(draftLabelDuplicateMessage);
+      return;
+    }
+    const lockedYearLabel = normalizeYearLabel(activeYear.yearLabel);
     const validationError = validateYearAndClosures(
-      draftLabel,
+      lockedYearLabel,
       draftFirst,
       draftFinal,
       nextCreationDay
@@ -355,11 +389,6 @@ export default function AdminPanelPage() {
     if (validationError) {
       setSaveStatus("error");
       setSaveError(validationError);
-      return;
-    }
-    if (isDuplicateYearLabel(draftLabel, activeYear.id)) {
-      setSaveStatus("error");
-      setSaveError(`Academic year ${normalizeYearLabel(draftLabel)} already exists.`);
       return;
     }
     setSaveStatus("saving");
@@ -370,7 +399,7 @@ export default function AdminPanelPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: activeYear.id,
-          yearLabel: normalizeYearLabel(draftLabel),
+          yearLabel: lockedYearLabel,
           firstClosureDate: draftFirst?.toISOString() ?? null,
           finalClosureDate: draftFinal?.toISOString() ?? null,
           isActive: true, // keep it active
@@ -481,9 +510,9 @@ export default function AdminPanelPage() {
         const payload = (await createRes.json().catch(() => null)) as { error?: string } | null;
         throw new Error(payload?.error ?? "Failed to create new year.");
       }
-      const { academicYear } = (await createRes.json()) as { academicYear: AcademicYearItem };
-      await activate(academicYear.id);
-      toast.success(`Rolled over to ${rolloverLabel}.`);
+      await createRes.json();
+      await loadHistory();
+      toast.success(`Created ${normalizeYearLabel(rolloverLabel)} as inactive.`);
       setIsRolloverOpen(false);
     } catch (error) {
       setRolloverStatus("error");
@@ -559,6 +588,58 @@ export default function AdminPanelPage() {
     }
   }
 
+  async function handleStatusToggle(item: AcademicYearItem, checked: boolean) {
+    if (!canUseStatusSwitch(item.yearLabel)) return;
+    if (checked === item.isActive) return;
+    setStatusUpdatingId(item.id);
+    try {
+      const res = await fetch("/api/admin/academic-years", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: item.id, isActive: checked }),
+      });
+      if (!res.ok) {
+        const payload = (await res.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(payload?.error ?? "Failed to update status.");
+      }
+      await loadHistory();
+      toast.success(checked ? `${item.yearLabel} is now active.` : `${item.yearLabel} is now inactive.`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update status.");
+    } finally {
+      setStatusUpdatingId(null);
+    }
+  }
+
+  async function handleDeleteAcademicYear(item: AcademicYearItem) {
+    if (!canUseStatusSwitch(item.yearLabel)) return;
+    if (item.isActive) {
+      toast.error("Current active academic year cannot be deleted.");
+      return;
+    }
+    if (!window.confirm(`Are you sure you want to delete this academic year (${item.yearLabel})?`)) {
+      return;
+    }
+    setDeletingId(item.id);
+    try {
+      const res = await fetch("/api/admin/academic-years", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: item.id }),
+      });
+      if (!res.ok) {
+        const payload = (await res.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(payload?.error ?? "Failed to delete academic year.");
+      }
+      await loadHistory();
+      toast.success(`Deleted ${item.yearLabel}.`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete academic year.");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
 
   // ── render ────────────────────────────────────────────────────────────────
   return (
@@ -593,92 +674,19 @@ export default function AdminPanelPage() {
           ) : loadError ? (
             <p className="text-sm text-rose-600">{loadError}</p>
           ) : activeYear ? (
-            // ── inline edit form ──────────────────────────────────────────
-            <form onSubmit={saveActive} className="space-y-6">
-              <div className="grid gap-6 sm:grid-cols-3">
-                <div className="space-y-2">
-                  <Label htmlFor="draftLabel" className="text-slate-700">
-                    Year Label<RequiredMark />
-                  </Label>
-                  <p className="text-xs text-slate-500">Format: YYYY-YYYY</p>
-                  <Input
-                    id="draftLabel"
-                    className="border-slate-200 bg-white text-slate-900"
-                    value={draftLabel}
-                    onChange={(e) => { setDraftLabel(e.target.value); setSaveStatus("idle"); }}
-                    placeholder="e.g. 2025-2026"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-slate-700">
-                    First Closure Date<RequiredMark />
-                  </Label>
-                  <p className="text-xs text-slate-500">Students can&apos;t submit after this</p>
-                  <DateTimePicker
-                    value={draftFirst}
-                    onChange={(v) => {
-                      setDraftFirst(v);
-                      if (v && draftFinal && draftFinal.getTime() <= v.getTime()) {
-                        setDraftFinal(undefined);
-                      }
-                      setSaveStatus("idle");
-                    }}
-                    placeholder={draftHasYearLabel ? "Pick date & time" : "Enter year label first"}
-                    startMonth={draftYearRange?.start}
-                    endMonth={draftYearRange?.end}
-                    disabledDates={draftFirstDisabled}
-                    disabled={!draftHasYearLabel}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-slate-700">
-                    Final Closure Date<RequiredMark />
-                  </Label>
-                  <p className="text-xs text-slate-500">All edits locked after this</p>
-                  <DateTimePicker
-                    value={draftFinal}
-                    onChange={(v) => {
-                      if (isFinalNotAfterFirst(draftFirst, v)) {
-                        setDraftFinal(undefined);
-                        setSaveStatus("error");
-                        setSaveError("Final closure date must be later than first closure date.");
-                        return;
-                      }
-                      setDraftFinal(v);
-                      setSaveStatus("idle");
-                    }}
-                    placeholder={draftFirst ? "Pick date & time" : "Select first closure date first"}
-                    startMonth={draftFinalStartMonth}
-                    endMonth={draftYearRange?.end}
-                    disabledDates={draftFinalDisabled}
-                    disabled={!draftFirst}
-                  />
-                </div>
+            <div className="space-y-4">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                Current academic year: <span className="font-semibold">{activeYear.yearLabel}</span>
               </div>
-
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                  <Button
-                    type="submit"
-                    className="bg-slate-900 text-white hover:bg-slate-800"
-                    disabled={saveStatus === "saving"}
-                  >
-                    {saveStatus === "saving" ? "Saving..." : "Save Changes"}
-                  </Button>
-                  {saveStatus === "error" && (
-                    <p className="text-sm text-rose-600">{saveError}</p>
-                  )}
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="border-slate-200 text-slate-600"
-                  onClick={openRollover}
-                >
-                  Roll Over to Next Year →
-                </Button>
-              </div>
-            </form>
+              <Button
+                type="button"
+                variant="outline"
+                className="border-slate-200 text-slate-600"
+                onClick={openRollover}
+              >
+                Roll Over to Next Year →
+              </Button>
+            </div>
           ) : (
             // ── first-time setup form ────────────────────────────────────
             <form onSubmit={handleSetup} className="space-y-6">
@@ -692,9 +700,16 @@ export default function AdminPanelPage() {
                     id="setupLabel"
                     className="border-slate-200 bg-white text-slate-900"
                     value={setupLabel}
-                    onChange={(e) => setSetupLabel(e.target.value)}
+                    onChange={(e) => {
+                      setSetupLabel(e.target.value);
+                      setSetupStatus("idle");
+                      setSetupError("");
+                    }}
                     placeholder="e.g. 2025-2026"
                   />
+                  {setupLabelDuplicateMessage && (
+                    <p className="text-sm text-rose-600">{setupLabelDuplicateMessage}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label className="text-slate-700">
@@ -747,7 +762,7 @@ export default function AdminPanelPage() {
                 <Button
                   type="submit"
                   className="bg-slate-900 text-white hover:bg-slate-800"
-                  disabled={setupStatus === "saving"}
+                  disabled={setupStatus === "saving" || !!setupLabelDuplicateMessage}
                 >
                   {setupStatus === "saving" ? "Setting up..." : "Set Up & Activate"}
                 </Button>
@@ -817,6 +832,7 @@ export default function AdminPanelPage() {
                         />
                       </button>
                     </th>
+                    <th className="px-4 py-3">Status</th>
                     <th className="px-4 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -835,16 +851,40 @@ export default function AdminPanelPage() {
                       </td>
                       <td className="px-4 py-3 text-slate-700">{formatDatetime(item.firstClosureDate)}</td>
                       <td className="px-4 py-3 text-slate-700">{formatDatetime(item.finalClosureDate)}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <Switch
+                            checked={item.isActive}
+                            disabled={!canUseStatusSwitch(item.yearLabel) || statusUpdatingId === item.id}
+                            onCheckedChange={(checked) => handleStatusToggle(item, checked)}
+                            aria-label={`Set ${item.yearLabel} active status`}
+                          />
+                          <span className="text-xs text-slate-600">
+                            {item.isActive ? "Active" : "Inactive"}
+                          </span>
+                        </div>
+                      </td>
                       <td className="px-4 py-3 text-right">
-                        {item.isActive ? (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className="border-slate-200 text-slate-700"
-                            onClick={() => openPreviousEdit(item)}
-                          >
-                            Edit
-                          </Button>
+                        {canUseStatusSwitch(item.yearLabel) ? (
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="border-slate-200 text-slate-700"
+                              onClick={() => openPreviousEdit(item)}
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="border-rose-200 text-rose-700 hover:bg-rose-50"
+                              onClick={() => handleDeleteAcademicYear(item)}
+                              disabled={deletingId === item.id || item.isActive}
+                            >
+                              {deletingId === item.id ? "Deleting..." : "Delete"}
+                            </Button>
+                          </div>
                         ) : (
                           <span className="text-xs text-slate-400">—</span>
                         )}
@@ -871,15 +911,26 @@ export default function AdminPanelPage() {
                         </Badge>
                       )}
                     </div>
-                    {item.isActive ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="border-slate-200 text-slate-700"
-                        onClick={() => openPreviousEdit(item)}
-                      >
-                        Edit
-                      </Button>
+                    {canUseStatusSwitch(item.yearLabel) ? (
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="border-slate-200 text-slate-700"
+                          onClick={() => openPreviousEdit(item)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="border-rose-200 text-rose-700 hover:bg-rose-50"
+                          onClick={() => handleDeleteAcademicYear(item)}
+                          disabled={deletingId === item.id || item.isActive}
+                        >
+                          {deletingId === item.id ? "Deleting..." : "Delete"}
+                        </Button>
+                      </div>
                     ) : (
                       <span className="text-xs text-slate-400">Ended</span>
                     )}
@@ -892,6 +943,18 @@ export default function AdminPanelPage() {
                     <div>
                       <dt className="text-xs uppercase tracking-wide text-slate-500">Final Closure</dt>
                       <dd className="text-slate-800">{formatDatetime(item.finalClosureDate)}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs uppercase tracking-wide text-slate-500">Status</dt>
+                      <dd className="mt-1 flex items-center gap-3">
+                        <Switch
+                          checked={item.isActive}
+                          disabled={!canUseStatusSwitch(item.yearLabel) || statusUpdatingId === item.id}
+                          onCheckedChange={(checked) => handleStatusToggle(item, checked)}
+                          aria-label={`Set ${item.yearLabel} active status`}
+                        />
+                        <span className="text-slate-800">{item.isActive ? "Active" : "Inactive"}</span>
+                      </dd>
                     </div>
                   </dl>
                 </div>
@@ -935,6 +998,9 @@ export default function AdminPanelPage() {
                   }}
                   placeholder="e.g. 2025-2026"
                 />
+                {previousEditLabelDuplicateMessage && (
+                  <p className="text-sm text-rose-600">{previousEditLabelDuplicateMessage}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label className="text-slate-700">
@@ -985,7 +1051,7 @@ export default function AdminPanelPage() {
                 <Button
                   type="submit"
                   className="bg-slate-900 text-white hover:bg-slate-800"
-                  disabled={previousEditStatus === "saving"}
+                  disabled={previousEditStatus === "saving" || !!previousEditLabelDuplicateMessage}
                 >
                   {previousEditStatus === "saving" ? "Saving..." : "Save Changes"}
                 </Button>
@@ -1033,9 +1099,16 @@ export default function AdminPanelPage() {
                   id="rolloverLabel"
                   className="border-slate-200 bg-white text-slate-900"
                   value={rolloverLabel}
-                  onChange={(e) => setRolloverLabel(e.target.value)}
+                  onChange={(e) => {
+                    setRolloverLabel(e.target.value);
+                    setRolloverStatus("idle");
+                    setRolloverError("");
+                  }}
                   placeholder="e.g. 2026-2027"
                 />
+                {rolloverLabelDuplicateMessage && (
+                  <p className="text-sm text-rose-600">{rolloverLabelDuplicateMessage}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label className="text-slate-700">
@@ -1087,7 +1160,7 @@ export default function AdminPanelPage() {
                 <Button
                   type="submit"
                   className="bg-slate-900 text-white hover:bg-slate-800"
-                  disabled={rolloverStatus === "saving"}
+                  disabled={rolloverStatus === "saving" || !!rolloverLabelDuplicateMessage}
                 >
                   {rolloverStatus === "saving"
                     ? "Switching..."
