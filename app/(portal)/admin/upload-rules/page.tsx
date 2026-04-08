@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const FILE_TYPE_OPTIONS = [
   { group: "Documents", types: ["DOC", "DOCX"] },
@@ -153,6 +154,33 @@ export default function UploadRulesPage() {
   const allChecked = ALL_TYPES.every((t) => allowedTypes.includes(t));
   const someChecked = ALL_TYPES.some((t) => allowedTypes.includes(t));
 
+  if (loading) {
+    return (
+      <main className="space-y-6 text-slate-900">
+        <header className="space-y-1">
+          <Skeleton className="h-9 w-56" />
+          <Skeleton className="h-4 w-96" />
+        </header>
+        <Separator className="bg-slate-200" />
+        <Card className="w-full border-slate-200 bg-white">
+          <CardHeader>
+            <Skeleton className="h-6 w-64" />
+            <Skeleton className="h-4 w-80" />
+          </CardHeader>
+          <CardContent className="space-y-6 px-4 sm:px-6">
+            <Skeleton className="h-20 w-full rounded-lg" />
+            <div className="grid gap-4 md:grid-cols-2">
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+            </div>
+            <Skeleton className="h-56 w-full rounded-lg" />
+            <Skeleton className="h-10 w-48" />
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
+
   return (
     <main className="space-y-6 text-slate-900">
       <header className="space-y-1">
@@ -185,7 +213,6 @@ export default function UploadRulesPage() {
               <Switch
                 checked={enableUploads}
                 onCheckedChange={setEnableUploads}
-                disabled={loading}
               />
             </div>
 
@@ -203,7 +230,6 @@ export default function UploadRulesPage() {
                   value={maxSize}
                   onChange={(e) => setMaxSize(e.target.value)}
                   placeholder="25"
-                  disabled={loading}
                 />
               </div>
               <div className="space-y-2">
@@ -218,7 +244,6 @@ export default function UploadRulesPage() {
                   value={maxFiles}
                   onChange={(e) => setMaxFiles(e.target.value)}
                   placeholder="10"
-                  disabled={loading}
                 />
               </div>
             </div>
@@ -239,7 +264,6 @@ export default function UploadRulesPage() {
                   onCheckedChange={(checked) =>
                     toggleGroup(ALL_TYPES, checked === true)
                   }
-                  disabled={loading}
                 />
                 Select all
               </label>
@@ -256,7 +280,6 @@ export default function UploadRulesPage() {
                           onCheckedChange={(checked) =>
                             toggleGroup(types, checked === true)
                           }
-                          disabled={loading}
                         />
                         {group}
                       </label>
@@ -271,7 +294,6 @@ export default function UploadRulesPage() {
                               onCheckedChange={(checked) =>
                                 toggleType(type, checked === true)
                               }
-                              disabled={loading}
                             />
                             .{type.toLowerCase()}
                           </label>
@@ -296,14 +318,13 @@ export default function UploadRulesPage() {
                     onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCustomType(); } }}
                     placeholder="e.g. PDF"
                     className="w-36 border-slate-200 bg-white text-slate-900 uppercase placeholder:normal-case"
-                    disabled={loading}
                   />
                   <Button
                     type="button"
                     variant="outline"
                     className="border-slate-200"
                     onClick={addCustomType}
-                    disabled={loading || !customInput.trim()}
+                    disabled={!customInput.trim()}
                   >
                     Add
                   </Button>
@@ -335,7 +356,7 @@ export default function UploadRulesPage() {
               <Button
                 type="submit"
                 className="w-48 bg-slate-900 text-white hover:bg-slate-800"
-                disabled={loading || status === "saving"}
+                disabled={status === "saving"}
               >
                 {status === "saving" ? "Saving..." : "Save Configuration"}
               </Button>

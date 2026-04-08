@@ -23,6 +23,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Loader2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const nameSchema = z.object({
   name: z.string().min(1, "Name is required").max(100),
@@ -147,9 +148,31 @@ export default function GuestProfilePage() {
   if (loading) {
     return (
       <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
-        </div>
+        <Skeleton className="mb-6 h-8 w-56" />
+        <Card className="mb-6">
+          <CardHeader>
+            <Skeleton className="h-6 w-40" />
+            <Skeleton className="h-4 w-72" />
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Skeleton className="h-4 w-48" />
+            <Skeleton className="h-4 w-36" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-28" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-40" />
+            <Skeleton className="h-4 w-72" />
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-36" />
+          </CardContent>
+        </Card>
       </main>
     );
   }
