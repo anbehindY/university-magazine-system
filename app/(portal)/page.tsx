@@ -460,12 +460,14 @@ export default function DashboardPage() {
   const [activityError, setActivityError] = useState<string | null>(null);
   const [previousLoginAt, setPreviousLoginAt] = useState<string | null>(null);
 
-  const role = session?.user?.role ?? "STUDENT";
+  const sessionUserId = session?.user?.id ?? null;
+  const sessionRole = session?.user?.role ?? "STUDENT";
+  const role = sessionRole;
 
   useEffect(() => {
-    if (!session?.user) return;
+    if (!sessionUserId) return;
 
-    const r = session.user.role ?? "STUDENT";
+    const r = sessionRole;
 
     if (r === "GUEST") {
       setLoading(false);
@@ -549,11 +551,11 @@ export default function DashboardPage() {
     }
 
     Promise.allSettled(fetches).finally(() => setLoading(false));
-  }, [session?.user]);
+  }, [sessionUserId, sessionRole]);
 
   useEffect(() => {
-    if (!session?.user) return;
-    if ((session.user.role ?? "STUDENT") === "GUEST") return;
+    if (!sessionUserId) return;
+    if (sessionRole === "GUEST") return;
 
     let cancelled = false;
 
@@ -596,13 +598,13 @@ export default function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, [session?.user, activityPage, activityPageSize]);
+  }, [sessionUserId, sessionRole, activityPage, activityPageSize]);
 
   useEffect(() => {
-    if (!isPending && !session?.user) {
+    if (!isPending && !sessionUserId) {
       router.push("/sign-in");
     }
-  }, [isPending, session, router]);
+  }, [isPending, sessionUserId, router]);
 
   if (!session?.user) return null;
 
