@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LoadingScreen } from "@/components/ui/loading-screen";
 import { PaginationControls } from "@/components/ui/pagination-controls";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -404,14 +403,6 @@ export default function UsersPage() {
     } finally {
       setDeactivateLoadingId(null);
     }
-  }
-
-  if (isPending) {
-    return <LoadingScreen />;
-  }
-
-  if (!session?.user || session.user.role !== "ADMINISTRATOR") {
-    return <LoadingScreen />;
   }
 
   return (

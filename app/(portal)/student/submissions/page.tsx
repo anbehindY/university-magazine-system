@@ -15,7 +15,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { LoadingScreen } from "@/components/ui/loading-screen";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
@@ -863,8 +862,6 @@ export default function StudentSubmissionsPage() {
       toast.error(error instanceof Error ? error.message : "Unable to delete file.");
     }
   }
-
-  if (isPending) return <LoadingScreen />;
 
   return (
     <main className="w-full space-y-6 px-4 pt-4 pb-8 text-slate-900 sm:px-6">
