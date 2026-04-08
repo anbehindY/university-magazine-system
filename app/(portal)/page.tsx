@@ -657,8 +657,8 @@ export default function DashboardPage() {
           </div>
 
           {activityLoading && (
-            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-              <table className="min-w-full divide-y divide-slate-200">
+            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+              <table className="min-w-[560px] w-full divide-y divide-slate-200">
                 <thead className="bg-slate-50">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
@@ -699,8 +699,8 @@ export default function DashboardPage() {
 
           {!activityLoading && !activityError && activityEntries.length > 0 && (
             <>
-              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-                <table className="min-w-full divide-y divide-slate-200">
+              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                <table className="min-w-[560px] w-full divide-y divide-slate-200">
                   <thead className="bg-slate-50">
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">

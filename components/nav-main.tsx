@@ -8,8 +8,8 @@ import {
 } from "@/components/ui/sidebar";
 import { type LucideIcon } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 
 export function NavMain({
   items,
@@ -22,7 +22,18 @@ export function NavMain({
   }[];
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [pendingUrl, setPendingUrl] = useState<string | null>(null);
+  const uniqueUrls = useMemo(
+    () => Array.from(new Set(items.map((item) => item.url))),
+    [items]
+  );
+
+  useEffect(() => {
+    for (const url of uniqueUrls) {
+      router.prefetch(url);
+    }
+  }, [router, uniqueUrls]);
 
   return (
     <SidebarGroup>
@@ -42,6 +53,9 @@ export function NavMain({
               >
                 <Link
                   href={item.url}
+                  prefetch
+                  onMouseEnter={() => router.prefetch(item.url)}
+                  onFocus={() => router.prefetch(item.url)}
                   onClick={() => {
                     if (pathname !== item.url) setPendingUrl(item.url);
                   }}

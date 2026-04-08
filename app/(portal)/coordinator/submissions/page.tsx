@@ -517,8 +517,8 @@ export default function CoordinatorSubmissionsPage() {
 
       {/* Loading skeleton */}
       {loading && (
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-          <table className="w-full text-left">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+          <table className="min-w-[920px] w-full text-left">
             <thead className="border-b border-slate-200 bg-slate-50 text-slate-700">
               <tr>
                 <th className="px-4 py-3 text-sm font-medium">Student</th>
@@ -567,8 +567,8 @@ export default function CoordinatorSubmissionsPage() {
 
       {/* Submissions table */}
       {!loading && !error && submissions.length > 0 && (
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-          <table className="w-full text-left">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+          <table className="min-w-[920px] w-full text-left">
             <thead className="border-b border-slate-200 bg-slate-50 text-slate-700">
               <tr>
                 <th className="px-4 py-3 text-sm font-medium">Student</th>

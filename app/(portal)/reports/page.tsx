@@ -413,7 +413,7 @@ export default function ReportsPage() {
       <Separator className="bg-slate-200" />
 
       {/* Academic year selector — managers/admins can switch years; coordinators/guests see active year only */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
         <span className="text-sm font-medium text-slate-700">Academic Year</span>
         {yearLoading || !mounted ? (
           <Skeleton className="h-9 w-44" />
@@ -422,7 +422,7 @@ export default function ReportsPage() {
             value={selectedYearId}
             onValueChange={(val) => setSelectedYearId(val)}
           >
-            <SelectTrigger className="w-44 border-slate-200 bg-white text-slate-900">
+            <SelectTrigger className="w-full sm:w-44 border-slate-200 bg-white text-slate-900">
               <SelectValue placeholder="Select year" />
             </SelectTrigger>
             <SelectContent className="border-slate-200 bg-white">
@@ -448,10 +448,12 @@ export default function ReportsPage() {
 
       {/* Tabs */}
       <Tabs defaultValue="statistics" onValueChange={handleTabChange}>
-        <TabsList className="mb-4">
-          <TabsTrigger value="statistics">Summary</TabsTrigger>
-          <TabsTrigger value="exceptions">Exceptions</TabsTrigger>
-        </TabsList>
+        <div className="mb-4 w-full overflow-x-auto">
+          <TabsList className="w-max min-w-full">
+            <TabsTrigger value="statistics" className="shrink-0">Summary</TabsTrigger>
+            <TabsTrigger value="exceptions" className="shrink-0">Exceptions</TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* ── Statistics tab ── */}
         <TabsContent value="statistics" className="space-y-6">
@@ -478,14 +480,14 @@ export default function ReportsPage() {
               const faculty = statsData[0];
               return (
                 <div className="space-y-6">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-2">
                       <Building2 className="h-5 w-5 text-slate-400" />
                       <h2 className="text-lg font-semibold">{faculty.facultyName ?? "Your Faculty"}</h2>
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" className="w-full sm:w-auto">
                           <Download className="h-4 w-4" />
                           Export
                         </Button>
@@ -577,7 +579,8 @@ export default function ReportsPage() {
                       <CardTitle className="text-base text-slate-900">Contributions per Academic Year</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="h-[280px] w-full">
+                      <div className="w-full overflow-x-auto">
+                        <div className="h-[280px] min-w-[520px]">
                         {yearTrendLoading ? (
                           <Skeleton className="h-full w-full rounded-lg" />
                         ) : (
@@ -616,6 +619,7 @@ export default function ReportsPage() {
                             </AreaChart>
                           </ResponsiveContainer>
                         )}
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -625,11 +629,11 @@ export default function ReportsPage() {
           ) : (
             /* ── Multi-faculty view (Manager / Admin) ── */
             <>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <h2 className="text-lg font-semibold text-slate-900">Faculty Statistics</h2>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" className="w-full sm:w-auto">
                       <Download className="h-4 w-4" />
                       Export
                     </Button>
@@ -722,10 +726,11 @@ export default function ReportsPage() {
                   <CardTitle className="text-base text-slate-900">Submission Distribution by Faculty</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div
-                    className="w-full"
-                    style={{ height: Math.max(300, facultyChartData.length * 52) }}
-                  >
+                  <div className="w-full overflow-x-auto">
+                    <div
+                      className="min-w-[720px]"
+                      style={{ height: Math.max(300, facultyChartData.length * 52) }}
+                    >
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
                         data={facultyChartData}
@@ -758,6 +763,7 @@ export default function ReportsPage() {
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -767,7 +773,8 @@ export default function ReportsPage() {
                   <CardTitle className="text-base text-slate-900">Contributions per Academic Year</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-[300px] w-full">
+                  <div className="w-full overflow-x-auto">
+                    <div className="h-[300px] min-w-[520px]">
                     {yearTrendLoading ? (
                       <Skeleton className="h-full w-full rounded-lg" />
                     ) : (
@@ -806,13 +813,14 @@ export default function ReportsPage() {
                         </AreaChart>
                       </ResponsiveContainer>
                     )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
 
               {/* Per-faculty data table */}
-              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-                <table className="w-full text-left">
+              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                <table className="min-w-[720px] w-full text-left">
                   <thead className="border-b border-slate-200 bg-slate-50">
                     <tr>
                       {(
@@ -964,7 +972,7 @@ export default function ReportsPage() {
             {!exceptionsLoading && !exceptionsError && exceptionsData.length > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="ml-auto">
+                  <Button variant="outline" size="sm" className="sm:ml-auto w-full sm:w-auto">
                     <Download className="h-4 w-4" />
                     Export
                   </Button>
@@ -1011,31 +1019,45 @@ export default function ReportsPage() {
 
           {/* Exceptions table */}
           {exceptionsLoading ? (
-            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-              <table className="w-full text-left">
-                <thead className="border-b border-slate-200 bg-slate-50">
-                  <tr>
-                    {["Student Name", "Title", "Faculty", "Submitted Date", "Waiting Days"].map(
-                      (h) => (
-                        <th key={h} className="px-4 py-3 text-sm font-medium text-slate-700">
-                          {h}
-                        </th>
-                      )
-                    )}
-                  </tr>
-                </thead>
-                <tbody>
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <tr key={i} className="border-t border-slate-200">
-                      <td className="px-4 py-3"><Skeleton className="h-4 w-32" /></td>
-                      <td className="px-4 py-3"><Skeleton className="h-4 w-48" /></td>
-                      <td className="px-4 py-3"><Skeleton className="h-4 w-24" /></td>
-                      <td className="px-4 py-3"><Skeleton className="h-4 w-28" /></td>
-                      <td className="px-4 py-3"><Skeleton className="h-4 w-12" /></td>
+            <div className="space-y-3">
+              <div className="space-y-3 md:hidden">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="rounded-xl border border-slate-200 bg-white p-4">
+                    <Skeleton className="h-4 w-40" />
+                    <Skeleton className="mt-3 h-4 w-56" />
+                    <div className="mt-3 grid grid-cols-2 gap-3">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-4 w-20" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="hidden overflow-x-auto rounded-xl border border-slate-200 bg-white md:block">
+                <table className="min-w-[720px] w-full text-left">
+                  <thead className="border-b border-slate-200 bg-slate-50">
+                    <tr>
+                      {["Student Name", "Title", "Faculty", "Submitted Date", "Waiting Days"].map(
+                        (h) => (
+                          <th key={h} className="px-4 py-3 text-sm font-medium text-slate-700">
+                            {h}
+                          </th>
+                        )
+                      )}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <tr key={i} className="border-t border-slate-200">
+                        <td className="px-4 py-3"><Skeleton className="h-4 w-32" /></td>
+                        <td className="px-4 py-3"><Skeleton className="h-4 w-48" /></td>
+                        <td className="px-4 py-3"><Skeleton className="h-4 w-24" /></td>
+                        <td className="px-4 py-3"><Skeleton className="h-4 w-28" /></td>
+                        <td className="px-4 py-3"><Skeleton className="h-4 w-12" /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           ) : exceptionsError ? (
             <div className="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
@@ -1048,46 +1070,75 @@ export default function ReportsPage() {
               </p>
             </div>
           ) : (
-            <div className="overflow-hidden rounded-xl border border-slate-200">
-              <table className="w-full text-left">
-                <thead className="border-b border-slate-200 bg-slate-50">
-                  <tr>
-                    <th className="px-4 py-3 text-sm font-medium text-slate-700">Student Name</th>
-                    <th className="px-4 py-3 text-sm font-medium text-slate-700">Title</th>
-                    <th className="px-4 py-3 text-sm font-medium text-slate-700">Faculty</th>
-                    <th className="px-4 py-3 text-sm font-medium text-slate-700">Submitted Date</th>
-                    <th className="px-4 py-3 text-sm font-medium text-slate-700">Waiting Days</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[...exceptionsData]
-                    .sort(
-                      (a, b) =>
-                        (b.daysSinceSubmission ?? 0) - (a.daysSinceSubmission ?? 0)
-                    )
-                    .map((row) => (
-                      <tr
-                        key={row.id}
-                        className={`cursor-pointer border-t border-slate-200 ${exceptionRowClass(row.daysSinceSubmission)}`}
-                        onClick={() => setSelectedExceptionId(row.id)}
-                      >
-                        <td className="px-4 py-3 text-sm font-medium">
-                          {row.studentName ?? <span className="italic opacity-60">Unknown</span>}
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          {row.title ?? <span className="italic opacity-60">Untitled</span>}
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          {row.facultyName ?? <span className="italic opacity-60">Unknown</span>}
-                        </td>
-                        <td className="px-4 py-3 text-sm">{formatDate(row.submittedAt)}</td>
-                        <td className="px-4 py-3 text-sm">
-                          {daysLabel(row.daysSinceSubmission)}
-                        </td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
+            <div className="space-y-3">
+              <div className="space-y-3 md:hidden">
+                {[...exceptionsData]
+                  .sort(
+                    (a, b) =>
+                      (b.daysSinceSubmission ?? 0) - (a.daysSinceSubmission ?? 0)
+                  )
+                  .map((row) => (
+                    <button
+                      key={row.id}
+                      type="button"
+                      onClick={() => setSelectedExceptionId(row.id)}
+                      className={`w-full rounded-xl border p-4 text-left ${exceptionRowClass(row.daysSinceSubmission)}`}
+                    >
+                      <p className="text-sm font-semibold text-slate-900">
+                        {row.studentName ?? "Unknown"}
+                      </p>
+                      <p className="mt-1 text-sm text-slate-700">
+                        {row.title ?? "Untitled"}
+                      </p>
+                      <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-600">
+                        <span>Faculty: {row.facultyName ?? "Unknown"}</span>
+                        <span>{daysLabel(row.daysSinceSubmission)}</span>
+                        <span className="col-span-2">Submitted: {formatDate(row.submittedAt)}</span>
+                      </div>
+                    </button>
+                  ))}
+              </div>
+              <div className="hidden overflow-x-auto rounded-xl border border-slate-200 md:block">
+                <table className="min-w-[760px] w-full text-left">
+                  <thead className="border-b border-slate-200 bg-slate-50">
+                    <tr>
+                      <th className="px-4 py-3 text-sm font-medium text-slate-700">Student Name</th>
+                      <th className="px-4 py-3 text-sm font-medium text-slate-700">Title</th>
+                      <th className="px-4 py-3 text-sm font-medium text-slate-700">Faculty</th>
+                      <th className="px-4 py-3 text-sm font-medium text-slate-700">Submitted Date</th>
+                      <th className="px-4 py-3 text-sm font-medium text-slate-700">Waiting Days</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...exceptionsData]
+                      .sort(
+                        (a, b) =>
+                          (b.daysSinceSubmission ?? 0) - (a.daysSinceSubmission ?? 0)
+                      )
+                      .map((row) => (
+                        <tr
+                          key={row.id}
+                          className={`cursor-pointer border-t border-slate-200 ${exceptionRowClass(row.daysSinceSubmission)}`}
+                          onClick={() => setSelectedExceptionId(row.id)}
+                        >
+                          <td className="px-4 py-3 text-sm font-medium">
+                            {row.studentName ?? <span className="italic opacity-60">Unknown</span>}
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            {row.title ?? <span className="italic opacity-60">Untitled</span>}
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            {row.facultyName ?? <span className="italic opacity-60">Unknown</span>}
+                          </td>
+                          <td className="px-4 py-3 text-sm">{formatDate(row.submittedAt)}</td>
+                          <td className="px-4 py-3 text-sm">
+                            {daysLabel(row.daysSinceSubmission)}
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 

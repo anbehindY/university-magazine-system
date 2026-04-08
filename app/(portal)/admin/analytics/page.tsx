@@ -195,7 +195,7 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Period toggle */}
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             {presets.map((p) => (
               <Button
                 key={p.value}
@@ -218,21 +218,25 @@ export default function AnalyticsPage() {
             <h2 className="text-base font-semibold text-slate-900 mb-4">
               Daily Active Users
             </h2>
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={data.activeUsers.daily}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip />
-                <Area
-                  type="monotone"
-                  dataKey="count"
-                  stroke="#0f172a"
-                  fill="#0f172a"
-                  fillOpacity={0.1}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            <div className="w-full overflow-x-auto">
+              <div className="h-[300px] min-w-[640px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={data.activeUsers.daily}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                    <YAxis tick={{ fontSize: 12 }} />
+                    <Tooltip />
+                    <Area
+                      type="monotone"
+                      dataKey="count"
+                      stroke="#0f172a"
+                      fill="#0f172a"
+                      fillOpacity={0.1}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           </div>
 
           {/* Browser Breakdown - PieChart donut */}

@@ -351,7 +351,7 @@ export default function ManagerSubmissionsPage() {
           value={searchQuery}
           onChange={(event) => setSearchQuery(event.target.value)}
           placeholder="Filter by student, title, or faculty"
-          className="w-full max-w-md border-slate-200 bg-white"
+          className="w-full max-w-xs border-slate-200 bg-white"
         />
 
         <Input
@@ -359,8 +359,8 @@ export default function ManagerSubmissionsPage() {
           inputMode="numeric"
           value={academicStartYear}
           onChange={(event) => setAcademicStartYear(event.target.value)}
-          placeholder="Academic start year"
-          className="w-32 border-slate-200 bg-white"
+          placeholder="Start year"
+          className="w-40 border-slate-200 bg-white"
         />
 
         <Input
@@ -368,8 +368,8 @@ export default function ManagerSubmissionsPage() {
           inputMode="numeric"
           value={academicEndYear}
           onChange={(event) => setAcademicEndYear(event.target.value)}
-          placeholder="Academic end year"
-          className="w-32 border-slate-200 bg-white"
+          placeholder="End year"
+          className="w-40 border-slate-200 bg-white"
         />
 
         {selectedFacultyName && !loading && (
@@ -386,8 +386,8 @@ export default function ManagerSubmissionsPage() {
       {loading ? (
         <div className="space-y-6">
           <Skeleton className="h-6 w-32" />
-          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-            <table className="w-full text-left">
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <table className="min-w-[720px] w-full text-left">
               <thead className="border-b border-slate-200 bg-slate-50 text-slate-700">
                 <tr>
                   <th className="px-4 py-3 text-sm font-medium">Student Name</th>
@@ -427,16 +427,18 @@ export default function ManagerSubmissionsPage() {
           onValueChange={setActiveYearId}
           className="space-y-4"
         >
-          <TabsList className="h-auto w-full flex-wrap justify-start gap-2 bg-slate-100 p-2">
-            {groupedByYear.map(([yearId, { label, submissions: yearSubs }]) => (
-              <TabsTrigger key={yearId} value={yearId} className="gap-2">
-                {label}
-                <Badge className="bg-slate-200 text-slate-700 border-slate-300">
-                  {yearSubs.length}
-                </Badge>
-              </TabsTrigger>
-            ))}
-          </TabsList>
+          <div className="w-full overflow-x-auto pb-1">
+            <TabsList className="h-auto w-max min-w-full flex-nowrap justify-start gap-2 bg-slate-100 p-2">
+              {groupedByYear.map(([yearId, { label, submissions: yearSubs }]) => (
+                <TabsTrigger key={yearId} value={yearId} className="shrink-0 gap-2">
+                  {label}
+                  <Badge className="bg-slate-200 text-slate-700 border-slate-300">
+                    {yearSubs.length}
+                  </Badge>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
 
           {groupedByYear.map(([yearId, { label, submissions: yearSubs }]) => (
             <TabsContent key={yearId} value={yearId} className="space-y-3">
@@ -467,8 +469,8 @@ export default function ManagerSubmissionsPage() {
                 </Button>
               </div>
 
-              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-                <table className="w-full text-left">
+              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                <table className="min-w-[720px] w-full text-left">
                   <thead className="border-b border-slate-200 bg-slate-50 text-slate-700">
                     <tr>
                       <th className="px-4 py-3 text-sm font-medium">Student Name</th>

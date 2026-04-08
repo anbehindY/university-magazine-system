@@ -148,8 +148,8 @@ export default function CoordinatorGuestListPage() {
 
       {/* Loading skeleton */}
       {loading && (
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-          <table className="w-full text-left">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+          <table className="min-w-[700px] w-full text-left">
             <thead className="border-b border-slate-200 bg-slate-50 text-slate-700">
               <tr>
                 <th className="px-4 py-3 text-sm font-medium">Name</th>
@@ -192,8 +192,8 @@ export default function CoordinatorGuestListPage() {
 
       {/* Guest table */}
       {!loading && !error && guests.length > 0 && (
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-          <table className="w-full text-left">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+          <table className="min-w-[700px] w-full text-left">
             <thead className="border-b border-slate-200 bg-slate-50 text-slate-700">
               <tr>
                 <th className="px-4 py-3 text-sm font-medium">Name</th>
