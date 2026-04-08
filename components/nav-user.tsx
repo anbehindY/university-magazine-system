@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut } from "lucide-react";
+import { Loader2, LogOut } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
@@ -99,38 +99,48 @@ export function NavUser({
   }
 
   return (
-    <SidebarMenu>
-      <SidebarMenuItem>
-        <SidebarMenuButton
-          asChild
-          size="lg"
-          id="user-menu-trigger"
-          className="hover:bg-white/10 focus-visible:ring-0 focus-visible:ring-transparent focus-visible:outline-none focus:outline-none"
-        >
-          <div>
-            <StableAvatar src={user.avatar} name={user.name} />
-            <div className="grid flex-1 text-left leading-tight">
-              <span className="truncate text-sm font-medium text-white">
-                {user.name}
-              </span>
-              <span className="truncate text-[11px] text-white/50">
-                {formatRole(user.role ?? "Administrator")}
-                {facultyName ? ` · ${facultyName}` : ""}
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={handleSignOut}
-              disabled={isSigningOut}
-              className="ml-auto flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-white/70 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
-              aria-label="Log out"
-              aria-busy={isSigningOut}
-            >
-              <LogOut className={isSigningOut ? "h-4 w-4 opacity-60" : "h-4 w-4"} />
-            </button>
+    <>
+      {isSigningOut && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/45 backdrop-blur-[1px]">
+          <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-5 py-3 text-slate-800 shadow-lg">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span className="text-sm font-medium">Signing out...</span>
           </div>
-        </SidebarMenuButton>
-      </SidebarMenuItem>
-    </SidebarMenu>
+        </div>
+      )}
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            asChild
+            size="lg"
+            id="user-menu-trigger"
+            className="hover:bg-white/10 focus-visible:ring-0 focus-visible:ring-transparent focus-visible:outline-none focus:outline-none"
+          >
+            <div>
+              <StableAvatar src={user.avatar} name={user.name} />
+              <div className="grid flex-1 text-left leading-tight">
+                <span className="truncate text-sm font-medium text-white">
+                  {user.name}
+                </span>
+                <span className="truncate text-[11px] text-white/50">
+                  {formatRole(user.role ?? "Administrator")}
+                  {facultyName ? ` · ${facultyName}` : ""}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                disabled={isSigningOut}
+                className="ml-auto flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-white/70 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+                aria-label="Log out"
+                aria-busy={isSigningOut}
+              >
+                <LogOut className={isSigningOut ? "h-4 w-4 opacity-60" : "h-4 w-4"} />
+              </button>
+            </div>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    </>
   );
 }

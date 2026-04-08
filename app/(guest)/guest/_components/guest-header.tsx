@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { signOut } from "@/lib/auth-client";
 import { Badge } from "@/components/ui/badge";
-import { LogOut } from "lucide-react";
+import { Loader2, LogOut } from "lucide-react";
 
 function MagazineLogo({ className }: { className?: string }) {
   return (
@@ -101,53 +101,63 @@ export function GuestHeader({ user }: GuestHeaderProps) {
   }, [isSigningOut]);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-200 bg-white shadow-sm">
-      <div className="flex h-14 items-center justify-between px-4 sm:px-6 lg:px-8">
-        {/* Left: Logo + Title */}
-        <div className="flex items-center gap-3">
-          <MagazineLogo className="size-8" />
-          <span className="text-sm font-bold tracking-tight text-slate-900">
-            University Magazine
-          </span>
+    <>
+      {isSigningOut && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/45 backdrop-blur-[1px]">
+          <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-5 py-3 text-slate-800 shadow-lg">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span className="text-sm font-medium">Signing out...</span>
+          </div>
         </div>
-
-        {/* Right: User info + Sign out */}
-        <div className="flex items-center gap-3">
-          {facultyName && (
-            <Badge
-              variant="secondary"
-              className="hidden sm:inline-flex bg-slate-100 text-slate-600 border-slate-200"
-            >
-              {facultyName}
-            </Badge>
-          )}
-          {user?.name && (
-            <span className="text-sm text-slate-600 hidden sm:inline">
-              {user.name}
+      )}
+      <header className="sticky top-0 z-50 border-b border-slate-200 bg-white shadow-sm">
+        <div className="flex h-14 items-center justify-between px-4 sm:px-6 lg:px-8">
+          {/* Left: Logo + Title */}
+          <div className="flex items-center gap-3">
+            <MagazineLogo className="size-8" />
+            <span className="text-sm font-bold tracking-tight text-slate-900">
+              University Magazine
             </span>
-          )}
-          <Link
-            href="/guest/profile"
-            className="text-sm text-slate-600 hover:text-slate-900"
-          >
-            Profile
-          </Link>
-          <button
-            type="button"
-            onClick={handleSignOut}
-            disabled={isSigningOut}
-            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
-            aria-label="Sign out"
-            aria-busy={isSigningOut}
-          >
-            <LogOut
-              className={
-                isSigningOut ? "h-4 w-4 opacity-60" : "h-4 w-4"
-              }
-            />
-          </button>
+          </div>
+
+          {/* Right: User info + Sign out */}
+          <div className="flex items-center gap-3">
+            {facultyName && (
+              <Badge
+                variant="secondary"
+                className="hidden sm:inline-flex bg-slate-100 text-slate-600 border-slate-200"
+              >
+                {facultyName}
+              </Badge>
+            )}
+            {user?.name && (
+              <span className="text-sm text-slate-600 hidden sm:inline">
+                {user.name}
+              </span>
+            )}
+            <Link
+              href="/guest/profile"
+              className="text-sm text-slate-600 hover:text-slate-900"
+            >
+              Profile
+            </Link>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              disabled={isSigningOut}
+              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+              aria-label="Sign out"
+              aria-busy={isSigningOut}
+            >
+              <LogOut
+                className={
+                  isSigningOut ? "h-4 w-4 opacity-60" : "h-4 w-4"
+                }
+              />
+            </button>
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+    </>
   );
 }
