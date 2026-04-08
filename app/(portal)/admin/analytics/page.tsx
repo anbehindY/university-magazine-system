@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { LoadingScreen } from "@/components/ui/loading-screen";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSession } from "@/lib/auth-client";
 import { Activity, BarChart3 } from "lucide-react";
@@ -96,17 +95,6 @@ export default function AnalyticsPage() {
     }
     fetchData();
   }, [isPending, session?.user, session?.user?.role, fetchData]);
-
-  if (isPending) {
-    return <LoadingScreen />;
-  }
-
-  if (
-    !session?.user ||
-    !allowedRoles.includes(session.user.role ?? "")
-  ) {
-    return <LoadingScreen />;
-  }
 
   const presets = [
     { label: "Last 7 days", value: "7d" as const },

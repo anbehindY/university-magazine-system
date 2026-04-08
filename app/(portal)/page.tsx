@@ -12,7 +12,6 @@ import {
 import { PaginationControls } from "@/components/ui/pagination-controls";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSession } from "@/lib/auth-client";
-import { LoadingScreen } from "@/components/ui/loading-screen";
 import { format } from "date-fns";
 import {
   AlertTriangle,
@@ -605,8 +604,7 @@ export default function DashboardPage() {
     }
   }, [isPending, session, router]);
 
-  if (isPending) return <LoadingScreen />;
-  if (!session?.user) return <LoadingScreen />;
+  if (!session?.user) return null;
 
   const { user } = session;
   const desc = ROLE_DESCRIPTIONS[role] ?? ROLE_DESCRIPTIONS.STUDENT;

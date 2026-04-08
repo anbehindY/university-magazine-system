@@ -3,7 +3,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
-import { LoadingScreen } from "@/components/ui/loading-screen";
 import { PaginationControls } from "@/components/ui/pagination-controls";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -208,17 +207,6 @@ export default function AuditLogPage() {
   function handleAccessPageSizeChange(newSize: number) {
     setAccessPageSize(newSize);
     setAccessPage(1);
-  }
-
-  if (isPending) {
-    return <LoadingScreen />;
-  }
-
-  if (
-    !session?.user ||
-    !allowedRoles.includes(session.user.role ?? "")
-  ) {
-    return <LoadingScreen />;
   }
 
   const presets = [
