@@ -169,6 +169,7 @@ export default function ReportsPage() {
   // Statistics tab state
   const [statsData, setStatsData] = useState<StatRow[]>([]);
   const [statsLoading, setStatsLoading] = useState(false);
+  const [hasLoadedStats, setHasLoadedStats] = useState(false);
   const [statsError, setStatsError] = useState<string | null>(null);
   const [yearTrendData, setYearTrendData] = useState<YearTrendRow[]>([]);
   const [yearTrendLoading, setYearTrendLoading] = useState(false);
@@ -180,6 +181,7 @@ export default function ReportsPage() {
   // Exceptions tab state
   const [exceptionsData, setExceptionsData] = useState<ExceptionRow[]>([]);
   const [exceptionsLoading, setExceptionsLoading] = useState(false);
+  const [hasLoadedExceptions, setHasLoadedExceptions] = useState(false);
   const [exceptionsError, setExceptionsError] = useState<string | null>(null);
   const [overdueOnly, setOverdueOnly] = useState(false);
 
@@ -224,6 +226,7 @@ export default function ReportsPage() {
   const fetchStats = useCallback(async (yearId: string) => {
     if (!yearId) return;
     setStatsLoading(true);
+    setHasLoadedStats(false);
     setStatsError(null);
     try {
       const res = await fetch(
@@ -242,6 +245,7 @@ export default function ReportsPage() {
       setStatsData([]);
     } finally {
       setStatsLoading(false);
+      setHasLoadedStats(true);
     }
   }, []);
 
@@ -249,6 +253,7 @@ export default function ReportsPage() {
   const fetchExceptions = useCallback(async (yearId: string, overdue: boolean) => {
     if (!yearId) return;
     setExceptionsLoading(true);
+    setHasLoadedExceptions(false);
     setExceptionsError(null);
     try {
       const url = `/api/reports?type=exceptions&academicYearId=${encodeURIComponent(yearId)}${overdue ? "&overdue=true" : ""}`;
@@ -266,6 +271,7 @@ export default function ReportsPage() {
       setExceptionsData([]);
     } finally {
       setExceptionsLoading(false);
+      setHasLoadedExceptions(true);
     }
   }, []);
 
@@ -457,7 +463,7 @@ export default function ReportsPage() {
 
         {/* ── Statistics tab ── */}
         <TabsContent value="statistics" className="space-y-6">
-          {statsLoading ? (
+          {yearLoading || !selectedYearId || statsLoading || !hasLoadedStats ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               {Array.from({ length: 3 }).map((_, i) => (
                 <Card key={i} className="border-slate-200 bg-white">
@@ -1018,7 +1024,7 @@ export default function ReportsPage() {
           </div>
 
           {/* Exceptions table */}
-          {exceptionsLoading ? (
+          {exceptionsLoading || !hasLoadedExceptions ? (
             <div className="space-y-3">
               <div className="space-y-3 md:hidden">
                 {Array.from({ length: 4 }).map((_, i) => (
