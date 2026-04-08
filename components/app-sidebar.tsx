@@ -71,6 +71,7 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 import getAvatarUrl from "@/lib/getAvatarUrl";
+import { useSession } from "@/lib/auth-client";
 
 function buildPages(role?: string | null) {
   switch (role) {
@@ -133,12 +134,22 @@ export function AppSidebar({
   user,
   ...props
 }: React.ComponentProps<typeof Sidebar> & { user: SidebarUser | null }) {
-  const sessionUser = {
-    name: user?.name ?? "User",
-    email: user?.email ?? "",
-    role: user?.role ?? null,
+  const { data: session } = useSession();
+  const liveUser = session?.user ?? null;
+  const effectiveUser = {
+    name: liveUser?.name ?? user?.name ?? "User",
+    email: liveUser?.email ?? user?.email ?? "",
+    role: liveUser?.role ?? user?.role ?? null,
     facultyId: user?.facultyId ?? null,
-    avatar: user?.image ?? getAvatarUrl(user?.email ?? user?.name ?? "user"),
+    image: liveUser?.image ?? user?.image ?? null,
+  };
+  const sessionUser = {
+    name: effectiveUser.name,
+    email: effectiveUser.email,
+    role: effectiveUser.role,
+    facultyId: effectiveUser.facultyId,
+    avatar:
+      effectiveUser.image ?? getAvatarUrl(effectiveUser.email ?? effectiveUser.name ?? "user"),
   };
 
   return (

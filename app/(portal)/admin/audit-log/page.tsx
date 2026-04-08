@@ -290,8 +290,8 @@ export default function AuditLogPage() {
           )}
 
           {loading && !error && (
-            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-              <table className="min-w-full divide-y divide-slate-200">
+            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+              <table className="min-w-[960px] w-full divide-y divide-slate-200">
                 <thead className="bg-slate-50">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
@@ -351,8 +351,8 @@ export default function AuditLogPage() {
 
           {!loading && !error && entries.length > 0 && (
             <>
-              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-                <table className="min-w-full divide-y divide-slate-200">
+              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                <table className="min-w-[960px] w-full divide-y divide-slate-200">
                   <thead className="bg-slate-50">
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
@@ -444,8 +444,8 @@ export default function AuditLogPage() {
           )}
 
           {accessLoading && !accessError && (
-            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-              <table className="min-w-full divide-y divide-slate-200">
+            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+              <table className="min-w-[860px] w-full divide-y divide-slate-200">
                 <thead className="bg-slate-50">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
@@ -499,8 +499,8 @@ export default function AuditLogPage() {
 
           {!accessLoading && !accessError && accessEntries.length > 0 && (
             <>
-              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-                <table className="min-w-full divide-y divide-slate-200">
+              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                <table className="min-w-[860px] w-full divide-y divide-slate-200">
                   <thead className="bg-slate-50">
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">

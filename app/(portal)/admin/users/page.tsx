@@ -830,8 +830,8 @@ export default function UsersPage() {
         )}
 
         {loading && !error && (
-          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-            <table className="w-full text-left">
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <table className="min-w-[760px] w-full text-left">
               <thead className="border-b border-slate-200 bg-slate-50 text-slate-700">
                 <tr>
                   <th className="px-4 py-3 text-sm font-medium">Name</th>
@@ -864,8 +864,8 @@ export default function UsersPage() {
 
         {!loading && !error && users.length > 0 && (
           <>
-            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-              <table className="w-full text-left">
+            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+              <table className="min-w-[760px] w-full text-left">
                 <thead className="border-b border-slate-200 bg-slate-50 text-slate-700">
                 <tr>
                   <th className="px-4 py-3 text-sm font-medium">Name</th>
