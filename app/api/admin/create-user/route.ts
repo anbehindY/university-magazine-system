@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth";
+import { sendMail } from "@/lib/mailer";
 import prisma from "@/lib/prisma";
 import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
@@ -112,6 +113,22 @@ export async function POST(req: NextRequest) {
       include: {
         faculty: true,
       },
+    });
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:5000";
+    sendMail({
+      to: updatedUser.email,
+      subject: "Your University Magazine System account",
+      html: `<p>Hello ${updatedUser.name},</p>
+             <p>Your account has been created by an administrator.</p>
+             <p><strong>Name:</strong> ${updatedUser.name}</p>
+             <p><strong>Email:</strong> ${updatedUser.email}</p>
+             <p><strong>Temporary password:</strong> ${password}</p>
+             <p>Please sign in and change your password as soon as possible.</p>
+             <p><a href="${appUrl}/sign-in">Sign in here</a></p>`,
+      text: `Hello ${updatedUser.name}, your account has been created by an administrator.\nName: ${updatedUser.name}\nEmail: ${updatedUser.email}\nTemporary password: ${password}\nPlease sign in and change your password as soon as possible.\nSign in: ${appUrl}/sign-in`,
+    }).catch((mailError) => {
+      console.error("Failed to send new-user email:", mailError);
     });
 
     return NextResponse.json(
