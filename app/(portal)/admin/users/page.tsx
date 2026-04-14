@@ -134,6 +134,7 @@ export default function UsersPage() {
   const [facultyId, setFacultyId] = useState("");
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
+  const [editPassword, setEditPassword] = useState("");
   const [editRole, setEditRole] = useState<EditRole | "">("");
   const [editFacultyId, setEditFacultyId] = useState("");
   const [faculties, setFaculties] = useState<Faculty[]>([]);
@@ -266,6 +267,7 @@ export default function UsersPage() {
     setEditingUserId(user.id);
     setEditName(user.name);
     setEditEmail(user.email);
+    setEditPassword("");
     setEditRole((user.role as EditRole) || "STUDENT");
     setEditFacultyId(user.faculty?.id || "");
     setEditError(null);
@@ -326,6 +328,7 @@ export default function UsersPage() {
           name: editName,
           email: editEmail,
           role: editRole,
+          ...(editPassword ? { password: editPassword } : {}),
           facultyId: isEditingGuest
             ? editFacultyId || null
             : requiresEditFaculty
@@ -616,6 +619,7 @@ export default function UsersPage() {
               setEditDialogOpen(open);
               if (!open) {
                 setEditError(null);
+                setEditPassword("");
               }
             }}
           >
@@ -623,7 +627,7 @@ export default function UsersPage() {
               <DialogHeader>
                 <DialogTitle>Edit User</DialogTitle>
                 <DialogDescription className="text-slate-500">
-                  Update user name, email, role, and faculty assignment.
+                  Update user details and optionally set a temporary password.
                 </DialogDescription>
               </DialogHeader>
 
@@ -660,6 +664,24 @@ export default function UsersPage() {
                     required
                     className="bg-white border-slate-200 text-slate-900 placeholder:text-slate-400"
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-password" className="text-slate-700">
+                    New Password (Optional)
+                  </Label>
+                  <Input
+                    id="edit-password"
+                    type="password"
+                    value={editPassword}
+                    onChange={(e) => setEditPassword(e.target.value)}
+                    minLength={8}
+                    className="bg-white border-slate-200 text-slate-900 placeholder:text-slate-400"
+                    placeholder="Leave blank to keep current password"
+                  />
+                  <p className="text-sm text-slate-500">
+                    If provided, user will be asked to change this password on next sign in.
+                  </p>
                 </div>
 
                 {!isEditingGuest && (
