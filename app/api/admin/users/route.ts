@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import type { Prisma } from "@/prisma/generated/client";
+import { hashPassword } from "better-auth/crypto";
 import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -135,6 +136,7 @@ export async function GET(req: NextRequest) {
       emailVerified: true,
       banned: true,
       createdAt: true,
+      lastLoginAt: true,
       sessions: {
         select: {
           updatedAt: true,
@@ -161,6 +163,7 @@ export async function GET(req: NextRequest) {
       emailVerified: boolean;
       banned: boolean | null;
       createdAt: Date;
+      lastLoginAt: Date | null;
       sessions: { updatedAt: Date }[];
       faculty: { id: string; name: string } | null;
     }> = [];
@@ -177,8 +180,10 @@ export async function GET(req: NextRequest) {
             return sortDirection === "asc" ? statusDiff : -statusDiff;
           }
         }
-        const aLastActive = a.sessions[0]?.updatedAt?.getTime() ?? 0;
-        const bLastActive = b.sessions[0]?.updatedAt?.getTime() ?? 0;
+        const aLastActive =
+          a.sessions[0]?.updatedAt?.getTime() ?? a.lastLoginAt?.getTime() ?? 0;
+        const bLastActive =
+          b.sessions[0]?.updatedAt?.getTime() ?? b.lastLoginAt?.getTime() ?? 0;
         const lastActiveDiff = aLastActive - bLastActive;
         if (lastActiveDiff !== 0) {
           return sortDirection === "asc" ? lastActiveDiff : -lastActiveDiff;
@@ -217,7 +222,7 @@ export async function GET(req: NextRequest) {
       const { sessions, ...rest } = user;
       return {
         ...rest,
-        lastActiveAt: sessions[0]?.updatedAt ?? null,
+        lastActiveAt: sessions[0]?.updatedAt ?? user.lastLoginAt ?? null,
       };
     });
 
@@ -252,6 +257,7 @@ export async function PATCH(req: NextRequest) {
     const id = normalizeText(body?.id);
     const name = normalizeText(body?.name);
     const email = normalizeEmail(body?.email);
+    const password = normalizeText(body?.password);
     const role = parseRole(body?.role);
     const facultyId = normalizeText(body?.facultyId) || null;
 
@@ -310,6 +316,13 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
+    if (password && password.length < 8) {
+      return NextResponse.json(
+        { error: "Password must be at least 8 characters." },
+        { status: 400 }
+      );
+    }
+
     if (
       (role === "MARKETING_COORDINATOR" ||
         role === "STUDENT") &&
@@ -339,14 +352,66 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
+    const userUpdateData = {
+      name,
+      email,
+      role,
+      facultyId,
+    };
+
+    if (password) {
+      const credentialAccount = await prisma.account.findFirst({
+        where: { userId: id, providerId: "credential" },
+        select: { id: true },
+      });
+
+      if (!credentialAccount) {
+        return NextResponse.json(
+          { error: "No credential account found for this user." },
+          { status: 400 }
+        );
+      }
+
+      const hashedPassword = await hashPassword(password);
+
+      const updatedUser = await prisma.$transaction(async (tx) => {
+        await tx.account.updateMany({
+          where: { userId: id, providerId: "credential" },
+          data: { password: hashedPassword },
+        });
+        await tx.session.deleteMany({
+          where: { userId: id },
+        });
+        return tx.user.update({
+          where: { id },
+          data: {
+            ...userUpdateData,
+            mustChangePassword: true,
+          },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            emailVerified: true,
+            banned: true,
+            createdAt: true,
+            faculty: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        });
+      });
+
+      return NextResponse.json({ user: updatedUser }, { status: 200 });
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id },
-      data: {
-        name,
-        email,
-        role,
-        facultyId,
-      },
+      data: userUpdateData,
       select: {
         id: true,
         name: true,
