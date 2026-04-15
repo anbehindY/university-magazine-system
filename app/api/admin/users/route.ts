@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth";
+import { sendMail } from "@/lib/mailer";
 import prisma from "@/lib/prisma";
 import type { Prisma } from "@/prisma/generated/client";
 import { hashPassword } from "better-auth/crypto";
@@ -404,6 +405,21 @@ export async function PATCH(req: NextRequest) {
             },
           },
         });
+      });
+
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:5000";
+      sendMail({
+        to: updatedUser.email,
+        subject: "Your University Magazine System password was reset",
+        html: `<p>Hello ${updatedUser.name},</p>
+               <p>Your account password has been updated by an administrator.</p>
+               <p><strong>Email:</strong> ${updatedUser.email}</p>
+               <p><strong>Temporary password:</strong> ${password}</p>
+               <p>Please sign in and change your password as soon as possible.</p>
+               <p><a href="${appUrl}/sign-in">Sign in here</a></p>`,
+        text: `Hello ${updatedUser.name}, your account password has been updated by an administrator.\nEmail: ${updatedUser.email}\nTemporary password: ${password}\nPlease sign in and change your password as soon as possible.\nSign in: ${appUrl}/sign-in`,
+      }).catch((mailError) => {
+        console.error("Failed to send password-reset email:", mailError);
       });
 
       return NextResponse.json({ user: updatedUser }, { status: 200 });
