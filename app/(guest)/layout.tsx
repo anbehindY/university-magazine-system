@@ -12,7 +12,7 @@ export default async function GuestLayout({
 }) {
   const user = await getCurrentUser();
 
-  if (user?.mustChangePassword) {
+  if (user?.mustChangePassword && user?.role !== "GUEST") {
     redirect("/change-password");
   }
 
