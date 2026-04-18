@@ -387,7 +387,7 @@ export async function PATCH(req: NextRequest) {
           where: { id },
           data: {
             ...userUpdateData,
-            mustChangePassword: true,
+            mustChangePassword: role !== "GUEST",
           },
           select: {
             id: true,

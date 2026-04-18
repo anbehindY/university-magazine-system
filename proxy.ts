@@ -106,7 +106,8 @@ export async function proxy(request: NextRequest) {
 
   const role = user.role;
   const userHome = getRoleHome(role);
-  const mustChangePassword = Boolean(user.mustChangePassword);
+  const isGuest = role === "GUEST";
+  const mustChangePassword = Boolean(user.mustChangePassword) && !isGuest;
 
   if (mustChangePassword) {
     if (pathname !== "/change-password") {
