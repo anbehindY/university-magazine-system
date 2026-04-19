@@ -468,19 +468,20 @@ async function main() {
 
   // ── 4. Staff users ────────────────────────────────────────────────────────
 
-  // Additional admin
-  await ensureUser("sarah.johnson@uog.com", "Sarah Johnson", "ADMINISTRATOR", fac["Faculty of Business"]);
+  // Additional admins (not faculty-scoped)
+  await ensureUser("sarah.johnson@uog.com", "Sarah Johnson", "ADMINISTRATOR", null);
+  await ensureUser("jordan@gmail.com", "Jordan", "ADMINISTRATOR", null);
 
-  // Marketing Manager
+  // Marketing Manager (not faculty-scoped)
   const manager = await ensureUser("michael.chen@uog.com", "Michael Chen", "MARKETING_MANAGER", null);
 
   // Coordinators — one per faculty
   const coordinators: Record<string, { id: string; name: string }> = {};
   const coordData = [
     { email: "tom.baker@uog.com", name: "Tom Baker", faculty: "Faculty of Engineering" },
-    { email: "james.taylor@uog.com", name: "James Taylor", faculty: "Faculty of Business" },
+    { email: "james.taylor@uog.com", name: "James Taylor", faculty: "Faculty of Science" },
     { email: "lisa.nguyen@uog.com", name: "Lisa Nguyen", faculty: "Faculty of Arts and Humanities" },
-    { email: "jessica.williams@uog.com", name: "Jessica Williams", faculty: "Faculty of Science" },
+    { email: "jessica.williams@uog.com", name: "Jessica Williams", faculty: "Faculty of Business" },
     { email: "anna.patel@uog.com", name: "Anna Patel", faculty: "Faculty of Medicine" },
   ];
   for (const c of coordData) {
@@ -494,7 +495,7 @@ async function main() {
     { email: "guest.biz@uog.com", name: "Sandra Mitchell", faculty: "Faculty of Business" },
     { email: "guest.arts@uog.com", name: "Helen Wright", faculty: "Faculty of Arts and Humanities" },
     { email: "guest.sci@uog.com", name: "Maria Garcia", faculty: "Faculty of Science" },
-    { email: "priya.shah@uog.com", name: "Priya Shah", faculty: "Faculty of Medicine" },
+    { email: "priya.shah@uog.com", name: "Priya Shah", faculty: "Faculty of Business" },
   ];
   for (const g of guestData) {
     await ensureUser(g.email, g.name, "GUEST", fac[g.faculty]);
@@ -515,7 +516,7 @@ async function main() {
     await ensureUser(g.email, g.name, "GUEST", fac[g.faculty]);
   }
 
-  console.log(`✓ Staff: 2 admins, 1 manager, 5 coordinators, ${5 + selfRegisteredGuests.length} guests (5 admin-created + ${selfRegisteredGuests.length} self-registered)`);
+  console.log(`✓ Staff: 3 admins, 1 manager, 5 coordinators, ${5 + selfRegisteredGuests.length} guests (5 admin-created + ${selfRegisteredGuests.length} self-registered)`);
 
   // Set mustChangePassword for admin-created guests (simulates admin-created accounts)
   await prisma.user.update({
@@ -529,13 +530,13 @@ async function main() {
 
   // Keep a few named students for easy testing
   const namedStudents = [
-    { email: "david.park@uog.com", name: "David Park", faculty: "Faculty of Engineering" },
+    { email: "david.park@uog.com", name: "David Park", faculty: "Faculty of Business" },
     { email: "charlie.brown@uog.com", name: "Charlie Brown", faculty: "Faculty of Engineering" },
     { email: "ivan.petrov@uog.com", name: "Ivan Petrov", faculty: "Faculty of Engineering" },
     { email: "alice.wong@uog.com", name: "Alice Wong", faculty: "Faculty of Science" },
     { email: "bob.smith@uog.com", name: "Bob Smith", faculty: "Faculty of Science" },
     { email: "julia.santos@uog.com", name: "Julia Santos", faculty: "Faculty of Science" },
-    { email: "emily.rodriguez@uog.com", name: "Emily Rodriguez", faculty: "Faculty of Arts and Humanities" },
+    { email: "emily.rodriguez@uog.com", name: "Emily Rodriguez", faculty: "Faculty of Business" },
     { email: "fiona.clark@uog.com", name: "Fiona Clark", faculty: "Faculty of Arts and Humanities" },
     { email: "diana.lee@uog.com", name: "Diana Lee", faculty: "Faculty of Business" },
     { email: "hannah.jones@uog.com", name: "Hannah Jones", faculty: "Faculty of Business" },
@@ -1155,8 +1156,8 @@ async function main() {
   console.log(`  Academic Years: ${academicYears.length} (2025-2026 active)`);
   console.log(`  Faculties:      ${FACULTY_NAMES.length}`);
   console.log(`  Students:       ${allStudents.length}`);
-  console.log(`  Staff:          2 admins, 1 manager, 5 coordinators, ${totalGuests} guests`);
-  console.log(`  Total Users:    ${allStudents.length + 8 + totalGuests}`);
+  console.log(`  Staff:          3 admins, 1 manager, 5 coordinators, ${totalGuests} guests`);
+  console.log(`  Total Users:    ${allStudents.length + 9 + totalGuests}`);
   console.log(`  Submissions:    ${submissionCount}`);
   console.log(`  Comments:       ${commentCount}`);
   console.log(`  Sessions:       ${sessionCount}`);
@@ -1166,18 +1167,20 @@ async function main() {
   console.log("\n  Login credentials (all passwords: 'password'):");
   console.log("  ─────────────────────────────────────────────");
   console.log("  Admin:          sarah.johnson@uog.com");
+  console.log("  Admin:          jordan@gmail.com");
   console.log("  Manager:        michael.chen@uog.com");
   console.log("  Coord (Eng):    tom.baker@uog.com");
-  console.log("  Coord (Biz):    james.taylor@uog.com");
+  console.log("  Coord (Biz):    jessica.williams@uog.com");
   console.log("  Coord (Arts):   lisa.nguyen@uog.com");
-  console.log("  Coord (Sci):    jessica.williams@uog.com");
+  console.log("  Coord (Sci):    james.taylor@uog.com");
   console.log("  Coord (Med):    anna.patel@uog.com");
   console.log("  Guest (admin):  guest.eng@uog.com  (mustChangePassword)");
+  console.log("  Guest (Biz):    priya.shah@uog.com");
   console.log("  Guest (self):   kate.miller@gmail.com");
-  console.log("  Student (Eng):  david.park@uog.com");
   console.log("  Student (Eng):  charlie.brown@uog.com  (mustChangePassword)");
   console.log("  Student (Sci):  alice.wong@uog.com");
-  console.log("  Student (Arts): emily.rodriguez@uog.com");
+  console.log("  Student (Biz):  david.park@uog.com");
+  console.log("  Student (Biz):  emily.rodriguez@uog.com");
   console.log("  Student (Biz):  diana.lee@uog.com");
   console.log("  Student (Med):  ethan.moore@uog.com");
   console.log("");
